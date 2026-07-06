@@ -1,0 +1,26 @@
+/* src/components/Loader.css */
+.loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: white;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .spinner {
+    width: 60px;
+    height: 60px;
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #dc2626;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  

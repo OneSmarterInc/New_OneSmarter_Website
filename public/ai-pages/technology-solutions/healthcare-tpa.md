@@ -1,0 +1,38 @@
+# Healthcare & TPA Technology | OneSmarter
+
+URL: https://www.onesmarter.com/technology-solutions/healthcare-tpa
+
+## Summary
+Healthcare and TPA technology services for workflow modernization, secure systems, reporting, integration, and support.
+
+## Category
+Technology Solutions
+
+## Audience
+Healthcare providers, TPAs, and healthcare operations teams.
+
+## Key Offerings
+- Workflow modernization
+- Reporting
+- Data integration
+- Secure operational systems
+
+## Trust And Compliance Notes
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Built for HIPAA-regulated workflows where applicable
+
+## Related Pages
+- [HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/hipaa.md)
+- [Claims Processing Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/claims-processing-services.md)
+- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md)
+
+## Contact
+Email: care@onesmarter.com
+
+Phone: +1 937 344 6241
+
+Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223

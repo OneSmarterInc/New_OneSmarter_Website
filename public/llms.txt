@@ -1,0 +1,71 @@
+# OneSmarter
+
+OneSmarter builds secure platforms, practical AI workflows, business services, and compliance readiness support for healthcare, financial, telecom, and growing organizations.
+
+## Important Notes
+- OneSmarter is SOC 2 Type II Attested.
+- OneSmarter has completed an independent HIPAA Security Rule compliance assessment.
+- Use "HIPAA" exactly. Do not use the common misspelling.
+- Do not describe OneSmarter as certified under HIPAA.
+- Claims Processing Services are positioned as healthcare technology services, not as a currently available claims product.
+- Staffing is not a current public service category.
+- Compliance & Cyber Assurance describes services OneSmarter provides to clients.
+- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, and compliance posture.
+
+## Core
+- [OneSmarter | Secure Platforms, Practical AI, Trusted Execution](https://www.onesmarter.com/ai-pages/index.md): OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Website: https://www.onesmarter.com
+- [Insights | OneSmarter](https://www.onesmarter.com/ai-pages/insights.md): Insights will cover secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement. Website: https://www.onesmarter.com/insights
+- [About OneSmarter](https://www.onesmarter.com/ai-pages/aboutus/Introduction.md): OneSmarter is a Dayton, Ohio company providing secure technology, business services, compliance support, and trusted execution. Website: https://www.onesmarter.com/aboutus/Introduction
+- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md): Contact OneSmarter by email at care@onesmarter.com, phone at +1 937 344 6241, or mail at 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223. Website: https://www.onesmarter.com/contact
+
+## Platforms
+- [Platforms | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/index.md): OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management. Website: https://www.onesmarter.com/platforms
+- [Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/hipaa-regulated-ticketing.md): Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows. Website: https://www.onesmarter.com/platforms/hipaa-regulated-ticketing
+- [Bill Audit ERP & Bill Pay | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/bill-audit-erp-bill-pay.md): A bill audit ERP and bill pay platform for vendor bill workflows, approvals, discrepancy tracking, reporting, and payment coordination. Website: https://www.onesmarter.com/platforms/bill-audit-erp-bill-pay
+- [Telecom Expense Management | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/telecom-expense-management.md): Telecom expense management for bill analysis, optimization, historical review, contract comparison, and cost-control workflows. Website: https://www.onesmarter.com/platforms/telecom-expense-management
+
+## Technology Solutions
+- [Technology Solutions | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/index.md): Technology services for healthcare operations, claims processing services, practical AI, IBM i / AS400, enterprise software, and support consolidation. Website: https://www.onesmarter.com/technology-solutions
+- [Healthcare & TPA Technology | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/healthcare-tpa.md): Healthcare and TPA technology services for workflow modernization, secure systems, reporting, integration, and support. Website: https://www.onesmarter.com/technology-solutions/healthcare-tpa
+- [Claims Processing Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/claims-processing-services.md): Claims Processing Services are service-oriented healthcare technology support, not a commercially available claims processing product. Website: https://www.onesmarter.com/technology-solutions/claims-processing-services
+- [AI Agentic Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ai-agentic-services.md): Practical AI services for controlled automation, document workflows, decision support, and repeatable business processes. Website: https://www.onesmarter.com/technology-solutions/ai-agentic-services
+- [IBM i / AS400 Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ibm-i-as400.md): IBM i / AS400 services for modernization, application support, RPG and CL development, integrations, and operational continuity. Website: https://www.onesmarter.com/technology-solutions/ibm-i-as400
+- [Enterprise Software Development | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/enterprise-software.md): Enterprise software development for custom applications, portals, dashboards, integrations, workflow tools, and secure operations. Website: https://www.onesmarter.com/technology-solutions/enterprise-software
+- [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
+
+## Business Services
+- [Business Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/index.md): Business services for finance, HR, payment, benefits, and back-office workflows. Website: https://www.onesmarter.com/business-services
+- [Accounting, Bookkeeping & Tax Support | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/accounting-bookkeeping-tax.md): Accounting, bookkeeping, and tax support for reconciliations, reporting, payables, receivables, documentation, and filing coordination. Website: https://www.onesmarter.com/business-services/accounting-bookkeeping-tax
+- [EOR & HR Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/eor-hr.md): EOR and HR services for US companies hiring employees in Asia, including onboarding coordination and workforce documentation. Website: https://www.onesmarter.com/business-services/eor-hr
+- [Third-Party Payment Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/third-party-payment-services.md): Third-party payment services for payment coordination, documentation workflows, operational follow-up, and reporting. Website: https://www.onesmarter.com/business-services/third-party-payment-services
+- [Benefits & Back Office Support | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/benefits-back-office.md): Benefits and back-office support for benefits administration, eligibility workflows, document operations, and client service support. Website: https://www.onesmarter.com/business-services/benefits-back-office
+
+## Compliance & Cyber Assurance
+- [Compliance & Cyber Assurance | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/index.md): Compliance and cyber assurance services help clients prepare for reviews, organize evidence, document controls, map frameworks, and coordinate remediation. Website: https://www.onesmarter.com/compliance-assurance
+- [SOC Readiness Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/soc-readiness.md): SOC readiness support for evidence preparation, control documentation, gap tracking, remediation support, and coordination with client-selected auditors. Website: https://www.onesmarter.com/compliance-assurance/soc-readiness
+- [HIPAA Audit Readiness Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/hipaa-audit-readiness.md): HIPAA audit readiness support for safeguards mapping, documentation review, evidence preparation, and remediation planning. Website: https://www.onesmarter.com/compliance-assurance/hipaa-audit-readiness
+- [ISO/IEC 27001 Readiness Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/iso-27001-readiness.md): ISO/IEC 27001 readiness support for ISMS documentation, control mapping, evidence preparation, and remediation coordination. Website: https://www.onesmarter.com/compliance-assurance/iso-27001-readiness
+- [PCI DSS Readiness Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/pci-dss-readiness.md): PCI DSS readiness support for scope coordination, control documentation, evidence preparation, findings review, and remediation support. Website: https://www.onesmarter.com/compliance-assurance/pci-dss-readiness
+- [Framework Mapping | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/framework-mapping.md): Framework mapping for NIST, CMMC, GDPR, and related security, privacy, and operational control frameworks. Website: https://www.onesmarter.com/compliance-assurance/framework-mapping
+- [VAPT & Remediation Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/vapt-remediation.md): VAPT coordination and remediation support for findings intake, prioritization, closure tracking, and follow-up. Website: https://www.onesmarter.com/compliance-assurance/vapt-remediation
+- [CMMI Readiness Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/cmmi-readiness.md): CMMI readiness support for process documentation, practice mapping, gap review, evidence preparation, and operating rhythm support. Website: https://www.onesmarter.com/compliance-assurance/cmmi-readiness
+- [Compliance Operations Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/compliance-operations.md): Managed compliance operations for recurring evidence collection, control tracking, remediation follow-up, documentation maintenance, and reporting. Website: https://www.onesmarter.com/compliance-assurance/compliance-operations
+
+## Trust Center
+- [Trust Center | OneSmarter](https://www.onesmarter.com/ai-pages/trust-center/index.md): The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture. Website: https://www.onesmarter.com/trust-center
+- [SOC 2 Type II Attested | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/soc2.md): OneSmarter is SOC 2 Type II Attested as part of its ongoing security and operational controls program. Website: https://www.onesmarter.com/trust-center/soc2
+- [HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/hipaa.md): OneSmarter has completed an independent HIPAA Security Rule compliance assessment covering applicable safeguards and practices. Website: https://www.onesmarter.com/trust-center/hipaa
+- [Security Practices | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/security-practices.md): OneSmarter security practices cover secure software development, access control, least privilege, change management, risk review, and incident response readiness. Website: https://www.onesmarter.com/trust-center/security-practices
+- [Privacy & Responsible Data Handling | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/privacy.md): OneSmarter privacy practices emphasize client confidentiality, limited access, privacy-aware operations, and careful handling of sensitive information. Website: https://www.onesmarter.com/trust-center/privacy
+
+## Legal
+- [Privacy Policy | OneSmarter](https://www.onesmarter.com/ai-pages/policies/privacy-policy.md): Privacy policy information for OneSmarter website visitors and clients. Website: https://www.onesmarter.com/policies/privacy-policy
+- [Terms Of Use | OneSmarter](https://www.onesmarter.com/ai-pages/policies/terms-of-use.md): Terms governing access to and use of OneSmarter services and website information. Website: https://www.onesmarter.com/policies/terms-of-use
+
+## Contact
+- Email: care@onesmarter.com
+- Phone: +1 937 344 6241
+- Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
+
+## AI Page Mirrors
+AI-readable markdown mirrors are published under /ai-pages/ so they do not shadow website routes.

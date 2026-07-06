@@ -1,0 +1,965 @@
+# OneSmarter Public LLM Reference
+
+This file is a public, AI-readable reference for OneSmarter's website. It summarizes public pages, service taxonomy, approved trust wording, and contact details.
+
+## Public Positioning
+OneSmarter is organized around Platforms, Technology Solutions, Business Services, Compliance & Cyber Assurance, and the Trust Center.
+
+## Approved Trust Language
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Independent HIPAA Security Rule compliance assessment
+- HIPAA Security Rule Assessed
+- Built for HIPAA-regulated workflows
+- Designed for PHI-sensitive workflows
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Public Taxonomy
+- Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; Insights | OneSmarter; About OneSmarter; Contact OneSmarter
+- Platforms: Platforms | OneSmarter; Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter; Bill Audit ERP & Bill Pay | OneSmarter; Telecom Expense Management | OneSmarter
+- Technology Solutions: Technology Solutions | OneSmarter; Healthcare & TPA Technology | OneSmarter; Claims Processing Services | OneSmarter; AI Agentic Services | OneSmarter; IBM i / AS400 Services | OneSmarter; Enterprise Software Development | OneSmarter; Software Support Consolidation | OneSmarter
+- Business Services: Business Services | OneSmarter; Accounting, Bookkeeping & Tax Support | OneSmarter; EOR & HR Services | OneSmarter; Third-Party Payment Services | OneSmarter; Benefits & Back Office Support | OneSmarter
+- Compliance & Cyber Assurance: Compliance & Cyber Assurance | OneSmarter; SOC Readiness Support | OneSmarter; HIPAA Audit Readiness Support | OneSmarter; ISO/IEC 27001 Readiness Support | OneSmarter; PCI DSS Readiness Support | OneSmarter; Framework Mapping | OneSmarter; VAPT & Remediation Support | OneSmarter; CMMI Readiness Support | OneSmarter; Compliance Operations Support | OneSmarter
+- Trust Center: Trust Center | OneSmarter; SOC 2 Type II Attested | OneSmarter Trust Center; HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center; Security Practices | OneSmarter Trust Center; Privacy & Responsible Data Handling | OneSmarter Trust Center
+- Legal: Privacy Policy | OneSmarter; Terms Of Use | OneSmarter
+
+## Page Directory
+## OneSmarter | Secure Platforms, Practical AI, Trusted Execution
+
+Website URL: https://www.onesmarter.com
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/index.md
+
+Category: Core
+
+Audience: Healthcare, financial, telecom, and growing organizations.
+
+Summary: OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Key offerings include Platforms, Technology Solutions, Business Services, Compliance & Cyber Assurance, Trust Center.
+
+Key offerings:
+- Platforms
+- Technology Solutions
+- Business Services
+- Compliance & Cyber Assurance
+- Trust Center
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Platforms | OneSmarter
+
+Website URL: https://www.onesmarter.com/platforms
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/platforms/index.md
+
+Category: Platforms
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management. Key offerings include Ticketing & Case Management for HIPAA-Regulated Workflows, Bill Audit ERP & Bill Pay, Telecom Expense Management.
+
+Key offerings:
+- Ticketing & Case Management for HIPAA-Regulated Workflows
+- Bill Audit ERP & Bill Pay
+- Telecom Expense Management
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter
+
+Website URL: https://www.onesmarter.com/platforms/hipaa-regulated-ticketing
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/platforms/hipaa-regulated-ticketing.md
+
+Category: Platforms
+
+Audience: Healthcare and operational teams managing PHI-sensitive workflows.
+
+Summary: Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows. Key offerings include Secure intake, Role-based access, Audit history, Controlled communication, Workflow tracking.
+
+Key offerings:
+- Secure intake
+- Role-based access
+- Audit history
+- Controlled communication
+- Workflow tracking
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Built for HIPAA-regulated workflows
+- Designed for PHI-sensitive workflows
+- Supports compliance-aware ticketing and case management
+
+## Bill Audit ERP & Bill Pay | OneSmarter
+
+Website URL: https://www.onesmarter.com/platforms/bill-audit-erp-bill-pay
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/platforms/bill-audit-erp-bill-pay.md
+
+Category: Platforms
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: A bill audit ERP and bill pay platform for vendor bill workflows, approvals, discrepancy tracking, reporting, and payment coordination. Key offerings include Vendor bill intake, Bill audit, Contract analysis, Approval workflows, Reporting.
+
+Key offerings:
+- Vendor bill intake
+- Bill audit
+- Contract analysis
+- Approval workflows
+- Reporting
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Telecom Expense Management | OneSmarter
+
+Website URL: https://www.onesmarter.com/platforms/telecom-expense-management
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/platforms/telecom-expense-management.md
+
+Category: Platforms
+
+Audience: Organizations managing more than 100 mobile devices.
+
+Summary: Telecom expense management for bill analysis, optimization, historical review, contract comparison, and cost-control workflows. Key offerings include Bill analysis, Optimization, Historical review, Contract comparison, Cost-control reporting.
+
+Key offerings:
+- Bill analysis
+- Optimization
+- Historical review
+- Contract comparison
+- Cost-control reporting
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Technology Solutions | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/index.md
+
+Category: Technology Solutions
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Technology services for healthcare operations, claims processing services, practical AI, IBM i / AS400, enterprise software, and support consolidation. Key offerings include Healthcare & TPA Technology, Claims Processing Services, AI Agentic Services, IBM i / AS400 Services, Enterprise Software Development.
+
+Key offerings:
+- Healthcare & TPA Technology
+- Claims Processing Services
+- AI Agentic Services
+- IBM i / AS400 Services
+- Enterprise Software Development
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Healthcare & TPA Technology | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions/healthcare-tpa
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/healthcare-tpa.md
+
+Category: Technology Solutions
+
+Audience: Healthcare providers, TPAs, and healthcare operations teams.
+
+Summary: Healthcare and TPA technology services for workflow modernization, secure systems, reporting, integration, and support. Key offerings include Workflow modernization, Reporting, Data integration, Secure operational systems.
+
+Key offerings:
+- Workflow modernization
+- Reporting
+- Data integration
+- Secure operational systems
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Built for HIPAA-regulated workflows where applicable
+
+## Claims Processing Services | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions/claims-processing-services
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/claims-processing-services.md
+
+Category: Technology Solutions
+
+Audience: Healthcare and TPA teams that need claims workflow support.
+
+Summary: Claims Processing Services are service-oriented healthcare technology support, not a commercially available claims processing product. Key offerings include Claims workflow modernization, Claims technology support, Member and provider portals, Legacy data integration, Reporting.
+
+Key offerings:
+- Claims workflow modernization
+- Claims technology support
+- Member and provider portals
+- Legacy data integration
+- Reporting
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Secure healthcare technology delivery
+- Designed for PHI-sensitive workflows where applicable
+
+## AI Agentic Services | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions/ai-agentic-services
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/ai-agentic-services.md
+
+Category: Technology Solutions
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Practical AI services for controlled automation, document workflows, decision support, and repeatable business processes. Key offerings include AI-assisted workflow design, Document automation, Human-in-the-loop review, Enterprise integration.
+
+Key offerings:
+- AI-assisted workflow design
+- Document automation
+- Human-in-the-loop review
+- Enterprise integration
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## IBM i / AS400 Services | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions/ibm-i-as400
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/ibm-i-as400.md
+
+Category: Technology Solutions
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: IBM i / AS400 services for modernization, application support, RPG and CL development, integrations, and operational continuity. Key offerings include Application modernization, RPG support, CL development, Integrations, Operational continuity.
+
+Key offerings:
+- Application modernization
+- RPG support
+- CL development
+- Integrations
+- Operational continuity
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Enterprise Software Development | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions/enterprise-software
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/enterprise-software.md
+
+Category: Technology Solutions
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Enterprise software development for custom applications, portals, dashboards, integrations, workflow tools, and secure operations. Key offerings include Custom applications, Integrations, Dashboards, Portals, Workflow tools.
+
+Key offerings:
+- Custom applications
+- Integrations
+- Dashboards
+- Portals
+- Workflow tools
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Software Support Consolidation | OneSmarter
+
+Website URL: https://www.onesmarter.com/technology-solutions/software-support-consolidation
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md
+
+Category: Technology Solutions
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity. Key offerings include Maintenance, Enhancements, Issue resolution, Documentation, Knowledge transfer.
+
+Key offerings:
+- Maintenance
+- Enhancements
+- Issue resolution
+- Documentation
+- Knowledge transfer
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Business Services | OneSmarter
+
+Website URL: https://www.onesmarter.com/business-services
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/business-services/index.md
+
+Category: Business Services
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Business services for finance, HR, payment, benefits, and back-office workflows. Key offerings include Accounting, Bookkeeping & Tax Support, EOR & HR Services, Third-Party Payment Services, Benefits & Back Office Support.
+
+Key offerings:
+- Accounting, Bookkeeping & Tax Support
+- EOR & HR Services
+- Third-Party Payment Services
+- Benefits & Back Office Support
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Accounting, Bookkeeping & Tax Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/business-services/accounting-bookkeeping-tax
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/business-services/accounting-bookkeeping-tax.md
+
+Category: Business Services
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Accounting, bookkeeping, and tax support for reconciliations, reporting, payables, receivables, documentation, and filing coordination. Key offerings include Bookkeeping, Reconciliations, Reporting support, Payables and receivables, Tax documentation support.
+
+Key offerings:
+- Bookkeeping
+- Reconciliations
+- Reporting support
+- Payables and receivables
+- Tax documentation support
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## EOR & HR Services | OneSmarter
+
+Website URL: https://www.onesmarter.com/business-services/eor-hr
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/business-services/eor-hr.md
+
+Category: Business Services
+
+Audience: US companies hiring employees in Asia.
+
+Summary: EOR and HR services for US companies hiring employees in Asia, including onboarding coordination and workforce documentation. Key offerings include Employer of record support, Onboarding coordination, HR administration, Workforce documentation, Payroll coordination.
+
+Key offerings:
+- Employer of record support
+- Onboarding coordination
+- HR administration
+- Workforce documentation
+- Payroll coordination
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Third-Party Payment Services | OneSmarter
+
+Website URL: https://www.onesmarter.com/business-services/third-party-payment-services
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/business-services/third-party-payment-services.md
+
+Category: Business Services
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Third-party payment services for payment coordination, documentation workflows, operational follow-up, and reporting. Key offerings include Payment coordination, Documentation workflows, Payment operations support, Status reporting.
+
+Key offerings:
+- Payment coordination
+- Documentation workflows
+- Payment operations support
+- Status reporting
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Benefits & Back Office Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/business-services/benefits-back-office
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/business-services/benefits-back-office.md
+
+Category: Business Services
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Benefits and back-office support for benefits administration, eligibility workflows, document operations, and client service support. Key offerings include Benefits administration support, Eligibility workflows, Document operations, Client service support, Automation opportunities.
+
+Key offerings:
+- Benefits administration support
+- Eligibility workflows
+- Document operations
+- Client service support
+- Automation opportunities
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Compliance & Cyber Assurance | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/index.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Compliance and cyber assurance services help clients prepare for reviews, organize evidence, document controls, map frameworks, and coordinate remediation. Key offerings include SOC readiness, HIPAA audit readiness, ISO/IEC 27001 readiness, PCI DSS readiness, Framework mapping, VAPT & remediation.
+
+Key offerings:
+- SOC readiness
+- HIPAA audit readiness
+- ISO/IEC 27001 readiness
+- PCI DSS readiness
+- Framework mapping
+- VAPT & remediation
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## SOC Readiness Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/soc-readiness
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/soc-readiness.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: SOC readiness support for evidence preparation, control documentation, gap tracking, remediation support, and coordination with client-selected auditors. Key offerings include SOC 1 readiness, SOC 2 readiness, SOC 3 readiness, Evidence preparation, Control documentation.
+
+Key offerings:
+- SOC 1 readiness
+- SOC 2 readiness
+- SOC 3 readiness
+- Evidence preparation
+- Control documentation
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- OneSmarter does not issue SOC reports
+
+## HIPAA Audit Readiness Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/hipaa-audit-readiness
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/hipaa-audit-readiness.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: HIPAA audit readiness support for safeguards mapping, documentation review, evidence preparation, and remediation planning. Key offerings include Safeguards mapping, Documentation review, Evidence preparation, Remediation planning.
+
+Key offerings:
+- Safeguards mapping
+- Documentation review
+- Evidence preparation
+- Remediation planning
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- This is readiness support and should not be described as a certification
+
+## ISO/IEC 27001 Readiness Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/iso-27001-readiness
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/iso-27001-readiness.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: ISO/IEC 27001 readiness support for ISMS documentation, control mapping, evidence preparation, and remediation coordination. Key offerings include ISMS documentation, Control mapping, Evidence preparation, Remediation coordination.
+
+Key offerings:
+- ISMS documentation
+- Control mapping
+- Evidence preparation
+- Remediation coordination
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- OneSmarter does not issue ISO certificates
+
+## PCI DSS Readiness Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/pci-dss-readiness
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/pci-dss-readiness.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: PCI DSS readiness support for scope coordination, control documentation, evidence preparation, findings review, and remediation support. Key offerings include Scope coordination, Control documentation, Evidence preparation, Findings review, Remediation support.
+
+Key offerings:
+- Scope coordination
+- Control documentation
+- Evidence preparation
+- Findings review
+- Remediation support
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Positioned as readiness support, not a PCI compliance claim
+
+## Framework Mapping | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/framework-mapping
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/framework-mapping.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Framework mapping for NIST, CMMC, GDPR, and related security, privacy, and operational control frameworks. Key offerings include Framework crosswalks, Control mapping, Gap tracking, Requirement alignment.
+
+Key offerings:
+- Framework crosswalks
+- Control mapping
+- Gap tracking
+- Requirement alignment
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## VAPT & Remediation Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/vapt-remediation
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/vapt-remediation.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: VAPT coordination and remediation support for findings intake, prioritization, closure tracking, and follow-up. Key offerings include VAPT coordination, Findings review, Remediation planning, Closure tracking.
+
+Key offerings:
+- VAPT coordination
+- Findings review
+- Remediation planning
+- Closure tracking
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## CMMI Readiness Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/cmmi-readiness
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/cmmi-readiness.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: CMMI readiness support for process documentation, practice mapping, gap review, evidence preparation, and operating rhythm support. Key offerings include Process documentation, Practice mapping, Gap review, Evidence preparation.
+
+Key offerings:
+- Process documentation
+- Practice mapping
+- Gap review
+- Evidence preparation
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Compliance Operations Support | OneSmarter
+
+Website URL: https://www.onesmarter.com/compliance-assurance/compliance-operations
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/compliance-assurance/compliance-operations.md
+
+Category: Compliance & Cyber Assurance
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Managed compliance operations for recurring evidence collection, control tracking, remediation follow-up, documentation maintenance, and reporting. Key offerings include Evidence collection, Control tracking, Remediation follow-up, Documentation maintenance, Reporting.
+
+Key offerings:
+- Evidence collection
+- Control tracking
+- Remediation follow-up
+- Documentation maintenance
+- Reporting
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Trust Center | OneSmarter
+
+Website URL: https://www.onesmarter.com/trust-center
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/trust-center/index.md
+
+Category: Trust Center
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture. Key offerings include SOC 2 Type II Attested, HIPAA Security Rule Compliance Assessment Completed, Security Practices, Privacy.
+
+Key offerings:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Security Practices
+- Privacy
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## SOC 2 Type II Attested | OneSmarter Trust Center
+
+Website URL: https://www.onesmarter.com/trust-center/soc2
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/trust-center/soc2.md
+
+Category: Trust Center
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter is SOC 2 Type II Attested as part of its ongoing security and operational controls program. Key offerings include Independent attestation, Security controls, Operational discipline, Ongoing monitoring.
+
+Key offerings:
+- Independent attestation
+- Security controls
+- Operational discipline
+- Ongoing monitoring
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Use attestation language, not certification language
+
+## HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center
+
+Website URL: https://www.onesmarter.com/trust-center/hipaa
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/trust-center/hipaa.md
+
+Category: Trust Center
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter has completed an independent HIPAA Security Rule compliance assessment covering applicable safeguards and practices. Key offerings include Administrative safeguards, Technical safeguards, Physical safeguards, Access management, Ongoing risk awareness.
+
+Key offerings:
+- Administrative safeguards
+- Technical safeguards
+- Physical safeguards
+- Access management
+- Ongoing risk awareness
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- HIPAA Security Rule Assessed
+- Do not describe this assessment as a certification
+
+## Security Practices | OneSmarter Trust Center
+
+Website URL: https://www.onesmarter.com/trust-center/security-practices
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/trust-center/security-practices.md
+
+Category: Trust Center
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter security practices cover secure software development, access control, least privilege, change management, risk review, and incident response readiness. Key offerings include Secure software development, Access control, Least privilege, Change management, Risk review, Incident response readiness.
+
+Key offerings:
+- Secure software development
+- Access control
+- Least privilege
+- Change management
+- Risk review
+- Incident response readiness
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Privacy & Responsible Data Handling | OneSmarter Trust Center
+
+Website URL: https://www.onesmarter.com/trust-center/privacy
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/trust-center/privacy.md
+
+Category: Trust Center
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter privacy practices emphasize client confidentiality, limited access, privacy-aware operations, and careful handling of sensitive information. Key offerings include Client confidentiality, Responsible data handling, Limited access, Privacy-aware operations.
+
+Key offerings:
+- Client confidentiality
+- Responsible data handling
+- Limited access
+- Privacy-aware operations
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Insights | OneSmarter
+
+Website URL: https://www.onesmarter.com/insights
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/insights.md
+
+Category: Core
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Insights will cover secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement. Key offerings include Healthcare technology, AI operations, IBM i modernization, Compliance readiness.
+
+Key offerings:
+- Healthcare technology
+- AI operations
+- IBM i modernization
+- Compliance readiness
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## About OneSmarter
+
+Website URL: https://www.onesmarter.com/aboutus/Introduction
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/aboutus/Introduction.md
+
+Category: Core
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter is a Dayton, Ohio company providing secure technology, business services, compliance support, and trusted execution. Key offerings include Company overview, Mission, Vision.
+
+Key offerings:
+- Company overview
+- Mission
+- Vision
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Contact OneSmarter
+
+Website URL: https://www.onesmarter.com/contact
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/contact.md
+
+Category: Core
+
+Audience: Prospects, clients, and partners.
+
+Summary: Contact OneSmarter by email at care@onesmarter.com, phone at +1 937 344 6241, or mail at 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223. Key offerings include Email, Phone, Address.
+
+Key offerings:
+- Email
+- Phone
+- Address
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Privacy Policy | OneSmarter
+
+Website URL: https://www.onesmarter.com/policies/privacy-policy
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/policies/privacy-policy.md
+
+Category: Legal
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Privacy policy information for OneSmarter website visitors and clients. Key offerings include Privacy policy.
+
+Key offerings:
+- Privacy policy
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Terms Of Use | OneSmarter
+
+Website URL: https://www.onesmarter.com/policies/terms-of-use
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/policies/terms-of-use.md
+
+Category: Legal
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: Terms governing access to and use of OneSmarter services and website information. Key offerings include Terms Of Use.
+
+Key offerings:
+- Terms Of Use
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+
+## Contact
+Email: care@onesmarter.com
+
+Phone: +1 937 344 6241
+
+Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
+
+## Claim Boundaries
+- Do not describe OneSmarter as certified under HIPAA.
+- Do not describe Claims Processing Services as a commercially available claims product.
+- Do not describe OneSmarter as issuing SOC reports or ISO/IEC 27001 certificates.
+- Use PCI DSS readiness language unless a specific assessment authority is documented.
+- Do not describe staffing as a current public service category.
