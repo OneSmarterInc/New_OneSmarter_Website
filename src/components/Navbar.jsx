@@ -200,7 +200,7 @@ const Navbar = () => {
 
         <ul className="ml-8 hidden flex-1 items-center justify-end gap-2 md:flex lg:ml-12 lg:gap-4 xl:gap-5">
           {navGroups.map((group) => (
-            <li key={group.label} className="group relative flex items-center py-3">
+            <li key={group.label} className="group relative flex items-center py-0.5">
               <Link
                 to={group.path}
                 className="relative z-50 flex items-center whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-500 transition-all duration-300 group-hover:bg-zinc-950/80 group-hover:text-white hover:text-white lg:text-[14px] xl:text-[15px]"
@@ -210,12 +210,12 @@ const Navbar = () => {
                   <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
                 </svg>
               </Link>
-              <ul className="invisible absolute left-0 top-full z-40 mt-2 w-80 rounded border border-red-700/50 bg-zinc-950 py-2 opacity-0 shadow-2xl shadow-black/40 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+              <ul className="invisible absolute left-0 top-full z-40 mt-1 w-80 rounded-md border border-white/10 bg-[#111111] py-1.5 opacity-0 shadow-lg shadow-black/30 transition-all duration-200 group-hover:visible group-hover:opacity-100">
                 {group.items.map((item) => (
                   <li key={item.path}>
                     <Link
                       to={item.path}
-                      className="block px-4 py-2.5 text-sm leading-5 text-white transition hover:bg-red-600"
+                      className="block px-4 py-2 text-sm leading-5 text-zinc-100 transition hover:bg-red-950/45 hover:text-white"
                     >
                       {item.label}
                     </Link>
