@@ -210,11 +210,11 @@ const HipaaBadge = () => (
 const TrustBadges = () => (
   <div className="grid min-w-0 gap-4 lg:grid-cols-2">
     <div className="flex min-w-0 flex-col items-start gap-4 rounded border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
-      <div className="rounded bg-white p-2">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
         <img
           src={soclogo}
           alt="SOC 2 Type II Attested"
-          className="h-12 w-auto object-contain"
+          className="h-full w-full object-cover"
         />
       </div>
       <div className="min-w-0">

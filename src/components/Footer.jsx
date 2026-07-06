@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import soclogo from "../assets/soc.jpg";
+import hipaaLogo from "../assets/Hippa-transparent.png";
 
 const footerColumns = [
   {
@@ -80,17 +81,31 @@ const Footer = () => {
               readiness support for organizations that need dependable
               execution.
             </p>
-            <div className="mt-6 flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <img
-                src={soclogo}
-                alt="SOC 2 Type II Attested"
-                className="h-12 w-auto rounded bg-white p-1"
-              />
-              <div className="min-w-0">
-                <p className="font-semibold text-white">SOC 2 Type II Attested</p>
-                <p className="break-words text-xs leading-5 text-gray-400">
-                  HIPAA Security Rule Compliance Assessment Completed
+            <div className="mt-6 flex min-w-0 max-w-sm flex-col gap-4">
+              <div className="flex min-w-0 items-center gap-4 rounded-xl border border-white/10 p-4">
+                <img
+                  src={soclogo}
+                  alt="SOC 2 Type II Attested"
+                  className="h-14 w-14 shrink-0 rounded-lg bg-white object-contain p-1"
+                />
+                <p className="min-w-0 break-words font-semibold text-white">
+                  SOC 2 Type II Attested
                 </p>
+              </div>
+              <div className="flex min-w-0 items-center gap-4 rounded-xl border border-white/10 p-4">
+                <img
+                  src={hipaaLogo}
+                  alt="HIPAA Security Rule Assessment Completed"
+                  className="h-14 w-14 shrink-0 rounded-lg bg-white object-contain p-1"
+                />
+                <div className="min-w-0">
+                  <p className="break-words font-semibold text-white">
+                    HIPAA Security Rule
+                  </p>
+                  <p className="break-words text-xs leading-5 text-gray-400">
+                    Assessment Completed
+                  </p>
+                </div>
               </div>
             </div>
           </div>
