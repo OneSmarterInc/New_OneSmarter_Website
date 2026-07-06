@@ -1,9 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ShieldCheck, Cloud, Users, BrainCircuit } from "lucide-react";
 import bannerImage from "../assets/home-banner.png";
 import bgImage from "../assets/bg-1.jpg";
-import soclogo from "../assets/soc1.png";
-import HipaaBadge from "./HipaaBadge";
+import soclogo from "../assets/soc-2-transparent.png";
+import hipaaLogo from "../assets/Hippa-transparent.png";
 
 const offeringCards = [
   {
@@ -30,6 +31,29 @@ const offeringCards = [
     title: "Trust Center",
     path: "/trust-center",
     copy: "OneSmarter's SOC 2 Type II attestation, HIPAA Security Rule assessment, security practices, privacy, and compliance posture.",
+  },
+];
+
+const heroFeatures = [
+  {
+    icon: ShieldCheck,
+    title: "Secure By Design",
+    copy: "Security is built into every solution we develop.",
+  },
+  {
+    icon: Cloud,
+    title: "Enterprise Grade",
+    copy: "Scalable, reliable solutions for mission-critical systems.",
+  },
+  {
+    icon: Users,
+    title: "Trusted Partner",
+    copy: "Dedicated to protecting your data and your business.",
+  },
+  {
+    icon: BrainCircuit,
+    title: "Innovative Solutions",
+    copy: "AI, automation, and modern technology for the future.",
   },
 ];
 
@@ -77,8 +101,8 @@ const whyOneSmarter = [
     copy: "Hands-on background with healthcare operations, claims workflows, and IBM i / AS400 environments.",
   },
   {
-    title: "Global delivery and support capability",
-    copy: "Flexible delivery and support for organizations that need accountable execution across time zones.",
+    title: "Asia-based delivery and support capability",
+    copy: "Flexible delivery support for organizations that need accountable execution across time zones.",
   },
   {
     title: "Compliance-aware operations",
@@ -94,27 +118,25 @@ const Banner = () => {
         style={{ backgroundImage: `url(${bgImage})` }}
       >
         <div className="absolute inset-0 bg-black/80" />
-        <div className="qa-container relative mx-auto grid items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:py-24 lg:px-12 lg:py-32">
+        <div className="qa-container relative mx-auto grid items-center gap-10 px-4 pb-10 pt-20 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:pt-24 lg:px-12 lg:pt-32">
           <div className="min-w-0" data-aos="fade-up" data-aos-duration="800">
-            <p className="mb-5 max-w-full text-sm font-semibold uppercase leading-6 text-red-400">
+            {/* <p className="mb-5 max-w-full text-sm font-semibold uppercase leading-6 text-red-400">
               Secure platforms, practical AI, and trusted execution
-            </p>
+            </p> */}
 
             <h1 className="max-w-4xl break-words text-3xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-              Secure Platforms.
+              BRINGING ART TO
               <br />
-              Practical AI.
-              <br />
-              <span className="text-red-500">Trusted Execution.</span>
+              <span className="text-red-500">CODING.</span>
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-gray-200 sm:text-lg">
-              OneSmarter builds secure platforms, AI-enabled workflows, business
-              services, and compliance readiness support for healthcare,
-              financial, telecom, and growing organizations.
+              Our Goal Is To Create Solutions
+              <br />
+              That Are Effective And Powerful,  <span className="text-red-500">Not Just Functional</span>
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {/* <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/platforms"
                 className="inline-flex items-center justify-center rounded bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
@@ -127,25 +149,49 @@ const Banner = () => {
               >
                 Talk to Us
               </Link>
-            </div>
+            </div> */}
 
-            <div className="mt-8 grid w-full max-w-2xl min-w-0 gap-3 overflow-hidden rounded border border-white/15 bg-white/[0.06] p-4 text-xs text-gray-100 sm:grid-cols-2 sm:text-sm">
-              <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-black/20 p-3">
-                <div className="inline-flex h-14 w-20 shrink-0 items-center justify-center rounded bg-white px-2 py-1 text-gray-950">
+            <div className="mt-8 h-px w-24 bg-red-500/60" />
+
+            <div className="mt-6 flex w-full max-w-3xl min-w-0 flex-col divide-y divide-white/10 sm:flex-row sm:items-center sm:divide-x sm:divide-y-0">
+              <div className="flex min-w-0 items-center gap-4 pb-5 sm:pb-0 sm:pr-6">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white sm:h-28 sm:w-28">
                   <img
                     src={soclogo}
-                    alt="SOC 2 Type II Attested"
-                    className="max-h-10 w-auto object-contain"
+                    alt="AICPA SOC 2 Type II Attested"
+                    className="h-full w-full object-cover"
                   />
                 </div>
-                <span className="min-w-0 break-words font-semibold leading-6">
-                  SOC 2 Type II Attested
+                <span className="min-w-0 whitespace-nowrap font-bold uppercase leading-tight tracking-wide text-white">
+                  <span className="text-base sm:text-lg">SOC 2</span>
+                  <br />
+                  <span className="text-base sm:text-lg">Type II</span>
+                  <br />
+                  <span className="text-xs text-red-500 sm:text-sm">Attested</span>
                 </span>
               </div>
-              <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-black/20 p-3">
-                <HipaaBadge compact />
-                <span className="min-w-0 break-words font-semibold leading-6">
-                  HIPAA Security Rule Assessment Completed
+              <div className="flex min-w-0 items-center gap-4 pt-5 sm:pl-6 sm:pt-0">
+                <img
+                  src={hipaaLogo}
+                  alt="HIPAA Security Rule Compliance Assessed"
+                  className="h-28 w-28 shrink-0 object-contain sm:h-32 sm:w-32"
+                />
+                <span className="min-w-0 font-bold uppercase leading-tight tracking-wide text-white">
+                  <span className="whitespace-nowrap text-base sm:text-lg">
+                    HIPAA
+                  </span>
+                  <br />
+                  <span className="whitespace-nowrap text-xs sm:text-sm">
+                    Security Rule
+                  </span>
+                  <br />
+                  <span className="whitespace-nowrap text-xs sm:text-sm">
+                    Compliance
+                  </span>
+                  <br />
+                  <span className="whitespace-nowrap text-xs text-red-500 sm:text-sm">
+                    Assessed
+                  </span>
                 </span>
               </div>
             </div>
@@ -161,6 +207,29 @@ const Banner = () => {
               alt="AI-enabled workflow visual"
               className="h-auto w-full max-w-[260px] object-contain sm:max-w-md lg:max-w-lg"
             />
+          </div>
+        </div>
+
+        <div className="qa-container relative mx-auto -mt-6 px-4 pb-10 sm:px-6 lg:px-12">
+          <div className="grid gap-6 rounded-xl border border-white/15 bg-black p-7 sm:grid-cols-2 sm:divide-x sm:divide-white/15 lg:grid-cols-4 lg:gap-0 lg:p-8">
+            {heroFeatures.map((feature) => (
+              <div
+                key={feature.title}
+                className="flex items-center gap-4 lg:px-6 lg:first:pl-0 lg:last:pr-0"
+              >
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-red-500/60 bg-black/40 text-red-500">
+                  <feature.icon className="h-7 w-7" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold uppercase tracking-wide text-white">
+                    {feature.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-gray-400">
+                    {feature.copy}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

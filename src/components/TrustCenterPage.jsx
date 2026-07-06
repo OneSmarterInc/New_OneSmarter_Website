@@ -1,8 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { LockKeyhole, FileCheck2, Eye, ArrowRight } from "lucide-react";
+import { ShieldCheck, LockKeyhole, FileCheck2, Eye, ArrowRight } from "lucide-react";
 import soclogo from "../assets/soc1.png";
-import HipaaBadge from "./HipaaBadge";
 
 const trustLinks = [
   {
@@ -195,14 +194,27 @@ const detailPages = {
   },
 };
 
+const HipaaBadge = () => (
+  <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded border border-red-500/40 bg-red-950/30 text-center text-white">
+    <ShieldCheck className="mb-1 h-6 w-6 text-red-400" aria-hidden="true" />
+    <span className="text-sm font-bold leading-4">HIPAA</span>
+    <span className="text-[11px] font-semibold leading-4 text-red-100">
+      Security Rule
+    </span>
+    <span className="text-[11px] font-semibold leading-4 text-red-100">
+      Assessed
+    </span>
+  </div>
+);
+
 const TrustBadges = () => (
   <div className="grid min-w-0 gap-4 lg:grid-cols-2">
     <div className="flex min-w-0 flex-col items-start gap-4 rounded border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
-      <div className="rounded bg-white p-2">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
         <img
           src={soclogo}
           alt="SOC 2 Type II Attested"
-          className="h-12 w-auto object-contain"
+          className="h-full w-full object-cover"
         />
       </div>
       <div className="min-w-0">
@@ -219,10 +231,10 @@ const TrustBadges = () => (
       <HipaaBadge />
       <div className="min-w-0">
         <p className="break-words font-semibold text-white">
-          HIPAA Security Rule Compliance
+          HIPAA Security Rule Compliance Assessment Completed
         </p>
         <p className="break-words text-sm leading-6 text-gray-400">
-          Assessment Completed
+          Independent HIPAA Security Rule compliance assessment.
         </p>
       </div>
     </div>

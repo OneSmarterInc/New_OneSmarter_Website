@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import soclogo from "../assets/soc.jpg";
-import HipaaBadge from "./HipaaBadge";
+import hipaaLogo from "../assets/Hippa-transparent.png";
 
 const footerColumns = [
   {
@@ -81,21 +81,23 @@ const Footer = () => {
               readiness support for organizations that need dependable
               execution.
             </p>
-            <div className="mt-6 grid min-w-0 gap-3">
-              <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-white/[0.03] p-3">
-                <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded bg-white p-1">
-                  <img
-                    src={soclogo}
-                    alt="SOC 2 Type II Attested"
-                    className="max-h-10 w-auto object-contain"
-                  />
-                </div>
-                <p className="break-words font-semibold text-white">
+            <div className="mt-6 flex min-w-0 max-w-sm flex-col gap-4">
+              <div className="flex min-w-0 items-center gap-4 rounded-xl border border-white/10 p-4">
+                <img
+                  src={soclogo}
+                  alt="SOC 2 Type II Attested"
+                  className="h-14 w-14 shrink-0 rounded-lg bg-white object-contain p-1"
+                />
+                <p className="min-w-0 break-words font-semibold text-white">
                   SOC 2 Type II Attested
                 </p>
               </div>
-              <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-white/[0.03] p-3">
-                <HipaaBadge compact />
+              <div className="flex min-w-0 items-center gap-4 rounded-xl border border-white/10 p-4">
+                <img
+                  src={hipaaLogo}
+                  alt="HIPAA Security Rule Assessment Completed"
+                  className="h-14 w-14 shrink-0 rounded-lg bg-white object-contain p-1"
+                />
                 <div className="min-w-0">
                   <p className="break-words font-semibold text-white">
                     HIPAA Security Rule
@@ -136,6 +138,12 @@ const Footer = () => {
                 className="block break-words text-gray-400 transition hover:text-red-400"
               >
                 care@onesmarter.com
+              </a>
+              <a
+                href="tel:+19373446241"
+                className="block text-gray-400 transition hover:text-red-400"
+              >
+                +1 937 344 6241
               </a>
               <p className="text-gray-400">
                 707 Miamisburg-Centerville Road

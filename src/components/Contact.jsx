@@ -1,34 +1,41 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Loader from "./Loader/Loader";
 
 const Contact = () => {
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading) return <Loader />;
-
+     useEffect(() => {
+        // Simulate loading (e.g. image loading or content mount)
+        const timer = setTimeout(() => {
+          setLoading(false);
+        }, 300); // You can adjust delay
+    
+        return () => clearTimeout(timer);
+      }, []);
+    
+      if (loading) return <Loader />;
+    
   return (
-    <main className="flex min-h-[70vh] items-center justify-center bg-white px-6 py-20 text-center">
-      <div className="max-w-xl rounded border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold uppercase text-gray-950 md:text-3xl">
+    <main className="min-h-[70vh] flex items-center justify-center bg-white px-6 py-16 text-center">
+      <div className="max-w-xl mt-50">
+        <h1 className="text-xl md:text-2xl font-semibold uppercase mb-2">
           Contact OneSmarter
         </h1>
-        <p className="mt-4 text-base leading-7 text-gray-700">
-          Tell us what you are trying to build, improve, or secure.
+        <h3 className="text-red-600 font-semibold uppercase text-lg border-b-2 border-red-600 inline-block mb-4">
+          Registered Office
+        </h3>
+        <p className="text-base text-black mb-1">
+          707 Miamisburg-Centerville Road
         </p>
-        <a
-          href="mailto:care@onesmarter.com"
-          className="mt-6 inline-flex items-center justify-center rounded bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
-        >
-          care@onesmarter.com
-        </a>
+        <p className="text-base text-black mb-4">
+          Dayton, OH 45459, STE 223
+        </p>
+        <p className="text-base text-black">
+          <strong>Email:</strong> care@onesmarter.com
+        </p>
+        <p className="text-base text-black">
+          <strong>Phone:</strong> +1 937 344 6241
+        </p>
       </div>
     </main>
   );

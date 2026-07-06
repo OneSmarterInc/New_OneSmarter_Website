@@ -51,7 +51,7 @@ const technologySolutions = [
     title: "Software Support Consolidation",
     path: "/technology-solutions/software-support-consolidation",
     summary:
-      "Support consolidation through global delivery and support teams for maintainable, cost-effective software operations.",
+      "Support consolidation from Asia-based delivery centers for maintainable, cost-effective software operations.",
   },
   {
     title: "Claims Processing Services",
@@ -311,12 +311,12 @@ const pageContent = {
     eyebrow: "Technology Solutions",
     title: "Software Support Consolidation",
     body:
-      "OneSmarter helps organizations consolidate software support through global delivery and support teams, creating coordinated support models for maintenance, enhancements, documentation, and operational continuity.",
+      "OneSmarter helps organizations consolidate software support through Asia-based delivery centers, creating coordinated support models for maintenance, enhancements, documentation, and operational continuity.",
     points: [
       "Consolidated support teams for existing software portfolios.",
       "Maintenance, enhancements, and issue resolution workflows.",
       "Documentation and knowledge transfer support.",
-      "Flexible delivery and support across time zones.",
+      "Cost-effective delivery from Asia-based teams.",
     ],
     collection: "technologySolutions",
   },
