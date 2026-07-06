@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo2.png";
 
 const navGroups = [
   {
@@ -183,26 +183,23 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
           ? "bg-[#0c0c0c]/95 backdrop-blur-sm shadow-md py-2"
           : "bg-transparent py-4"
-      }`}
+        }`}
     >
       <div
-        className={`qa-container-wide mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between transition-all duration-500 ${
-          isScrolled ? "h-[65px]" : "h-[85px]"
-        }`}
+        className={`qa-container-wide mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between transition-all duration-500 ${isScrolled ? "h-[65px]" : "h-[85px]"
+          }`}
       >
         <Link to="/" aria-label="OneSmarter home" className="shrink-0">
           <img
             src={logo}
             alt="OneSmarter"
-            className={`transition-all duration-500 w-auto ${
-              isScrolled
-                ? "h-[36px] max-w-[210px] md:h-[54px] md:max-w-none lg:h-[62px]"
-                : "h-[40px] max-w-[220px] md:h-[66px] md:max-w-none lg:h-[74px]"
-            }`}
+            className={`transition-all duration-500 w-auto ${isScrolled
+                ? "h-[44px] max-w-[260px] md:h-[66px] md:max-w-none lg:h-[75px]"
+                : "h-[50px] max-w-[270px] md:h-[82px] md:max-w-none lg:h-[92px]"
+              }`}
           />
         </Link>
 
