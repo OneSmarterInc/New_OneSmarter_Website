@@ -138,12 +138,6 @@ const Footer = () => {
               >
                 care@onesmarter.com
               </a>
-              <a
-                href="tel:+19373446241"
-                className="block text-gray-400 transition hover:text-red-400"
-              >
-                +1 937 344 6241
-              </a>
               <p className="text-gray-400">
                 707 Miamisburg-Centerville Road
                 <br />

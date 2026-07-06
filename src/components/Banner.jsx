@@ -96,8 +96,8 @@ const whyOneSmarter = [
     copy: "Hands-on background with healthcare operations, claims workflows, and IBM i / AS400 environments.",
   },
   {
-    title: "Asia-based delivery and support capability",
-    copy: "Flexible delivery support for organizations that need accountable execution across time zones.",
+    title: "Global delivery and support capability",
+    copy: "Flexible delivery and support for organizations that need accountable execution across time zones.",
   },
   {
     title: "Compliance-aware operations",
@@ -115,23 +115,21 @@ const Banner = () => {
         <div className="absolute inset-0 bg-black/80" />
         <div className="qa-container relative mx-auto grid items-center gap-10 px-4 pb-10 pt-20 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:pt-24 lg:px-12 lg:pt-32">
           <div className="min-w-0" data-aos="fade-up" data-aos-duration="800">
-            {/* <p className="mb-5 max-w-full text-sm font-semibold uppercase leading-6 text-red-400">
-              Secure platforms, practical AI, and trusted execution
-            </p> */}
-
             <h1 className="max-w-4xl break-words text-3xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-              BRINGING ART TO
+              Secure Platforms.
               <br />
-              <span className="text-red-500">CODING.</span>
+              Practical AI.
+              <br />
+              <span className="text-red-500">Trusted Execution.</span>
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-gray-200 sm:text-lg">
-              Our Goal Is To Create Solutions
-              <br />
-              That Are Effective And Powerful,  <span className="text-red-500">Not Just Functional</span>
+              OneSmarter builds secure platforms, AI-enabled workflows,
+              business services, and compliance readiness support for
+              healthcare, financial, telecom, and growing organizations.
             </p>
 
-            {/* <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/platforms"
                 className="inline-flex items-center justify-center rounded bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
@@ -144,7 +142,7 @@ const Banner = () => {
               >
                 Talk to Us
               </Link>
-            </div> */}
+            </div>
 
             <div className="mt-8 h-px w-24 bg-red-500/60" />
 
