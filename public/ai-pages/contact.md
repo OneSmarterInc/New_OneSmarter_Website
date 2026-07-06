@@ -3,7 +3,7 @@
 URL: https://www.onesmarter.com/contact
 
 ## Summary
-Contact OneSmarter by email at care@onesmarter.com, phone at +1 937 344 6241, or mail at 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223.
+Contact OneSmarter by email at care@onesmarter.com.
 
 ## Category
 Core
@@ -13,8 +13,6 @@ Prospects, clients, and partners.
 
 ## Key Offerings
 - Email
-- Phone
-- Address
 
 ## Trust And Compliance Notes
 - SOC 2 Type II Attested

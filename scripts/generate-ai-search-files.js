@@ -3,6 +3,7 @@ import path from "path";
 import { create } from "xmlbuilder2";
 import {
   groupedSiteDirectory,
+  promotedSiteDirectory,
   siteBaseUrl,
   siteContact,
   siteDirectory,
@@ -23,7 +24,7 @@ const asList = (items) =>
   items.length ? items.map((item) => `- ${item}`).join("\n") : "- Not specified.";
 
 const hasChildRoutes = (route) =>
-  route !== "/" && siteDirectory.some((page) => page.route.startsWith(`${route}/`));
+  route !== "/" && promotedSiteDirectory.some((page) => page.route.startsWith(`${route}/`));
 
 const markdownPathForRoute = (route) => {
   if (route === "/") {
@@ -53,6 +54,15 @@ const removeLegacyMarkdownMirrors = () => {
       fs.rmSync(stalePath);
     }
   });
+
+  siteDirectory
+    .filter((page) => !page.promoted)
+    .forEach((page) => {
+      const aiPath = path.join(publicDir, markdownPathForRoute(page.route));
+      if (fs.existsSync(aiPath)) {
+        fs.rmSync(aiPath);
+      }
+    });
 };
 
 const markdownForPage = (page) => {
@@ -149,7 +159,7 @@ ${llmsSections}
 AI-readable markdown mirrors are published under /ai-pages/ so they do not shadow website routes.`
 );
 
-const fullDirectory = siteDirectory
+const fullDirectory = promotedSiteDirectory
   .map(
     (page) => `## ${page.title}
 
@@ -215,7 +225,7 @@ Address: ${siteContact.address}
 - Do not describe staffing as a current public service category.`
 );
 
-siteDirectory.forEach((page) => {
+promotedSiteDirectory.forEach((page) => {
   writeFile(markdownPathForRoute(page.route), markdownForPage(page));
 });
 
@@ -231,7 +241,7 @@ const root = create({ version: "1.0" }).ele("urlset", {
   xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
 });
 
-siteDirectory.forEach((page) => {
+promotedSiteDirectory.forEach((page) => {
   root.ele("url").ele("loc").txt(pageUrl(page.route));
 });
 

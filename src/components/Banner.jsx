@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import bannerImage from "../assets/home-banner.png";
 import bgImage from "../assets/bg-1.jpg";
 import soclogo from "../assets/soc1.png";
+import HipaaBadge from "./HipaaBadge";
 
 const offeringCards = [
   {
@@ -76,8 +77,8 @@ const whyOneSmarter = [
     copy: "Hands-on background with healthcare operations, claims workflows, and IBM i / AS400 environments.",
   },
   {
-    title: "Asia-based delivery and support capability",
-    copy: "Flexible delivery support for organizations that need accountable execution across time zones.",
+    title: "Global delivery and support capability",
+    copy: "Flexible delivery and support for organizations that need accountable execution across time zones.",
   },
   {
     title: "Compliance-aware operations",
@@ -128,18 +129,21 @@ const Banner = () => {
               </Link>
             </div>
 
-            <div className="mt-8 flex w-full max-w-2xl min-w-0 flex-col gap-3 overflow-hidden rounded border border-white/15 bg-white/[0.06] p-4 text-xs text-gray-100 sm:flex-row sm:items-center sm:text-sm">
-              <div className="inline-flex w-fit shrink-0 items-center rounded bg-white px-3 py-2 text-gray-950">
-                <img
-                  src={soclogo}
-                  alt="SOC 2 Type II Attested"
-                  className="h-9 w-auto object-contain"
-                />
-              </div>
-              <div className="grid w-full min-w-0 gap-1 sm:grid-cols-2 sm:gap-4">
+            <div className="mt-8 grid w-full max-w-2xl min-w-0 gap-3 overflow-hidden rounded border border-white/15 bg-white/[0.06] p-4 text-xs text-gray-100 sm:grid-cols-2 sm:text-sm">
+              <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-black/20 p-3">
+                <div className="inline-flex h-14 w-20 shrink-0 items-center justify-center rounded bg-white px-2 py-1 text-gray-950">
+                  <img
+                    src={soclogo}
+                    alt="SOC 2 Type II Attested"
+                    className="max-h-10 w-auto object-contain"
+                  />
+                </div>
                 <span className="min-w-0 break-words font-semibold leading-6">
                   SOC 2 Type II Attested
                 </span>
+              </div>
+              <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-black/20 p-3">
+                <HipaaBadge compact />
                 <span className="min-w-0 break-words font-semibold leading-6">
                   HIPAA Security Rule Compliance Assessment Completed
                 </span>

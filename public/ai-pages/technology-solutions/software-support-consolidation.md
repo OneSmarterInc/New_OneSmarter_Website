@@ -3,7 +3,7 @@
 URL: https://www.onesmarter.com/technology-solutions/software-support-consolidation
 
 ## Summary
-Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity.
+Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity.
 
 ## Category
 Technology Solutions

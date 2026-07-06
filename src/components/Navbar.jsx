@@ -137,7 +137,6 @@ const navGroups = [
 ];
 
 const simpleLinks = [
-  { label: "Insights", path: "/insights" },
   { label: "About", path: "/aboutus/Introduction" },
   { label: "Contact", path: "/contact" },
 ];

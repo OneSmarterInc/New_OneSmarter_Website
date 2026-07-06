@@ -17,6 +17,7 @@ const entry = ({
   title,
   metaDescription,
   category,
+  promoted = true,
   audience = "Organizations evaluating OneSmarter services.",
   shortSummary,
   serviceType = "Information",
@@ -28,6 +29,7 @@ const entry = ({
   title,
   metaDescription,
   category,
+  promoted,
   audience,
   shortSummary,
   serviceType,
@@ -183,10 +185,10 @@ export const siteDirectory = [
     route: "/technology-solutions/software-support-consolidation",
     title: "Software Support Consolidation | OneSmarter",
     metaDescription:
-      "Software support consolidation through Asia-based delivery centers for maintenance, enhancements, documentation, and operational continuity.",
+      "Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and operational continuity.",
     category: "Technology Solutions",
     shortSummary:
-      "Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity.",
+      "Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity.",
     serviceType: "Technology support service",
     keyOfferings: ["Maintenance", "Enhancements", "Issue resolution", "Documentation", "Knowledge transfer"],
     relatedRoutes: ["/technology-solutions", "/business-services/eor-hr", "/contact"],
@@ -429,6 +431,7 @@ export const siteDirectory = [
   entry({
     route: "/insights",
     title: "Insights | OneSmarter",
+    promoted: false,
     metaDescription:
       "Practical notes on secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement.",
     category: "Core",
@@ -454,13 +457,13 @@ export const siteDirectory = [
     route: "/contact",
     title: "Contact OneSmarter",
     metaDescription:
-      "Contact OneSmarter at care@onesmarter.com or +1 937 344 6241. Headquarters: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223.",
+      "Contact OneSmarter at care@onesmarter.com to discuss what you are trying to build, improve, or secure.",
     category: "Core",
     audience: "Prospects, clients, and partners.",
     shortSummary:
-      `Contact OneSmarter by email at ${contact.email}, phone at ${contact.phone}, or mail at ${contact.address}.`,
+      `Contact OneSmarter by email at ${contact.email}.`,
     serviceType: "Contact",
-    keyOfferings: ["Email", "Phone", "Address"],
+    keyOfferings: ["Email"],
     relatedRoutes: ["/", "/trust-center"],
   }),
   entry({
@@ -491,12 +494,13 @@ export const siteDirectory = [
 
 export const siteContact = contact;
 export const siteBaseUrl = "https://www.onesmarter.com";
-export const activePublicRoutes = siteDirectory.map((item) => item.route);
+export const promotedSiteDirectory = siteDirectory.filter((item) => item.promoted);
+export const activePublicRoutes = promotedSiteDirectory.map((item) => item.route);
 
 export const getSiteEntry = (route) =>
   siteDirectory.find((item) => item.route === route);
 
-export const groupedSiteDirectory = siteDirectory.reduce((groups, item) => {
+export const groupedSiteDirectory = promotedSiteDirectory.reduce((groups, item) => {
   groups[item.category] = groups[item.category] || [];
   groups[item.category].push(item);
   return groups;

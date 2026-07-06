@@ -14,9 +14,8 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 
 ## Core
 - [OneSmarter | Secure Platforms, Practical AI, Trusted Execution](https://www.onesmarter.com/ai-pages/index.md): OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Website: https://www.onesmarter.com
-- [Insights | OneSmarter](https://www.onesmarter.com/ai-pages/insights.md): Insights will cover secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement. Website: https://www.onesmarter.com/insights
 - [About OneSmarter](https://www.onesmarter.com/ai-pages/aboutus/Introduction.md): OneSmarter is a Dayton, Ohio company providing secure technology, business services, compliance support, and trusted execution. Website: https://www.onesmarter.com/aboutus/Introduction
-- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md): Contact OneSmarter by email at care@onesmarter.com, phone at +1 937 344 6241, or mail at 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223. Website: https://www.onesmarter.com/contact
+- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md): Contact OneSmarter by email at care@onesmarter.com. Website: https://www.onesmarter.com/contact
 
 ## Platforms
 - [Platforms | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/index.md): OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management. Website: https://www.onesmarter.com/platforms
@@ -31,7 +30,7 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 - [AI Agentic Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ai-agentic-services.md): Practical AI services for controlled automation, document workflows, decision support, and repeatable business processes. Website: https://www.onesmarter.com/technology-solutions/ai-agentic-services
 - [IBM i / AS400 Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ibm-i-as400.md): IBM i / AS400 services for modernization, application support, RPG and CL development, integrations, and operational continuity. Website: https://www.onesmarter.com/technology-solutions/ibm-i-as400
 - [Enterprise Software Development | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/enterprise-software.md): Enterprise software development for custom applications, portals, dashboards, integrations, workflow tools, and secure operations. Website: https://www.onesmarter.com/technology-solutions/enterprise-software
-- [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
+- [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
 
 ## Business Services
 - [Business Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/index.md): Business services for finance, HR, payment, benefits, and back-office workflows. Website: https://www.onesmarter.com/business-services

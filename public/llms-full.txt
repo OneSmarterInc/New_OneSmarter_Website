@@ -17,7 +17,7 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 - Compliance-aware operations
 
 ## Public Taxonomy
-- Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; Insights | OneSmarter; About OneSmarter; Contact OneSmarter
+- Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; About OneSmarter; Contact OneSmarter
 - Platforms: Platforms | OneSmarter; Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter; Bill Audit ERP & Bill Pay | OneSmarter; Telecom Expense Management | OneSmarter
 - Technology Solutions: Technology Solutions | OneSmarter; Healthcare & TPA Technology | OneSmarter; Claims Processing Services | OneSmarter; AI Agentic Services | OneSmarter; IBM i / AS400 Services | OneSmarter; Enterprise Software Development | OneSmarter; Software Support Consolidation | OneSmarter
 - Business Services: Business Services | OneSmarter; Accounting, Bookkeeping & Tax Support | OneSmarter; EOR & HR Services | OneSmarter; Third-Party Payment Services | OneSmarter; Benefits & Back Office Support | OneSmarter
@@ -324,7 +324,7 @@ Category: Technology Solutions
 
 Audience: Organizations evaluating OneSmarter services.
 
-Summary: Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity. Key offerings include Maintenance, Enhancements, Issue resolution, Documentation, Knowledge transfer.
+Summary: Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity. Key offerings include Maintenance, Enhancements, Issue resolution, Documentation, Knowledge transfer.
 
 Key offerings:
 - Maintenance
@@ -833,31 +833,6 @@ Trust and compliance notes:
 - Responsible data handling
 - Compliance-aware operations
 
-## Insights | OneSmarter
-
-Website URL: https://www.onesmarter.com/insights
-
-AI mirror URL: https://www.onesmarter.com/ai-pages/insights.md
-
-Category: Core
-
-Audience: Organizations evaluating OneSmarter services.
-
-Summary: Insights will cover secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement. Key offerings include Healthcare technology, AI operations, IBM i modernization, Compliance readiness.
-
-Key offerings:
-- Healthcare technology
-- AI operations
-- IBM i modernization
-- Compliance readiness
-
-Trust and compliance notes:
-- SOC 2 Type II Attested
-- HIPAA Security Rule Compliance Assessment Completed
-- Secure software development
-- Responsible data handling
-- Compliance-aware operations
-
 ## About OneSmarter
 
 Website URL: https://www.onesmarter.com/aboutus/Introduction
@@ -892,12 +867,10 @@ Category: Core
 
 Audience: Prospects, clients, and partners.
 
-Summary: Contact OneSmarter by email at care@onesmarter.com, phone at +1 937 344 6241, or mail at 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223. Key offerings include Email, Phone, Address.
+Summary: Contact OneSmarter by email at care@onesmarter.com. Key offerings include Email.
 
 Key offerings:
 - Email
-- Phone
-- Address
 
 Trust and compliance notes:
 - SOC 2 Type II Attested
