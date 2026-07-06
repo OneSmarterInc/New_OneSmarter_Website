@@ -1,9 +1,9 @@
-# Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter
+# Secure Ticketing and Case Management | OneSmarter
 
 URL: https://www.onesmarter.com/platforms/hipaa-regulated-ticketing
 
 ## Summary
-Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows.
+Secure ticketing and case management built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution.
 
 ## Category
 Platforms

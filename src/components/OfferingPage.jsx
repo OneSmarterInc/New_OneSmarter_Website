@@ -3,22 +3,16 @@ import { Link } from "react-router-dom";
 
 const platforms = [
   {
-    title: "Secure Ticketing for HIPAA-Regulated Workflows",
+    title: "Secure Ticketing and Case Management",
     path: "/platforms/hipaa-regulated-ticketing",
     summary:
-      "Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows.",
+      "Secure ticketing and case management built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution.",
   },
   {
-    title: "Bill Audit ERP & Bill Pay",
+    title: "Bill Audit & Bill Pay",
     path: "/platforms/bill-audit-erp-bill-pay",
     summary:
-      "Vendor bill intake, bill audit, contract review, approval workflows, reporting, and bill payment coordination.",
-  },
-  {
-    title: "Telecom Expense Management",
-    path: "/platforms/telecom-expense-management",
-    summary:
-      "Bill analysis, optimization, historical review, contract comparison, and cost-control workflows for large mobile fleets.",
+      "Vendor bill review, recurring expense analysis, discrepancy tracking, approval coordination, bill payment workflows, and telecom expense management use cases.",
   },
 ];
 
@@ -179,7 +173,7 @@ const pageContent = {
     eyebrow: "Platforms",
     title: "Platforms",
     body:
-      "OneSmarter builds focused operational platforms for secure case management, bill audit, and telecom expense management.",
+      "OneSmarter builds focused operational platforms for secure ticketing and case management, plus bill audit and bill pay workflows.",
     points: [
       "Configurable workflow platforms for specialized operational teams.",
       "Reporting, controls, and process visibility for recurring business activity.",
@@ -189,9 +183,9 @@ const pageContent = {
   },
   hipaaTicketing: {
     eyebrow: "Platforms",
-    title: "Ticketing & Case Management for HIPAA-Regulated Workflows",
+    title: "Secure Ticketing and Case Management",
     body:
-      "OneSmarter provides ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows. The platform supports secure intake, role-based access, audit history, controlled communication, workflow tracking, and compliance-aware operations without implying the product alone makes a customer HIPAA compliant.",
+      "OneSmarter provides a secure ticketing and case-management platform built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution. The platform supports secure intake, controlled communication, workflow tracking, and compliance-aware operations without implying the product alone makes a customer HIPAA compliant.",
     points: [
       "Secure intake and structured case creation.",
       "Role-based access for teams working with sensitive information.",
@@ -203,26 +197,28 @@ const pageContent = {
   },
   billAuditErp: {
     eyebrow: "Platforms",
-    title: "Bill Audit ERP & Bill Pay",
+    title: "Bill Audit & Bill Pay",
     body:
-      "OneSmarter supports vendor bill intake, bill audit, historical comparison, contract analysis, discrepancy tracking, approval workflows, reporting, and connection to bill payment coordination.",
+      "OneSmarter's Bill Audit & Bill Pay platform helps organizations review vendor bills, analyze recurring expenses, identify discrepancies, coordinate approvals, and support payment workflows. The platform also supports telecom expense management for organizations with large mobile-device fleets, including bill analysis, contract and rate comparison, historical usage review, and cost-control reporting.",
     points: [
-      "Vendor bill intake and workflow routing.",
-      "Historical comparison and contract analysis support.",
+      "Vendor bill review and workflow routing.",
+      "Recurring expense analysis and historical comparison.",
       "Discrepancy tracking through approval and resolution.",
-      "Reporting for bill audit and payment coordination.",
+      "Payment workflow coordination and reporting.",
+      "Telecom expense management use cases for large mobile-device fleets.",
+      "Contract and rate comparison, usage review, and cost-control reporting.",
     ],
     collection: "platforms",
   },
   telecomExpense: {
     eyebrow: "Platforms",
-    title: "Telecom Expense Management",
+    title: "Bill Audit & Bill Pay Telecom Use Case",
     body:
-      "OneSmarter helps organizations managing more than 100 mobile devices improve telecom expense visibility through bill analysis, optimization, historical review, contract comparison, and cost-control workflows.",
+      "Telecom expense management is handled as a Bill Audit & Bill Pay use case for organizations managing large mobile-device fleets, including bill analysis, contract and rate comparison, historical usage review, and cost-control reporting.",
     points: [
       "Mobile bill analysis across large device fleets.",
       "Historical usage and spend review.",
-      "Contract comparison and optimization workflows.",
+      "Contract and rate comparison workflows.",
       "Cost-control reporting for telecom operations.",
     ],
     collection: "platforms",

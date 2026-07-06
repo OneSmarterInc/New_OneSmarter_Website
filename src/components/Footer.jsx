@@ -7,9 +7,8 @@ const footerColumns = [
   {
     title: "Platforms",
     links: [
-      { label: "Secure Ticketing", path: "/platforms/hipaa-regulated-ticketing" },
-      { label: "Bill Audit ERP & Bill Pay", path: "/platforms/bill-audit-erp-bill-pay" },
-      { label: "Telecom Expense Management", path: "/platforms/telecom-expense-management" },
+      { label: "Secure Ticketing and Case Management", path: "/platforms/hipaa-regulated-ticketing" },
+      { label: "Bill Audit & Bill Pay", path: "/platforms/bill-audit-erp-bill-pay" },
     ],
   },
   {

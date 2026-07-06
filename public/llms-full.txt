@@ -17,7 +17,7 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 
 ## Public Taxonomy
 - Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; About OneSmarter; Contact OneSmarter
-- Platforms: Platforms | OneSmarter; Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter; Bill Audit ERP & Bill Pay | OneSmarter; Telecom Expense Management | OneSmarter
+- Platforms: Platforms | OneSmarter; Secure Ticketing and Case Management | OneSmarter; Bill Audit & Bill Pay | OneSmarter
 - Technology Solutions: Technology Solutions | OneSmarter; Healthcare & TPA Technology | OneSmarter; Claims Processing Services | OneSmarter; AI Agentic Services | OneSmarter; IBM i / AS400 Services | OneSmarter; Enterprise Software Development | OneSmarter; Software Support Consolidation | OneSmarter
 - Business Services: Business Services | OneSmarter; Accounting, Bookkeeping & Tax Support | OneSmarter; EOR & HR Services | OneSmarter; Third-Party Payment Services | OneSmarter; Benefits & Back Office Support | OneSmarter
 - Compliance & Cyber Assurance: Compliance & Cyber Assurance | OneSmarter; SOC Readiness Support | OneSmarter; HIPAA Audit Readiness Support | OneSmarter; ISO/IEC 27001 Readiness Support | OneSmarter; PCI DSS Readiness Support | OneSmarter; Framework Mapping | OneSmarter; VAPT & Remediation Support | OneSmarter; CMMI Readiness Support | OneSmarter; Compliance Operations Support | OneSmarter
@@ -61,12 +61,11 @@ Category: Platforms
 
 Audience: Organizations evaluating OneSmarter services.
 
-Summary: OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management. Key offerings include Ticketing & Case Management for HIPAA-Regulated Workflows, Bill Audit ERP & Bill Pay, Telecom Expense Management.
+Summary: OneSmarter platforms support secure ticketing and case management, plus bill audit and bill pay workflows. Key offerings include Secure Ticketing and Case Management, Bill Audit & Bill Pay.
 
 Key offerings:
-- Ticketing & Case Management for HIPAA-Regulated Workflows
-- Bill Audit ERP & Bill Pay
-- Telecom Expense Management
+- Secure Ticketing and Case Management
+- Bill Audit & Bill Pay
 
 Trust and compliance notes:
 - SOC 2 Type II Attested
@@ -75,7 +74,7 @@ Trust and compliance notes:
 - Responsible data handling
 - Compliance-aware operations
 
-## Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter
+## Secure Ticketing and Case Management | OneSmarter
 
 Website URL: https://www.onesmarter.com/platforms/hipaa-regulated-ticketing
 
@@ -85,7 +84,7 @@ Category: Platforms
 
 Audience: Healthcare and operational teams managing PHI-sensitive workflows.
 
-Summary: Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows. Key offerings include Secure intake, Role-based access, Audit history, Controlled communication, Workflow tracking.
+Summary: Secure ticketing and case management built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution. Key offerings include Secure intake, Role-based access, Audit history, Controlled communication, Workflow tracking.
 
 Key offerings:
 - Secure intake
@@ -104,7 +103,7 @@ Trust and compliance notes:
 - Designed for PHI-sensitive workflows
 - Supports compliance-aware ticketing and case management
 
-## Bill Audit ERP & Bill Pay | OneSmarter
+## Bill Audit & Bill Pay | OneSmarter
 
 Website URL: https://www.onesmarter.com/platforms/bill-audit-erp-bill-pay
 
@@ -114,40 +113,15 @@ Category: Platforms
 
 Audience: Organizations evaluating OneSmarter services.
 
-Summary: A bill audit ERP and bill pay platform for vendor bill workflows, approvals, discrepancy tracking, reporting, and payment coordination. Key offerings include Vendor bill intake, Bill audit, Contract analysis, Approval workflows, Reporting.
+Summary: A bill audit and bill pay platform for vendor bill review, recurring expense analysis, discrepancy tracking, approvals, payment workflows, and telecom expense management use cases. Key offerings include Vendor bill review, Recurring expense analysis, Discrepancy tracking, Approval workflows, Payment workflows, Telecom expense management use cases.
 
 Key offerings:
-- Vendor bill intake
-- Bill audit
-- Contract analysis
+- Vendor bill review
+- Recurring expense analysis
+- Discrepancy tracking
 - Approval workflows
-- Reporting
-
-Trust and compliance notes:
-- SOC 2 Type II Attested
-- HIPAA Security Rule Compliance Assessment Completed
-- Secure software development
-- Responsible data handling
-- Compliance-aware operations
-
-## Telecom Expense Management | OneSmarter
-
-Website URL: https://www.onesmarter.com/platforms/telecom-expense-management
-
-AI mirror URL: https://www.onesmarter.com/ai-pages/platforms/telecom-expense-management.md
-
-Category: Platforms
-
-Audience: Organizations managing more than 100 mobile devices.
-
-Summary: Telecom expense management for bill analysis, optimization, historical review, contract comparison, and cost-control workflows. Key offerings include Bill analysis, Optimization, Historical review, Contract comparison, Cost-control reporting.
-
-Key offerings:
-- Bill analysis
-- Optimization
-- Historical review
-- Contract comparison
-- Cost-control reporting
+- Payment workflows
+- Telecom expense management use cases
 
 Trust and compliance notes:
 - SOC 2 Type II Attested

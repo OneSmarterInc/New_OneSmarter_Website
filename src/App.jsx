@@ -81,7 +81,7 @@ const App = () => {
           />
           <Route
             path="/platforms/telecom-expense-management"
-            element={<OfferingPage page="telecomExpense" />}
+            element={<Navigate to="/platforms/bill-audit-erp-bill-pay" replace />}
           />
           <Route
             path="/platforms/claims-processing-system"

@@ -10,7 +10,7 @@ const offeringCards = [
   {
     title: "Platforms",
     path: "/platforms",
-    copy: "Secure ticketing for HIPAA-regulated workflows, bill audit ERP, and telecom expense management platforms for operational teams.",
+    copy: "Secure ticketing and case management, plus bill audit and bill pay workflows for operational teams.",
   },
   {
     title: "Technology Solutions",
@@ -59,19 +59,14 @@ const heroFeatures = [
 
 const featuredPlatforms = [
   {
-    title: "Ticketing & Case Management for HIPAA-Regulated Workflows",
+    title: "Secure Ticketing and Case Management",
     path: "/platforms/hipaa-regulated-ticketing",
-    copy: "Secure intake, role-based access, audit history, and workflow tracking for PHI-sensitive operations.",
+    copy: "A secure ticketing and case-management platform built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution.",
   },
   {
-    title: "Bill Audit ERP & Bill Pay",
+    title: "Bill Audit & Bill Pay",
     path: "/platforms/bill-audit-erp-bill-pay",
-    copy: "Vendor bill intake, audit workflows, historical comparison, discrepancy tracking, approvals, and reporting.",
-  },
-  {
-    title: "Telecom Expense Management",
-    path: "/platforms/telecom-expense-management",
-    copy: "Bill analysis, optimization, contract comparison, and cost-control workflows for telecom-heavy organizations.",
+    copy: "Vendor bill review, recurring expense analysis, discrepancy tracking, approvals, payment workflow support, and telecom expense management use cases.",
   },
 ];
 

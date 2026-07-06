@@ -3,7 +3,7 @@
 URL: https://www.onesmarter.com/platforms
 
 ## Summary
-OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management.
+OneSmarter platforms support secure ticketing and case management, plus bill audit and bill pay workflows.
 
 ## Category
 Platforms
@@ -12,9 +12,8 @@ Platforms
 Organizations evaluating OneSmarter services.
 
 ## Key Offerings
-- Ticketing & Case Management for HIPAA-Regulated Workflows
-- Bill Audit ERP & Bill Pay
-- Telecom Expense Management
+- Secure Ticketing and Case Management
+- Bill Audit & Bill Pay
 
 ## Trust And Compliance Notes
 - SOC 2 Type II Attested
@@ -24,9 +23,8 @@ Organizations evaluating OneSmarter services.
 - Compliance-aware operations
 
 ## Related Pages
-- [Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/hipaa-regulated-ticketing.md)
-- [Bill Audit ERP & Bill Pay | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/bill-audit-erp-bill-pay.md)
-- [Telecom Expense Management | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/telecom-expense-management.md)
+- [Secure Ticketing and Case Management | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/hipaa-regulated-ticketing.md)
+- [Bill Audit & Bill Pay | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/bill-audit-erp-bill-pay.md)
 
 ## Contact
 Email: care@onesmarter.com
