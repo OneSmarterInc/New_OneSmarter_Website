@@ -133,7 +133,6 @@ const navGroups = [
 ];
 
 const simpleLinks = [
-  { label: "Insights", path: "/insights" },
   { label: "About", path: "/aboutus/Introduction" },
   { label: "Contact", path: "/contact" },
 ];
@@ -201,17 +200,17 @@ const Navbar = () => {
 
         <ul className="ml-8 hidden flex-1 items-center justify-end gap-2 md:flex lg:ml-12 lg:gap-4 xl:gap-5">
           {navGroups.map((group) => (
-            <li key={group.label} className="relative group">
+            <li key={group.label} className="group relative flex items-center py-3">
               <Link
                 to={group.path}
-                className="flex items-center whitespace-nowrap text-[13px] font-medium text-red-600 transition-all duration-300 hover:text-white lg:text-[14px] xl:text-[15px]"
+                className="relative z-50 flex items-center whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-500 transition-all duration-300 group-hover:bg-zinc-950/80 group-hover:text-white hover:text-white lg:text-[14px] xl:text-[15px]"
               >
                 {group.label}
                 <svg className="ml-1 w-4 h-4 fill-current" viewBox="0 0 20 20">
                   <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
                 </svg>
               </Link>
-              <ul className="absolute left-0 top-full mt-3 w-80 rounded border border-red-700/50 bg-zinc-950 py-2 shadow-xl z-40 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200">
+              <ul className="invisible absolute left-0 top-full z-40 mt-2 w-80 rounded border border-red-700/50 bg-zinc-950 py-2 opacity-0 shadow-2xl shadow-black/40 transition-all duration-200 group-hover:visible group-hover:opacity-100">
                 {group.items.map((item) => (
                   <li key={item.path}>
                     <Link
