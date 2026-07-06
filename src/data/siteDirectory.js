@@ -401,7 +401,7 @@ export const siteDirectory = [
       "OneSmarter has completed an independent HIPAA Security Rule compliance assessment covering applicable safeguards and practices.",
     serviceType: "Trust information",
     keyOfferings: ["Administrative safeguards", "Technical safeguards", "Physical safeguards", "Access management", "Ongoing risk awareness"],
-    complianceNotes: ["HIPAA Security Rule Assessed", "Do not describe this assessment as a certification"],
+    complianceNotes: ["HIPAA Security Rule Compliance Assessment Completed", "Do not describe this assessment as a certification"],
     relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
   }),
   entry({

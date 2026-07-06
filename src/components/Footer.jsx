@@ -98,10 +98,10 @@ const Footer = () => {
                 <HipaaBadge compact />
                 <div className="min-w-0">
                   <p className="break-words font-semibold text-white">
-                    HIPAA Security Rule Assessed
+                    HIPAA Security Rule
                   </p>
                   <p className="break-words text-xs leading-5 text-gray-400">
-                    HIPAA Security Rule Compliance Assessment Completed
+                    Assessment Completed
                   </p>
                 </div>
               </div>

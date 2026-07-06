@@ -219,10 +219,10 @@ const TrustBadges = () => (
       <HipaaBadge />
       <div className="min-w-0">
         <p className="break-words font-semibold text-white">
-          HIPAA Security Rule Compliance Assessment Completed
+          HIPAA Security Rule Compliance
         </p>
         <p className="break-words text-sm leading-6 text-gray-400">
-          Independent HIPAA Security Rule compliance assessment.
+          Assessment Completed
         </p>
       </div>
     </div>

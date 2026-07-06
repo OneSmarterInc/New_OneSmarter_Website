@@ -194,7 +194,6 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
 - Independent HIPAA Security Rule compliance assessment
-- HIPAA Security Rule Assessed
 - Built for HIPAA-regulated workflows
 - Designed for PHI-sensitive workflows
 - Secure software development

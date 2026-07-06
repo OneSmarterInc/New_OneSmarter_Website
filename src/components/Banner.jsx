@@ -145,7 +145,7 @@ const Banner = () => {
               <div className="flex min-w-0 items-center gap-3 rounded border border-white/10 bg-black/20 p-3">
                 <HipaaBadge compact />
                 <span className="min-w-0 break-words font-semibold leading-6">
-                  HIPAA Security Rule Compliance Assessment Completed
+                  HIPAA Security Rule Assessment Completed
                 </span>
               </div>
             </div>
