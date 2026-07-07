@@ -15,6 +15,7 @@ const footerColumns = [
     title: "Technology",
     links: [
       { label: "Technology Solutions", path: "/technology-solutions" },
+      { label: "AI Agents", path: "/ai-agents" },
       { label: "AI Agentic Services", path: "/technology-solutions/ai-agentic-services" },
       { label: "IBM i / AS400 Services", path: "/technology-solutions/ibm-i-as400" },
       { label: "Enterprise Software", path: "/technology-solutions/enterprise-software" },

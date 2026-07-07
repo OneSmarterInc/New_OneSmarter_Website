@@ -51,8 +51,8 @@ export const siteDirectory = [
     shortSummary:
       "OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency.",
     serviceType: "Company overview",
-    keyOfferings: ["Platforms", "Technology Solutions", "Business Services", "Compliance & Cyber Assurance", "Trust Center"],
-    relatedRoutes: ["/platforms", "/technology-solutions", "/business-services", "/compliance-assurance", "/trust-center", "/contact"],
+    keyOfferings: ["Platforms", "Technology Solutions", "AI Agents", "Business Services", "Compliance & Cyber Assurance", "Trust Center"],
+    relatedRoutes: ["/platforms", "/technology-solutions", "/ai-agents", "/business-services", "/compliance-assurance", "/trust-center", "/contact"],
   }),
   entry({
     route: "/platforms",
@@ -157,6 +157,20 @@ export const siteDirectory = [
     serviceType: "AI service",
     keyOfferings: ["AI-assisted workflow design", "Document automation", "Human-in-the-loop review", "Enterprise integration"],
     relatedRoutes: ["/technology-solutions", "/technology-solutions/enterprise-software", "/contact"],
+  }),
+  entry({
+    route: "/ai-agents",
+    title: "Practical AI Agents for Secure, Accountable Workflows | OneSmarter",
+    metaDescription:
+      "Meet OneSmarter's named digital agent team and practical AI direction for public-content guidance, AI readability, trust readiness, compliance language review, and workflow support.",
+    category: "AI Agents",
+    audience: "Organizations evaluating practical AI agents for secure, accountable workflows.",
+    shortSummary:
+      "The AI Agents showcase introduces OneSmarter's named digital agent team, starting with Mira Vale as a public-content website guide concept and future agents for readability, compliance language, operations, and strategy.",
+    serviceType: "AI showcase",
+    keyOfferings: ["Mira Vale website guide concept", "AI Readability Scan concept", "Trust Center Readiness Scan concept", "Compliance Language Review concept", "Agent world vision"],
+    complianceNotes: ["Static V2 concept only", "No PHI", "No confidential uploads", "No legal or medical advice", "No compliance guarantees"],
+    relatedRoutes: ["/technology-solutions/ai-agentic-services", "/trust-center", "/compliance-assurance", "/contact"],
   }),
   entry({
     route: "/technology-solutions/ibm-i-as400",

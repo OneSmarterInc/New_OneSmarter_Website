@@ -110,7 +110,7 @@ Address: ${siteContact.address}`;
 
 const llmsIntro = `# OneSmarter
 
-OneSmarter builds secure platforms, practical AI workflows, business services, and compliance readiness support for healthcare, financial, telecom, and growing organizations.
+OneSmarter builds secure platforms, practical AI workflows, business services, compliance readiness support, and public-content AI agent concepts for healthcare, financial, telecom, and growing organizations.
 
 ## Important Notes
 - OneSmarter is SOC 2 Type II Attested.
@@ -126,6 +126,7 @@ const categoryOrder = [
   "Core",
   "Platforms",
   "Technology Solutions",
+  "AI Agents",
   "Business Services",
   "Compliance & Cyber Assurance",
   "Trust Center",
@@ -190,7 +191,7 @@ writeFile(
 This file is a public, AI-readable reference for OneSmarter's website. It summarizes public pages, service taxonomy, approved trust wording, and contact details.
 
 ## Public Positioning
-OneSmarter is organized around Platforms, Technology Solutions, Business Services, Compliance & Cyber Assurance, and the Trust Center.
+OneSmarter is organized around Platforms, Technology Solutions, AI Agents, Business Services, Compliance & Cyber Assurance, and the Trust Center.
 
 ## Approved Trust Language
 - SOC 2 Type II Attested

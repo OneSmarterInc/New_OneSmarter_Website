@@ -1,6 +1,6 @@
 # OneSmarter
 
-OneSmarter builds secure platforms, practical AI workflows, business services, and compliance readiness support for healthcare, financial, telecom, and growing organizations.
+OneSmarter builds secure platforms, practical AI workflows, business services, compliance readiness support, and public-content AI agent concepts for healthcare, financial, telecom, and growing organizations.
 
 ## Important Notes
 - OneSmarter is SOC 2 Type II Attested.
@@ -29,6 +29,9 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 - [IBM i / AS400 Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ibm-i-as400.md): IBM i / AS400 services for modernization, application support, RPG and CL development, integrations, and operational continuity. Website: https://www.onesmarter.com/technology-solutions/ibm-i-as400
 - [Enterprise Software Development | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/enterprise-software.md): Enterprise software development for custom applications, portals, dashboards, integrations, workflow tools, and secure operations. Website: https://www.onesmarter.com/technology-solutions/enterprise-software
 - [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
+
+## AI Agents
+- [Practical AI Agents for Secure, Accountable Workflows | OneSmarter](https://www.onesmarter.com/ai-pages/ai-agents.md): The AI Agents showcase introduces OneSmarter's named digital agent team, starting with Mira Vale as a public-content website guide concept and future agents for readability, compliance language, operations, and strategy. Website: https://www.onesmarter.com/ai-agents
 
 ## Business Services
 - [Business Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/index.md): Business services for finance, HR, payment, benefits, and back-office workflows. Website: https://www.onesmarter.com/business-services

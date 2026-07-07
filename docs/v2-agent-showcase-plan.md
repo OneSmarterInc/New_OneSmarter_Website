@@ -227,10 +227,10 @@ Purpose: Help organizations identify risky public compliance wording and replace
 
 Risky wording examples to flag:
 
-- `HIPAA Certified`
+- Unsupported HIPAA certification language
 - `fully compliant`
 - `guaranteed secure`
-- `SOC 2 certified`
+- Unsupported SOC 2 certification language
 - Unsupported certification, attestation, or compliance claims
 
 Safer wording should emphasize readiness, assessment, support, factual posture, evidence preparation, and documented controls where applicable.
@@ -275,7 +275,7 @@ Messaging direction:
 - No backend dependencies in the first release.
 - Use only approved public content in the first release.
 - Preserve Version 1 HIPAA and SOC 2 claim boundaries.
-- Do not use `HIPAA Certified`, `HIPAA Certification`, `HIPAA-Compliant Ticketing`, or `HIPPA`.
+- Do not use unsupported HIPAA certification phrasing, outdated ticketing labels, or common HIPAA misspellings.
 - Do not reintroduce `Contact` or `Insights` to navigation.
 - Do not reintroduce Telecom Expense Management as a standalone platform.
 - Route inquiries to care@onesmarter.com.

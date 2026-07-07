@@ -3,7 +3,7 @@
 This file is a public, AI-readable reference for OneSmarter's website. It summarizes public pages, service taxonomy, approved trust wording, and contact details.
 
 ## Public Positioning
-OneSmarter is organized around Platforms, Technology Solutions, Business Services, Compliance & Cyber Assurance, and the Trust Center.
+OneSmarter is organized around Platforms, Technology Solutions, AI Agents, Business Services, Compliance & Cyber Assurance, and the Trust Center.
 
 ## Approved Trust Language
 - SOC 2 Type II Attested
@@ -19,6 +19,7 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 - Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; About OneSmarter
 - Platforms: Platforms | OneSmarter; Secure Ticketing and Case Management | OneSmarter; Bill Audit & Bill Pay | OneSmarter
 - Technology Solutions: Technology Solutions | OneSmarter; Healthcare & TPA Technology | OneSmarter; Claims Processing Services | OneSmarter; AI Agentic Services | OneSmarter; IBM i / AS400 Services | OneSmarter; Enterprise Software Development | OneSmarter; Software Support Consolidation | OneSmarter
+- AI Agents: Practical AI Agents for Secure, Accountable Workflows | OneSmarter
 - Business Services: Business Services | OneSmarter; Accounting, Bookkeeping & Tax Support | OneSmarter; EOR & HR Services | OneSmarter; Third-Party Payment Services | OneSmarter; Benefits & Back Office Support | OneSmarter
 - Compliance & Cyber Assurance: Compliance & Cyber Assurance | OneSmarter; SOC Readiness Support | OneSmarter; HIPAA Audit Readiness Support | OneSmarter; ISO/IEC 27001 Readiness Support | OneSmarter; PCI DSS Readiness Support | OneSmarter; Framework Mapping | OneSmarter; VAPT & Remediation Support | OneSmarter; CMMI Readiness Support | OneSmarter; Compliance Operations Support | OneSmarter
 - Trust Center: Trust Center | OneSmarter; SOC 2 Type II Attested | OneSmarter Trust Center; HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center; Security Practices | OneSmarter Trust Center; Privacy & Responsible Data Handling | OneSmarter Trust Center
@@ -35,11 +36,12 @@ Category: Core
 
 Audience: Healthcare, financial, telecom, and growing organizations.
 
-Summary: OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Key offerings include Platforms, Technology Solutions, Business Services, Compliance & Cyber Assurance, Trust Center.
+Summary: OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Key offerings include Platforms, Technology Solutions, AI Agents, Business Services, Compliance & Cyber Assurance, Trust Center.
 
 Key offerings:
 - Platforms
 - Technology Solutions
+- AI Agents
 - Business Services
 - Compliance & Cyber Assurance
 - Trust Center
@@ -234,6 +236,37 @@ Trust and compliance notes:
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
+
+## Practical AI Agents for Secure, Accountable Workflows | OneSmarter
+
+Website URL: https://www.onesmarter.com/ai-agents
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/ai-agents.md
+
+Category: AI Agents
+
+Audience: Organizations evaluating practical AI agents for secure, accountable workflows.
+
+Summary: The AI Agents showcase introduces OneSmarter's named digital agent team, starting with Mira Vale as a public-content website guide concept and future agents for readability, compliance language, operations, and strategy. Key offerings include Mira Vale website guide concept, AI Readability Scan concept, Trust Center Readiness Scan concept, Compliance Language Review concept, Agent world vision.
+
+Key offerings:
+- Mira Vale website guide concept
+- AI Readability Scan concept
+- Trust Center Readiness Scan concept
+- Compliance Language Review concept
+- Agent world vision
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- Static V2 concept only
+- No PHI
+- No confidential uploads
+- No legal or medical advice
+- No compliance guarantees
 
 ## IBM i / AS400 Services | OneSmarter
 
