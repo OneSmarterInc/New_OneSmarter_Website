@@ -120,6 +120,19 @@ const guardrails = [
   "Business inquiries route to care@onesmarter.com",
 ];
 
+const personaOptions = ["Warm Guide", "Careful Reviewer", "Thoughtful Strategist"];
+const memoryOptions = ["Client onboarding", "Trust language", "Capability routing"];
+const empathyOptions = ["Welcoming", "Serious", "Pondering"];
+
+const personaResponses = {
+  "Warm Guide|Client onboarding|Welcoming":
+    "Welcome. Let's start with what you are trying to understand. I can explain OneSmarter's platforms, technology services, business services, and trust center in plain language.",
+  "Careful Reviewer|Trust language|Serious":
+    "This is a trust-related question, so I would keep the wording precise. OneSmarter uses evidence-based language such as SOC 2 Type II Attested and HIPAA Security Rule Compliance Assessment Completed, rather than unsupported certification claims.",
+  "Thoughtful Strategist|Capability routing|Pondering":
+    "The right starting point depends on the problem. If the visitor is asking about secure workflows, I would route them toward Secure Ticketing and Case Management. If they are asking about payments, telecom bills, or vendor invoices, I would point them toward Bill Audit & Bill Pay.",
+};
+
 const exchange = [
   ["Theo", "The service page is readable, but the trust signal is buried too low."],
   ["Elena", "And the HIPAA phrasing needs to stay evidence-based."],
@@ -294,6 +307,108 @@ const MiraConversationPanel = () => {
   );
 };
 
+const PersonaLayerPrototype = () => {
+  const [persona, setPersona] = useState(personaOptions[0]);
+  const [memory, setMemory] = useState(memoryOptions[0]);
+  const [empathy, setEmpathy] = useState(empathyOptions[0]);
+  const responseKey = `${persona}|${memory}|${empathy}`;
+  const response =
+    personaResponses[responseKey] ||
+    `With a ${persona.toLowerCase()} posture, I would draw from ${memory.toLowerCase()} and keep the response ${empathy.toLowerCase()}. I would answer from approved public OneSmarter content and route business-specific questions to care@onesmarter.com.`;
+
+  const controlGroups = [
+    ["Persona posture", personaOptions, persona, setPersona],
+    ["Memory theme", memoryOptions, memory, setMemory],
+    ["Empathy state", empathyOptions, empathy, setEmpathy],
+  ];
+
+  return (
+    <section className="bg-white px-5 py-16 text-black md:px-12">
+      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.86fr_1.14fr]">
+        <div>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
+            Presentation layers
+          </p>
+          <h2 className="text-2xl font-bold md:text-4xl">
+            Persona, memory, and empathy layers
+          </h2>
+          <p className="mt-4 leading-7 text-gray-700">
+            The first guide agent is simple, but the long-term direction is
+            richer: agents can adjust tone, draw from approved memory themes,
+            and present themselves with an appropriate communication posture.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-zinc-950 p-5 text-white shadow-xl shadow-zinc-200/60 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-4">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white">
+                MV
+                <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">Mira Vale</h3>
+                <p className="text-sm text-zinc-400">
+                  Persona control panel
+                </p>
+              </div>
+            </div>
+            <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300">
+              Static presentation prototype
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-5">
+            {controlGroups.map(([label, options, selected, setSelected]) => (
+              <div key={label}>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
+                  {label}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setSelected(option)}
+                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                        selected === option
+                          ? "border-red-500 bg-red-600 text-white"
+                          : "border-white/10 bg-white/[0.04] text-zinc-300 hover:border-red-500/60 hover:text-white"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-lg border border-white/10 bg-black/35 p-5">
+            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="rounded-full bg-white px-3 py-1 text-zinc-950">
+                {persona}
+              </span>
+              <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-200">
+                {memory}
+              </span>
+              <span className="rounded-full bg-red-950/70 px-3 py-1 text-red-100">
+                {empathy}
+              </span>
+            </div>
+            <p className="mt-4 text-sm leading-7 text-zinc-200">{response}</p>
+          </div>
+
+          <p className="mt-5 text-xs leading-5 text-zinc-500">
+            Static presentation prototype. Future versions may connect these
+            controls to a governed agent runtime.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const AiAgentsPage = () => {
   return (
     <main className="overflow-x-hidden bg-zinc-950 text-white">
@@ -375,6 +490,8 @@ const AiAgentsPage = () => {
       </section>
 
       <MiraConversationPanel />
+
+      <PersonaLayerPrototype />
 
       <section className="bg-[#f6f7f9] px-5 py-16 text-black md:px-12">
         <div className="qa-container mx-auto">
