@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 const agents = [
   {
@@ -58,12 +58,36 @@ const agents = [
   },
 ];
 
-const visitorQuestions = [
-  "What does OneSmarter do?",
-  "What platforms do you offer?",
-  "Do you work with healthcare organizations?",
-  "What does SOC 2 Type II Attested mean here?",
-  "How should I contact OneSmarter?",
+const conversationExamples = [
+  {
+    question: "What does OneSmarter do?",
+    answer:
+      "OneSmarter builds secure platforms, practical AI workflows, business services, and compliance readiness support for healthcare, financial, telecom, and growing organizations. The work is grounded in useful systems, trusted execution, and careful claim boundaries.",
+  },
+  {
+    question: "What platforms do you offer?",
+    answer:
+      "OneSmarter currently presents two platform areas: Secure Ticketing and Case Management, and Bill Audit & Bill Pay. Telecom expense management is treated as a capability within Bill Audit & Bill Pay rather than a separate platform.",
+  },
+  {
+    question: "Do you work with healthcare organizations?",
+    answer:
+      "Yes. OneSmarter's experience includes healthcare workflows, claims-processing services, TPA support, secure case management, and compliance-aware operations. For specific healthcare or regulated-workflow questions, the right next step is to contact care@onesmarter.com.",
+  },
+  {
+    question: "What does SOC 2 Type II Attested mean here?",
+    answer:
+      "OneSmarter uses the phrase SOC 2 Type II Attested to describe its trust posture. The Trust Center provides more context. For formal vendor, security, or procurement review, OneSmarter should provide the appropriate evidence through a direct business process.",
+  },
+  {
+    question: "Are you HIPAA certified?",
+    answer:
+      "A safer way to say this is that OneSmarter has completed a HIPAA Security Rule compliance assessment. OneSmarter does not present this as HIPAA certification. For regulated workflows, the Trust Center and a direct business review are the right next steps.",
+  },
+  {
+    question: "How should I contact OneSmarter?",
+    answer: "For business inquiries, email care@onesmarter.com.",
+  },
 ];
 
 const scenes = [
@@ -195,6 +219,81 @@ const AgentCard = ({ agent }) => (
   </article>
 );
 
+const MiraConversationPanel = () => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selected = conversationExamples[selectedIndex];
+
+  return (
+    <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
+      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
+        <div>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
+            Static conversation prototype
+          </p>
+          <h2 className="text-2xl font-bold md:text-4xl">
+            Try the first interaction pattern
+          </h2>
+          <p className="mt-4 leading-7 text-zinc-300">
+            Mira's first job is simple: help visitors understand OneSmarter from
+            approved public website content. This static prototype shows the
+            kind of conversation the first guide agent is being designed for.
+          </p>
+          <div className="mt-7 grid gap-3">
+            {conversationExamples.map((example, index) => (
+              <button
+                key={example.question}
+                type="button"
+                onClick={() => setSelectedIndex(index)}
+                className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition ${
+                  selectedIndex === index
+                    ? "border-red-500 bg-red-600 text-white"
+                    : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-red-500/60 hover:bg-white/[0.08]"
+                }`}
+              >
+                {example.question}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-white/10 bg-[#090909] p-5 shadow-2xl shadow-black/40 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white">
+                MV
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">Mira Vale</h3>
+                <p className="text-sm text-zinc-400">The OneSmarter Guide</p>
+              </div>
+            </div>
+            <span className="rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200">
+              Static guide prototype
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-5">
+            <div className="ml-auto max-w-[86%] rounded-2xl rounded-tr-sm bg-white px-5 py-4 text-sm leading-6 text-zinc-950">
+              {selected.question}
+            </div>
+            <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
+                Mira
+              </p>
+              {selected.answer}
+            </div>
+          </div>
+
+          <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
+            Static conversation prototype. Responses are prepared examples from
+            approved public website positioning.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const AiAgentsPage = () => {
   return (
     <main className="overflow-x-hidden bg-zinc-950 text-white">
@@ -275,6 +374,8 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
+      <MiraConversationPanel />
+
       <section className="bg-[#f6f7f9] px-5 py-16 text-black md:px-12">
         <div className="qa-container mx-auto">
           <div className="max-w-3xl">
@@ -313,16 +414,10 @@ const AiAgentsPage = () => {
               answer ordinary visitor questions clearly and route business
               inquiries to care@onesmarter.com.
             </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {visitorQuestions.map((question) => (
-                <div
-                  key={question}
-                  className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm font-medium text-gray-800"
-                >
-                  {question}
-                </div>
-              ))}
-            </div>
+            <p className="mt-5 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+              The interaction above is intentionally constrained to prepared
+              questions and approved public website content.
+            </p>
           </div>
 
           <aside className="rounded-lg border border-gray-200 bg-[#f6f7f9] p-6 md:p-8">
