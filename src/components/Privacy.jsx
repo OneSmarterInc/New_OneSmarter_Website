@@ -59,6 +59,10 @@ const Privacy = () => {
           modeling without storing analytics cookies on your device.
         </p>
         <p className="mb-4">
+          We do not use Google Analytics for advertising, remarketing, or
+          personalized advertising on this website.
+        </p>
+        <p className="mb-4">
           You can change or withdraw your cookie preferences at any time using
           the Cookie Settings option available on our website.
         </p>
