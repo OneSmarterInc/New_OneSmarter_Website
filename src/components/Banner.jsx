@@ -352,7 +352,7 @@ const Banner = () => {
         </div>
       </section>
 
-      <section className="bg-zinc-200 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
+      <section className="bg-neutral-50 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
         <div className="qa-container mx-auto grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <p className="text-sm font-semibold uppercase text-red-600">

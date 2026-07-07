@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import logo from "../assets/logo2.png";
 
@@ -141,6 +141,11 @@ const Navbar = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mobileOpenGroup, setMobileOpenGroup] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isWhiteHeroRoute =
+    location.pathname.startsWith("/trust-center") ||
+    location.pathname.startsWith("/aboutus");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -179,7 +184,9 @@ const Navbar = () => {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
           ? "bg-[#0c0c0c]/95 backdrop-blur-sm shadow-md py-2"
-          : "bg-transparent py-4"
+          : isWhiteHeroRoute
+            ? "bg-white shadow-md py-4"
+            : "bg-transparent py-4"
         }`}
     >
       <div

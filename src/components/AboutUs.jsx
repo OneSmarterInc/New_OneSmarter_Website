@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import img from "../assets/PeterMHager.jpg";
 import { useParams } from "react-router-dom";
+import { BookOpen, Target, Eye } from "lucide-react";
 import Loader from "./Loader/Loader";
 
 const aboutCopy = {
@@ -10,6 +11,12 @@ const aboutCopy = {
     "Our mission is to help organizations improve secure workflows, operations, and technology delivery through practical systems, accountable support, and compliance-aware execution.",
   Vision:
     "Our vision is to be a trusted execution partner for organizations that need secure platforms, practical AI, business services, and enterprise technology support without unnecessary complexity.",
+};
+
+const tabIcons = {
+  Introduction: BookOpen,
+  Mission: Target,
+  Vision: Eye,
 };
 
 const AboutUs = () => {
@@ -33,56 +40,77 @@ const AboutUs = () => {
   if (loading) return <Loader />;
 
   return (
-    <main className="md:mx-32 mt-20 md:mt-50 lg:mt-50">
-      <div className="w-full mt-10 bg-white text-black px-4 md:px-4 py-10">
-        <div className="flex flex-col-reverse md:flex-row justify-between gap-10 items-center md:items-start">
-          <div className="text-center w-full mt-6 md:mt-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-center leading-snug">
-              {aboutCopy[activeLink] || aboutCopy.Introduction}
-            </h1>
-          </div>
+    <main className="overflow-x-hidden bg-white pt-20 text-gray-950 md:pt-24">
+      <section className="bg-zinc-950 px-4 py-8 text-white sm:px-6 lg:px-12">
+        <div className="qa-container mx-auto">
+          <h1 className="mt-2 text-2xl font-bold uppercase text-red-500 sm:text-3xl">
+            About Us
+          </h1>
+        </div>
+      </section>
 
-          <div className="flex flex-col w-full md:w-auto items-center md:items-start">
-            <h2 className="text-red-600 font-semibold text-xl md:text-2xl mt-5 md:mt-0 lg:mt-0 mb-5 md:mb-4 lg:mb-4">
-              ABOUT US
-            </h2>
-            <div className="flex flex-col gap-4 w-full items-center md:items-start">
-              {links.map((item) => (
+      <section className="px-4 py-14 sm:px-6 lg:px-12 lg:py-20">
+        <div className="qa-container mx-auto grid gap-6 lg:grid-cols-[260px_1fr] lg:gap-8">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {links.map((item) => {
+              const Icon = tabIcons[item];
+              const isActive = activeLink === item;
+
+              return (
                 <button
                   key={item}
                   onClick={() => setActiveLink(item)}
-                  className={`w-full border border-purple-800 text-start rounded-full px-5 py-1 text-sm md:text-sm text-red-600 hover:text-white hover:bg-red-500 transition-all flex justify-start items-center gap-2 cursor-pointer hover:ease-in-out delay-75 ${
-                    activeLink === item ? "bg-red-500 text-white" : ""
+                  className={`flex min-w-0 flex-col items-center gap-2 rounded border px-3 py-3 text-center text-xs font-semibold transition-all cursor-pointer sm:text-sm lg:flex-row lg:justify-start lg:gap-3 lg:px-5 lg:text-left ${
+                    isActive
+                      ? "border-red-600 bg-red-600 text-white shadow-sm"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-red-300 hover:text-red-600"
                   }`}
                 >
-                  <span className="text-xs" aria-hidden="true">
-                    <i className="fa-solid fa-chevron-right"></i>
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
+                      isActive ? "bg-white/15" : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
-                  <span>{item}</span>
+                  <span className="truncate">{item}</span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </div>
 
-        <div className="flex flex-col md:flex-row mt-10 gap-5 md:gap-2 px-4 md:px-10 items-center">
-          <img
-            src={img}
-            alt="Pete M. Hager"
-            className="w-40 h-32 md:w-48 md:h-36 rounded-md object-cover"
-          />
-          <div className="md:ml-6 mt-4 md:mt-0 text-center md:text-left">
-            <h2 className="text-xl md:text-xl font-bold">Pete M. Hager</h2>
-            <p className="text-red-600 font-semibold">CEO</p>
-            <p className="text-sm md:text-sm text-justify mt-1">
-              Under the leadership of the CEO, the company focuses on secure
-              platforms, practical AI, business services, compliance-aware
-              operations, and enterprise technology support for clients with
-              complex operational needs.
+          <div className="min-w-0 rounded border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-semibold text-gray-950 sm:text-2xl">
+              {activeLink}
+            </h2>
+            <p className="mt-4 text-base leading-8 text-gray-600">
+              {aboutCopy[activeLink] || aboutCopy.Introduction}
             </p>
           </div>
         </div>
-      </div>
+
+        <div className="qa-container mx-auto mt-8">
+          <div className="flex flex-col items-center gap-6 rounded border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-start sm:p-8">
+            <img
+              src={img}
+              alt="Pete M. Hager"
+              className="h-32 w-32 shrink-0 rounded-full object-cover sm:h-36 sm:w-36"
+            />
+            <div className="min-w-0 text-center sm:text-left">
+              <h3 className="text-xl font-bold text-gray-950">
+                Pete M. Hager
+              </h3>
+              <p className="font-semibold text-red-600">CEO</p>
+              <p className="mt-2 text-sm leading-7 text-gray-600 sm:text-base">
+                Under the leadership of the CEO, the company focuses on secure
+                platforms, practical AI, business services, compliance-aware
+                operations, and enterprise technology support for clients with
+                complex operational needs.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 };

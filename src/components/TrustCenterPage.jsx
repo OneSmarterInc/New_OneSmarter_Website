@@ -1,6 +1,26 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, LockKeyhole, FileCheck2, Eye, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck,
+  LockKeyhole,
+  FileCheck2,
+  Eye,
+  ArrowRight,
+  ClipboardCheck,
+  Settings,
+  RefreshCw,
+  Handshake,
+  ClipboardList,
+  KeyRound,
+  Building2,
+  UserCog,
+  Code2,
+  AlertTriangle,
+  SearchCheck,
+  Siren,
+  Users,
+  TrendingUp,
+} from "lucide-react";
 import soclogo from "../assets/soc1.png";
 import HipaaBadge from "./HipaaBadge";
 
@@ -197,6 +217,29 @@ const detailPages = {
 
 const detailIcons = [LockKeyhole, FileCheck2, ShieldCheck, Eye];
 
+const sectionIconByTitle = {
+  "Independent Attestation": ClipboardCheck,
+  "Security Controls": LockKeyhole,
+  "Operational Discipline": Settings,
+  "Ongoing Monitoring and Improvement": RefreshCw,
+  "Client Trust": Handshake,
+  "Administrative Safeguards": ClipboardList,
+  "Technical Safeguards": KeyRound,
+  "Physical Safeguards": Building2,
+  "Access Management": UserCog,
+  "Secure Development and Operations": Code2,
+  "Ongoing Risk Awareness": AlertTriangle,
+  "Secure Software Development": Code2,
+  "Access Control": KeyRound,
+  "Encryption Practices Where Applicable": LockKeyhole,
+  "Change Management": RefreshCw,
+  "Risk Review": SearchCheck,
+  "Incident Response Readiness": Siren,
+  "Vendor Awareness": Handshake,
+  "Workforce Security Awareness": Users,
+  "Ongoing Improvement": TrendingUp,
+};
+
 const TrustBadges = () => (
   <div className="grid min-w-0 gap-4 lg:grid-cols-2">
     <div className="flex min-w-0 flex-col items-start gap-4 rounded border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
@@ -256,7 +299,9 @@ const DetailPage = ({ page }) => {
       <section className="px-4 py-14 sm:px-6 lg:px-12 lg:py-20">
         <div className="qa-container mx-auto grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {content.sections.map((section, index) => {
-            const SectionIcon = detailIcons[index % detailIcons.length];
+            const SectionIcon =
+              sectionIconByTitle[section.title] ||
+              detailIcons[index % detailIcons.length];
 
             return (
               <article

@@ -1,4 +1,4 @@
-import hipaaBadge from "../assets/hipaa-badge.svg";
+import hipaaBadge from "../assets/Hippa-transparent.png";
 
 const HipaaBadge = ({ compact = false }) => {
   return (
