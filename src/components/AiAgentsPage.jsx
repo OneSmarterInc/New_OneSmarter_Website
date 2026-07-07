@@ -142,7 +142,7 @@ const exchange = [
 ];
 
 const AgentNetwork = () => (
-  <div className="relative min-h-[360px] overflow-hidden rounded-lg border border-white/10 bg-black/45 p-6 shadow-2xl shadow-black/40">
+  <div className="relative min-h-[340px] overflow-hidden rounded-lg border border-white/10 bg-black/45 p-4 shadow-2xl shadow-black/40 sm:min-h-[360px] sm:p-6">
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.20),transparent_52%)]" />
     <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-red-500/30" />
     <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
@@ -155,14 +155,14 @@ const AgentNetwork = () => (
       {agents.map((agent, index) => {
         const positions = [
           "left-1/2 top-1/2 -translate-y-1/2",
-          "left-[22%] top-[18%]",
-          "left-[78%] top-[18%]",
-          "left-[22%] bottom-[16%]",
-          "left-[78%] bottom-[16%]",
+          "left-[24%] top-[18%]",
+          "left-[76%] top-[18%]",
+          "left-[24%] bottom-[16%]",
+          "left-[76%] bottom-[16%]",
         ];
         const isMira = agent.name === "Mira Vale";
         const label = (
-          <p className="w-36 rounded-full border border-white/10 bg-black/80 px-3 py-1 text-center text-xs font-semibold leading-4 text-zinc-100 shadow-lg shadow-black/30">
+          <p className="w-28 rounded-full border border-white/10 bg-black/80 px-2 py-1 text-center text-[11px] font-semibold leading-4 text-zinc-100 shadow-lg shadow-black/30 sm:w-36 sm:px-3 sm:text-xs">
             {agent.name}
           </p>
         );
@@ -176,7 +176,7 @@ const AgentNetwork = () => (
               <div className="mb-2">{label}</div>
             )}
             <div
-              className={`flex h-20 w-20 items-center justify-center rounded-full border text-sm font-bold shadow-lg ${
+              className={`flex h-16 w-16 items-center justify-center rounded-full border text-sm font-bold shadow-lg sm:h-20 sm:w-20 ${
                 isMira
                   ? "border-red-400 bg-red-600 text-white shadow-red-950/60"
                   : "border-white/15 bg-zinc-900 text-zinc-200"
@@ -241,15 +241,15 @@ const MiraConversationPanel = () => {
       <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
-            Static conversation prototype
+            Guide interaction
           </p>
           <h2 className="text-2xl font-bold md:text-4xl">
-            Try the first interaction pattern
+            Guide interaction preview
           </h2>
           <p className="mt-4 leading-7 text-zinc-300">
-            Mira's first job is simple: help visitors understand OneSmarter from
-            approved public website content. This static prototype shows the
-            kind of conversation the first guide agent is being designed for.
+            Mira's first job is simple: answer ordinary visitor questions
+            clearly, stay inside approved public content, and route business
+            inquiries to care@onesmarter.com.
           </p>
           <div className="mt-7 grid gap-3">
             {conversationExamples.map((example, index) => (
@@ -257,7 +257,7 @@ const MiraConversationPanel = () => {
                 key={example.question}
                 type="button"
                 onClick={() => setSelectedIndex(index)}
-                className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition ${
+                className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
                   selectedIndex === index
                     ? "border-red-500 bg-red-600 text-white"
                     : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-red-500/60 hover:bg-white/[0.08]"
@@ -281,7 +281,7 @@ const MiraConversationPanel = () => {
               </div>
             </div>
             <span className="rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200">
-              Static guide prototype
+              Guide preview
             </span>
           </div>
 
@@ -298,8 +298,7 @@ const MiraConversationPanel = () => {
           </div>
 
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
-            Static conversation prototype. Responses are prepared examples from
-            approved public website positioning.
+            Prepared example responses only.
           </p>
         </div>
       </div>
@@ -349,12 +348,12 @@ const PersonaLayerPrototype = () => {
               <div>
                 <h3 className="font-semibold text-white">Mira Vale</h3>
                 <p className="text-sm text-zinc-400">
-                  Persona control panel
+                  Presentation layer preview
                 </p>
               </div>
             </div>
             <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300">
-              Static presentation prototype
+              Layer preview
             </span>
           </div>
 
@@ -370,7 +369,7 @@ const PersonaLayerPrototype = () => {
                       key={option}
                       type="button"
                       onClick={() => setSelected(option)}
-                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
                         selected === option
                           ? "border-red-500 bg-red-600 text-white"
                           : "border-white/10 bg-white/[0.04] text-zinc-300 hover:border-red-500/60 hover:text-white"
@@ -400,8 +399,8 @@ const PersonaLayerPrototype = () => {
           </div>
 
           <p className="mt-5 text-xs leading-5 text-zinc-500">
-            Static presentation prototype. Future versions may connect these
-            controls to a governed agent runtime.
+            Static preview. Future versions may connect these controls to a
+            governed agent runtime.
           </p>
         </div>
       </div>
@@ -425,8 +424,8 @@ const AiAgentsPage = () => {
             <p className="mt-6 max-w-3xl text-base leading-8 text-zinc-300 md:text-lg">
               OneSmarter is building a digital team of AI agents that can
               explain, review, analyze, and collaborate around real business
-              workflows. The first task is simple: help visitors understand
-              OneSmarter using approved public website content.
+              workflows. Mira is the first guide concept for explaining the
+              public OneSmarter site in plain language.
             </p>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-200">
               <span className="rounded-full border border-white/15 bg-white/5 px-4 py-2">
@@ -517,41 +516,6 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <section className="bg-white px-5 py-16 text-black md:px-12">
-        <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[1fr_0.75fr]">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
-              First task
-            </p>
-            <h2 className="text-2xl font-bold md:text-3xl">
-              Start simple: ask Mira about OneSmarter
-            </h2>
-            <p className="mt-4 leading-7 text-gray-700">
-              The first practical activity is a public-content guide pattern:
-              answer ordinary visitor questions clearly and route business
-              inquiries to care@onesmarter.com.
-            </p>
-            <p className="mt-5 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
-              The interaction above is intentionally constrained to prepared
-              questions and approved public website content.
-            </p>
-          </div>
-
-          <aside className="rounded-lg border border-gray-200 bg-[#f6f7f9] p-6 md:p-8">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
-              Guardrails
-            </p>
-            <ul className="flex flex-wrap gap-2 text-sm text-gray-700">
-              {guardrails.map((guardrail) => (
-                <li key={guardrail} className="rounded-full bg-white px-3 py-2 shadow-sm">
-                  {guardrail}
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
-      </section>
-
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr]">
@@ -599,6 +563,41 @@ const AiAgentsPage = () => {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-5 py-16 text-black md:px-12">
+        <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[1fr_0.75fr]">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
+              First release boundary
+            </p>
+            <h2 className="text-2xl font-bold md:text-3xl">
+              Start simple: ask Mira about OneSmarter
+            </h2>
+            <p className="mt-4 leading-7 text-gray-700">
+              The first practical activity is a guided Q&A pattern: answer
+              visitor questions clearly, keep responses constrained, and route
+              business inquiries to care@onesmarter.com.
+            </p>
+            <p className="mt-5 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+              The interaction previews use prepared questions and responses
+              while the live agent runtime remains out of scope.
+            </p>
+          </div>
+
+          <aside className="rounded-lg border border-gray-200 bg-[#f6f7f9] p-6 md:p-8">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
+              Guardrails
+            </p>
+            <ul className="flex flex-wrap gap-2 text-sm text-gray-700">
+              {guardrails.map((guardrail) => (
+                <li key={guardrail} className="rounded-full bg-white px-3 py-2 shadow-sm">
+                  {guardrail}
+                </li>
+              ))}
+            </ul>
+          </aside>
         </div>
       </section>
 
