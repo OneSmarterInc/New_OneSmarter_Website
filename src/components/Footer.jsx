@@ -69,6 +69,10 @@ const socialLinks = [
 ];
 
 const Footer = () => {
+  const openCookieSettings = () => {
+    window.onesmarterOpenCookieSettings?.();
+  };
+
   return (
     <footer className="relative z-10 overflow-x-hidden bg-zinc-950 px-4 py-12 text-sm text-gray-300 sm:px-6 lg:px-12">
       <div className="qa-container mx-auto">
@@ -181,6 +185,13 @@ const Footer = () => {
             >
               Terms Of Use
             </Link>
+            <button
+              type="button"
+              onClick={openCookieSettings}
+              className="transition hover:text-red-400"
+            >
+              Cookie Settings
+            </button>
           </div>
         </div>
       </div>
