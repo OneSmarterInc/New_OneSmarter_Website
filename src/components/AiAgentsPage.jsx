@@ -124,12 +124,20 @@ const AgentNetwork = () => (
           "left-[78%] bottom-[16%]",
         ];
         const isMira = agent.name === "Mira Vale";
+        const label = (
+          <p className="w-36 rounded-full border border-white/10 bg-black/80 px-3 py-1 text-center text-xs font-semibold leading-4 text-zinc-100 shadow-lg shadow-black/30">
+            {agent.name}
+          </p>
+        );
 
         return (
           <div
             key={agent.name}
             className={`absolute flex -translate-x-1/2 flex-col items-center ${positions[index]} ${isMira ? "z-20" : "z-10"}`}
           >
+            {(index === 1 || index === 2) && (
+              <div className="mb-2">{label}</div>
+            )}
             <div
               className={`flex h-20 w-20 items-center justify-center rounded-full border text-sm font-bold shadow-lg ${
                 isMira
@@ -139,9 +147,7 @@ const AgentNetwork = () => (
             >
               {agent.initials}
             </div>
-            <p className="mt-2 w-32 text-center text-xs font-semibold leading-4 text-zinc-200">
-              {agent.name.split(" ")[0]}
-            </p>
+            {index !== 1 && index !== 2 && <div className="mt-2">{label}</div>}
           </div>
         );
       })}
