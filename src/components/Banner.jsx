@@ -1,6 +1,19 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Cloud, Users, BrainCircuit } from "lucide-react";
+import {
+  BrainCircuit,
+  BriefcaseBusiness,
+  Calculator,
+  ClipboardCheck,
+  Code2,
+  Globe2,
+  LockKeyhole,
+  MessageSquareText,
+  ReceiptText,
+  SearchCheck,
+  ServerCog,
+  ShieldCheck,
+} from "lucide-react";
 import bannerImage from "../assets/home-banner.png";
 import bgImage from "../assets/bg-1.jpg";
 import soclogo from "../assets/soc-2-transparent.png";
@@ -10,27 +23,37 @@ const offeringCards = [
   {
     title: "Platforms",
     path: "/platforms",
-    copy: "Secure ticketing and case management, plus bill audit and bill pay workflows for operational teams.",
+    icon: MessageSquareText,
+    summary: "Secure workflow platforms for operational teams.",
+    points: ["Ticketing and case management", "Bill audit and bill pay", "Operational visibility"],
   },
   {
     title: "Technology Solutions",
     path: "/technology-solutions",
-    copy: "AI agentic services, IBM i / AS400 support, enterprise software, healthcare technology, claims processing services, and software support consolidation.",
+    icon: Code2,
+    summary: "Practical technology delivery for complex systems.",
+    points: ["AI and automation", "Healthcare and IBM i / AS400", "Claims processing services"],
   },
   {
     title: "Business Services",
     path: "/business-services",
-    copy: "Accounting, bookkeeping, tax support, EOR/HR services, third-party payment services, benefits, and back-office support.",
+    icon: BriefcaseBusiness,
+    summary: "Back-office services for growing organizations.",
+    points: ["Accounting, bookkeeping, and tax support", "EOR and HR support", "Payments, benefits, and operations"],
   },
   {
     title: "Compliance & Cyber Assurance",
     path: "/compliance-assurance",
-    copy: "SOC readiness, HIPAA audit readiness, ISO/IEC 27001 readiness, PCI DSS readiness, VAPT/remediation, framework mapping, and compliance operations.",
+    icon: ClipboardCheck,
+    summary: "Readiness and remediation support for client programs.",
+    points: ["SOC, HIPAA, ISO/IEC 27001, and PCI DSS readiness", "VAPT and remediation support", "Framework mapping and compliance operations"],
   },
   {
     title: "Trust Center",
     path: "/trust-center",
-    copy: "OneSmarter's SOC 2 Type II attestation, HIPAA Security Rule assessment, security practices, privacy, and compliance posture.",
+    icon: LockKeyhole,
+    summary: "OneSmarter's own security and compliance posture.",
+    points: ["SOC 2 Type II Attested", "HIPAA Security Rule assessment", "Security practices and privacy"],
   },
 ];
 
@@ -41,12 +64,12 @@ const heroFeatures = [
     copy: "Security is built into every solution we develop.",
   },
   {
-    icon: Cloud,
+    icon: ServerCog,
     title: "Enterprise Grade",
     copy: "Scalable, reliable solutions for mission-critical systems.",
   },
   {
-    icon: Users,
+    icon: LockKeyhole,
     title: "Trusted Partner",
     copy: "Dedicated to protecting your data and your business.",
   },
@@ -61,12 +84,16 @@ const featuredPlatforms = [
   {
     title: "Secure Ticketing and Case Management",
     path: "/platforms/hipaa-regulated-ticketing",
-    copy: "A secure ticketing and case-management platform built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution.",
+    icon: MessageSquareText,
+    summary: "Secure case intake and resolution for sensitive workflows.",
+    points: ["HIPAA-regulated workflows", "Role-based access", "Audit history"],
   },
   {
     title: "Bill Audit & Bill Pay",
     path: "/platforms/bill-audit-erp-bill-pay",
-    copy: "Vendor bill review, recurring expense analysis, discrepancy tracking, approvals, payment workflow support, and telecom expense management use cases.",
+    icon: ReceiptText,
+    summary: "Review vendor bills, recurring expenses, and approvals.",
+    points: ["Discrepancy tracking", "Payment workflow support", "Telecom expense use cases"],
   },
 ];
 
@@ -80,26 +107,32 @@ const servedAudiences = [
 
 const whyOneSmarter = [
   {
+    icon: SearchCheck,
     title: "Experienced, focused team",
     copy: "Senior delivery attention without the sprawl of a large generic consulting model.",
   },
   {
+    icon: ShieldCheck,
     title: "Secure-by-design development",
     copy: "Security, access control, auditability, and workflow integrity are considered from the start.",
   },
   {
+    icon: BrainCircuit,
     title: "Practical AI and automation",
     copy: "AI is applied to repeatable workflows where it can improve speed, quality, and visibility.",
   },
   {
+    icon: ServerCog,
     title: "Healthcare and legacy-system experience",
     copy: "Hands-on background with healthcare operations, claims workflows, and IBM i / AS400 environments.",
   },
   {
+    icon: Globe2,
     title: "Global delivery and support capability",
     copy: "Flexible delivery and support for organizations that need accountable execution across time zones.",
   },
   {
+    icon: Calculator,
     title: "Compliance-aware operations",
     copy: "Services are shaped around evidence, documentation, remediation, and responsible data handling.",
   },
@@ -107,7 +140,7 @@ const whyOneSmarter = [
 
 const Banner = () => {
   return (
-    <main className="overflow-x-hidden bg-white text-gray-950">
+    <main className="overflow-x-hidden bg-zinc-100 text-gray-950">
       <section
         className="relative overflow-hidden bg-black bg-cover bg-center text-white"
         style={{ backgroundImage: `url(${bgImage})` }}
@@ -245,12 +278,21 @@ const Banner = () => {
                 to={card.path}
                 className="group flex min-h-[260px] flex-col rounded border border-white/10 bg-white/[0.04] p-6 transition hover:border-red-500/70 hover:bg-white/[0.07]"
               >
+                <card.icon className="mb-5 h-7 w-7 text-red-400" aria-hidden="true" />
                 <h3 className="text-xl font-semibold text-white">
                   {card.title}
                 </h3>
-                <p className="mt-4 flex-1 text-sm leading-7 text-gray-300">
-                  {card.copy}
+                <p className="mt-4 text-sm leading-6 text-gray-300">
+                  {card.summary}
                 </p>
+                <ul className="mt-4 flex-1 space-y-2 text-sm leading-6 text-gray-300">
+                  {card.points.map((point) => (
+                    <li key={point} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
                 <span className="mt-6 text-sm font-semibold text-red-400 group-hover:text-red-300">
                   Learn more
                 </span>
@@ -260,7 +302,7 @@ const Banner = () => {
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
+      <section className="bg-zinc-100 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
         <div className="qa-container mx-auto">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div className="max-w-3xl">
@@ -279,19 +321,28 @@ const Banner = () => {
               View Platforms
             </Link>
           </div>
-          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
             {featuredPlatforms.map((platform) => (
               <Link
                 key={platform.title}
                 to={platform.path}
-                className="group flex min-h-[270px] flex-col rounded border border-gray-200 bg-white p-6 shadow-sm transition hover:border-red-500 hover:shadow-md"
+                className="group flex min-h-[260px] flex-col rounded border border-gray-200 bg-white p-6 shadow-sm transition hover:border-red-500 hover:shadow-md"
               >
+                <platform.icon className="mb-5 h-7 w-7 text-red-600" aria-hidden="true" />
                 <h3 className="text-lg font-semibold text-gray-950">
                   {platform.title}
                 </h3>
-                <p className="mt-4 flex-1 text-sm leading-7 text-gray-600">
-                  {platform.copy}
+                <p className="mt-4 text-sm leading-6 text-gray-600">
+                  {platform.summary}
                 </p>
+                <ul className="mt-4 flex-1 space-y-2 text-sm leading-6 text-gray-600">
+                  {platform.points.map((point) => (
+                    <li key={point} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-red-600" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
                 <span className="mt-6 text-sm font-semibold text-red-600 group-hover:text-red-700">
                   Explore platform
                 </span>
@@ -301,7 +352,7 @@ const Banner = () => {
         </div>
       </section>
 
-      <section className="bg-gray-100 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
+      <section className="bg-zinc-200 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
         <div className="qa-container mx-auto grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <p className="text-sm font-semibold uppercase text-red-600">
@@ -325,7 +376,7 @@ const Banner = () => {
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
+      <section className="bg-zinc-100 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
         <div className="qa-container mx-auto">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold uppercase text-red-600">
@@ -341,7 +392,7 @@ const Banner = () => {
                 key={item.title}
                 className="min-h-[190px] rounded border border-gray-200 bg-white p-6 shadow-sm"
               >
-                <div className="mb-4 h-1 w-10 rounded bg-red-600" />
+                <item.icon className="mb-5 h-6 w-6 text-red-600" aria-hidden="true" />
                 <h3 className="text-lg font-semibold text-gray-950">
                   {item.title}
                 </h3>
@@ -388,8 +439,8 @@ const Banner = () => {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-14 sm:px-6 lg:px-12 lg:py-20">
-        <div className="qa-container mx-auto flex flex-col items-start justify-between gap-6 rounded border border-gray-200 bg-gray-950 p-8 text-white sm:p-10 lg:flex-row lg:items-center">
+      <section className="border-t border-white/10 bg-zinc-950 px-4 py-14 sm:px-6 lg:px-12 lg:py-20">
+        <div className="qa-container mx-auto flex flex-col items-start justify-between gap-6 rounded border border-white/10 bg-white/[0.04] p-8 text-white sm:p-10 lg:flex-row lg:items-center">
           <h2 className="max-w-3xl break-words text-2xl font-bold sm:text-4xl">
             Have a platform, workflow, compliance, or operations challenge?
           </h2>

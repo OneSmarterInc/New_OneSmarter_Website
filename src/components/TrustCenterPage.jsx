@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, LockKeyhole, FileCheck2, Eye, ArrowRight } from "lucide-react";
 import soclogo from "../assets/soc1.png";
+import HipaaBadge from "./HipaaBadge";
 
 const trustLinks = [
   {
@@ -194,18 +195,7 @@ const detailPages = {
   },
 };
 
-const HipaaBadge = () => (
-  <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded border border-red-500/40 bg-red-950/30 text-center text-white">
-    <ShieldCheck className="mb-1 h-6 w-6 text-red-400" aria-hidden="true" />
-    <span className="text-sm font-bold leading-4">HIPAA</span>
-    <span className="text-[11px] font-semibold leading-4 text-red-100">
-      Security Rule
-    </span>
-    <span className="text-[11px] font-semibold leading-4 text-red-100">
-      Assessed
-    </span>
-  </div>
-);
+const detailIcons = [LockKeyhole, FileCheck2, ShieldCheck, Eye];
 
 const TrustBadges = () => (
   <div className="grid min-w-0 gap-4 lg:grid-cols-2">
@@ -228,7 +218,7 @@ const TrustBadges = () => (
     </div>
 
     <div className="flex min-w-0 flex-col items-start gap-4 rounded border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
-      <HipaaBadge />
+      <HipaaBadge compact />
       <div className="min-w-0">
         <p className="break-words font-semibold text-white">
           HIPAA Security Rule Compliance Assessment Completed
@@ -265,13 +255,16 @@ const DetailPage = ({ page }) => {
 
       <section className="px-4 py-14 sm:px-6 lg:px-12 lg:py-20">
         <div className="qa-container mx-auto grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {content.sections.map((section) => (
-            <article
-              key={section.title}
-              className="rounded border border-gray-200 bg-white p-6 shadow-sm"
-            >
+          {content.sections.map((section, index) => {
+            const SectionIcon = detailIcons[index % detailIcons.length];
+
+            return (
+              <article
+                key={section.title}
+                className="rounded border border-gray-200 bg-white p-6 shadow-sm"
+              >
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded bg-red-600 text-white">
-                <LockKeyhole className="h-5 w-5" aria-hidden="true" />
+                <SectionIcon className="h-5 w-5" aria-hidden="true" />
               </div>
               <h2 className="break-words text-xl font-semibold text-gray-950">
                 {section.title}
@@ -279,8 +272,9 @@ const DetailPage = ({ page }) => {
               <p className="mt-3 text-sm leading-7 text-gray-600">
                 {section.copy}
               </p>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
 
         {content.ctas && (
@@ -315,11 +309,8 @@ const TrustCenterLanding = () => (
             and supports client solutions.
           </p>
           <p className="mt-6 max-w-3xl text-base leading-8 text-gray-300">
-            OneSmarter has completed a SOC 2 Type II attestation and an
-            independent HIPAA Security Rule compliance assessment. These
-            milestones reflect our ongoing commitment to secure software
-            development, responsible data handling, and dependable client
-            service.
+            This center separates OneSmarter's own trust posture from the
+            compliance and cyber assurance services we provide to clients.
           </p>
         </div>
         <TrustBadges />
