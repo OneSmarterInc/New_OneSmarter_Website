@@ -117,18 +117,18 @@ const AgentNetwork = () => (
 
       {agents.map((agent, index) => {
         const positions = [
-          "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-          "left-[10%] top-[18%]",
-          "right-[10%] top-[18%]",
-          "left-[12%] bottom-[16%]",
-          "right-[12%] bottom-[16%]",
+          "left-1/2 top-1/2 -translate-y-1/2",
+          "left-[22%] top-[18%]",
+          "left-[78%] top-[18%]",
+          "left-[22%] bottom-[16%]",
+          "left-[78%] bottom-[16%]",
         ];
         const isMira = agent.name === "Mira Vale";
 
         return (
           <div
             key={agent.name}
-            className={`absolute ${positions[index]} ${isMira ? "z-20" : "z-10"}`}
+            className={`absolute flex -translate-x-1/2 flex-col items-center ${positions[index]} ${isMira ? "z-20" : "z-10"}`}
           >
             <div
               className={`flex h-20 w-20 items-center justify-center rounded-full border text-sm font-bold shadow-lg ${
@@ -139,7 +139,7 @@ const AgentNetwork = () => (
             >
               {agent.initials}
             </div>
-            <p className="mt-2 w-24 text-center text-xs font-semibold text-zinc-200">
+            <p className="mt-2 w-32 text-center text-xs font-semibold leading-4 text-zinc-200">
               {agent.name.split(" ")[0]}
             </p>
           </div>
