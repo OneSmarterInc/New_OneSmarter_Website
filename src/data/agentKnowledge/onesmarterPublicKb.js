@@ -346,7 +346,7 @@ export const onesmarterPublicKnowledgeBase = [
       "OneSmarter has completed an independent HIPAA Security Rule compliance assessment covering applicable safeguards and practices.",
     sourceFacts: [
       "Use the phrase HIPAA Security Rule Compliance Assessment Completed.",
-      "OneSmarter does not present this as HIPAA certification.",
+      "OneSmarter does not present this assessment as an official certification.",
       "Trust Center HIPAA content focuses on safeguards and practices.",
     ],
     allowedClaims: [

@@ -132,6 +132,48 @@ Mira should route to care@onesmarter.com when a question involves:
 
 These fixtures are not wired into an automated test runner yet. They are intended to become the first safety and grounding test set in a future backend package.
 
+## Validator
+
+Run the local validator with:
+
+```powershell
+npm.cmd run validate:mira-kb
+```
+
+### What The Validator Checks
+
+The validator checks:
+
+- The knowledge base export loads successfully.
+- The claim rules export loads successfully.
+- The test question export loads successfully.
+- Every knowledge entry has the required fields.
+- Every knowledge entry has a unique `id`.
+- Every knowledge entry has a non-empty `approvedSummary`.
+- Every knowledge entry has `sourceFacts`, `allowedClaims`, `disallowedClaims`, `handoffGuidance`, and `relatedQuestions`.
+- Every test fixture has a question and `expectedHandling`.
+- Test fixture IDs are unique.
+- Risky wording appears only in intentional rule, test, or `disallowedClaims` contexts.
+
+### When It Must Be Run
+
+The validator must be run:
+
+- After adding or editing any Mira knowledge entry.
+- After changing claim rules.
+- After changing test fixtures.
+- Before any backend/API endpoint uses the knowledge base.
+- Before internal review, security review, or limited public launch.
+
+Intentional prohibited phrase test cases should remain in clearly marked rule or test contexts only:
+
+- `miraClaimRules.js` prohibited phrase lists.
+- `miraClaimRules.js` replacement or avoidance rules.
+- `miraTestQuestions.js` questions that intentionally test risky wording.
+- `onesmarterPublicKb.js` `disallowedClaims` fields.
+
+Do not put prohibited wording in `approvedSummary`, `sourceFacts`, `allowedClaims`, `handoffGuidance`, or public response examples unless the wording is explicitly part of a correction or refusal pattern.
+
 ## Adding Future Entries
 
 When adding a new knowledge entry:
