@@ -199,7 +199,7 @@ const Navbar = () => {
           />
         </Link>
 
-        <ul className="ml-8 hidden flex-1 items-center justify-end gap-2 md:flex lg:ml-12 lg:gap-4 xl:gap-5">
+        <ul className="ml-6 hidden flex-1 items-center justify-end gap-1.5 md:flex lg:ml-8 lg:gap-3 xl:gap-4">
           {navGroups.map((group) => (
             <Fragment key={group.label}>
               <li className="group relative flex items-center py-0.5">
