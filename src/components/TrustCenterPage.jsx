@@ -190,7 +190,7 @@ const detailPages = {
     ctas: [
       { label: "Privacy Policy", path: "/policies/privacy-policy" },
       { label: "Terms Of Use", path: "/policies/terms-of-use" },
-      { label: "Contact", path: "/contact" },
+      { label: "Email OneSmarter", path: "mailto:care@onesmarter.com" },
     ],
   },
 };
@@ -280,13 +280,23 @@ const DetailPage = ({ page }) => {
         {content.ctas && (
           <div className="qa-container mx-auto mt-10 flex flex-col gap-3 sm:flex-row">
             {content.ctas.map((cta) => (
-              <Link
-                key={cta.path}
-                to={cta.path}
-                className="inline-flex items-center justify-center rounded bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
-              >
-                {cta.label}
-              </Link>
+              cta.path.startsWith("mailto:") ? (
+                <a
+                  key={cta.path}
+                  href={cta.path}
+                  className="inline-flex items-center justify-center rounded bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+                >
+                  {cta.label}
+                </a>
+              ) : (
+                <Link
+                  key={cta.path}
+                  to={cta.path}
+                  className="inline-flex items-center justify-center rounded bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+                >
+                  {cta.label}
+                </Link>
+              )
             ))}
           </div>
         )}

@@ -134,7 +134,6 @@ const navGroups = [
 
 const simpleLinks = [
   { label: "About", path: "/aboutus/Introduction" },
-  { label: "Contact", path: "/contact" },
 ];
 
 const Navbar = () => {

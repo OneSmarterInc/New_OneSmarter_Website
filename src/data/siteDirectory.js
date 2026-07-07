@@ -457,6 +457,7 @@ export const siteDirectory = [
   entry({
     route: "/contact",
     title: "Contact OneSmarter",
+    promoted: false,
     metaDescription:
       "Contact OneSmarter by email at care@onesmarter.com.",
     category: "Core",

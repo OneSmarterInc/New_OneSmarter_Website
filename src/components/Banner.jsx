@@ -169,12 +169,12 @@ const Banner = () => {
               >
                 Explore Our Platforms
               </Link>
-              <Link
-                to="/contact"
+              <a
+                href="mailto:care@onesmarter.com"
                 className="inline-flex items-center justify-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:border-red-400 hover:text-red-100"
               >
                 Talk to Us
-              </Link>
+              </a>
             </div>
 
             <div className="mt-8 h-px w-24 bg-red-500/60" />
@@ -444,12 +444,12 @@ const Banner = () => {
           <h2 className="max-w-3xl break-words text-2xl font-bold sm:text-4xl">
             Have a platform, workflow, compliance, or operations challenge?
           </h2>
-          <Link
-            to="/contact"
+          <a
+            href="mailto:care@onesmarter.com"
             className="inline-flex shrink-0 items-center justify-center rounded bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
           >
             Start a Conversation
-          </Link>
+          </a>
         </div>
       </section>
     </main>
