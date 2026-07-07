@@ -15,7 +15,6 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 ## Core
 - [OneSmarter | Secure Platforms, Practical AI, Trusted Execution](https://www.onesmarter.com/ai-pages/index.md): OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Website: https://www.onesmarter.com
 - [About OneSmarter](https://www.onesmarter.com/ai-pages/aboutus/Introduction.md): OneSmarter is a Dayton, Ohio company providing secure technology, business services, compliance support, and trusted execution. Website: https://www.onesmarter.com/aboutus/Introduction
-- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md): Contact OneSmarter by email at care@onesmarter.com. Website: https://www.onesmarter.com/contact
 
 ## Platforms
 - [Platforms | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/index.md): OneSmarter platforms support secure ticketing and case management, plus bill audit and bill pay workflows. Website: https://www.onesmarter.com/platforms
@@ -62,7 +61,6 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 
 ## Contact
 - Email: care@onesmarter.com
-- Phone: +1 937 344 6241
 - Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
 
 ## AI Page Mirrors

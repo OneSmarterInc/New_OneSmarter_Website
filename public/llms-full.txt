@@ -16,7 +16,7 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 - Compliance-aware operations
 
 ## Public Taxonomy
-- Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; About OneSmarter; Contact OneSmarter
+- Core: OneSmarter | Secure Platforms, Practical AI, Trusted Execution; About OneSmarter
 - Platforms: Platforms | OneSmarter; Secure Ticketing and Case Management | OneSmarter; Bill Audit & Bill Pay | OneSmarter
 - Technology Solutions: Technology Solutions | OneSmarter; Healthcare & TPA Technology | OneSmarter; Claims Processing Services | OneSmarter; AI Agentic Services | OneSmarter; IBM i / AS400 Services | OneSmarter; Enterprise Software Development | OneSmarter; Software Support Consolidation | OneSmarter
 - Business Services: Business Services | OneSmarter; Accounting, Bookkeeping & Tax Support | OneSmarter; EOR & HR Services | OneSmarter; Third-Party Payment Services | OneSmarter; Benefits & Back Office Support | OneSmarter
@@ -830,28 +830,6 @@ Trust and compliance notes:
 - Responsible data handling
 - Compliance-aware operations
 
-## Contact OneSmarter
-
-Website URL: https://www.onesmarter.com/contact
-
-AI mirror URL: https://www.onesmarter.com/ai-pages/contact.md
-
-Category: Core
-
-Audience: Prospects, clients, and partners.
-
-Summary: Contact OneSmarter by email at care@onesmarter.com. Key offerings include Email.
-
-Key offerings:
-- Email
-
-Trust and compliance notes:
-- SOC 2 Type II Attested
-- HIPAA Security Rule Compliance Assessment Completed
-- Secure software development
-- Responsible data handling
-- Compliance-aware operations
-
 ## Privacy Policy | OneSmarter
 
 Website URL: https://www.onesmarter.com/policies/privacy-policy
@@ -898,8 +876,6 @@ Trust and compliance notes:
 
 ## Contact
 Email: care@onesmarter.com
-
-Phone: +1 937 344 6241
 
 Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
 

@@ -18,6 +18,7 @@ const writeFile = (relativePath, content) => {
 };
 
 const pageUrl = (route) => `${siteBaseUrl}${route === "/" ? "" : route}`;
+const emailContactLink = `[Email OneSmarter](mailto:${siteContact.email})`;
 const aiPageUrl = (route) => `${siteBaseUrl}/${markdownPathForRoute(route).replaceAll("\\", "/")}`;
 
 const asList = (items) =>
@@ -68,7 +69,11 @@ const removeLegacyMarkdownMirrors = () => {
 const markdownForPage = (page) => {
   const related = page.relatedRoutes
     .map((route) => {
-      const relatedPage = siteDirectory.find((item) => item.route === route);
+      if (route === "/contact") {
+        return `- ${emailContactLink}`;
+      }
+
+      const relatedPage = promotedSiteDirectory.find((item) => item.route === route);
       return relatedPage
         ? `- [${relatedPage.title}](${aiPageUrl(route)})`
         : `- ${pageUrl(route)}`;
@@ -95,12 +100,10 @@ ${asList(page.keyOfferings)}
 ${asList([...page.trustNotes, ...page.complianceNotes])}
 
 ## Related Pages
-${related || "- [Contact OneSmarter](${siteBaseUrl}/contact)"}
+${related || `- ${emailContactLink}`}
 
 ## Contact
 Email: ${siteContact.email}
-
-Phone: ${siteContact.phone}
 
 Address: ${siteContact.address}`;
 };
@@ -152,7 +155,6 @@ ${llmsSections}
 
 ## Contact
 - Email: ${siteContact.email}
-- Phone: ${siteContact.phone}
 - Address: ${siteContact.address}
 
 ## AI Page Mirrors
@@ -211,8 +213,6 @@ ${fullDirectory}
 
 ## Contact
 Email: ${siteContact.email}
-
-Phone: ${siteContact.phone}
 
 Address: ${siteContact.address}
 

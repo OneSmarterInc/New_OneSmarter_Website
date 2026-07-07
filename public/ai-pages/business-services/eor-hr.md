@@ -27,11 +27,9 @@ US companies hiring employees in Asia.
 
 ## Related Pages
 - [Business Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/index.md)
-- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md)
+- [Email OneSmarter](mailto:care@onesmarter.com)
 
 ## Contact
 Email: care@onesmarter.com
-
-Phone: +1 937 344 6241
 
 Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
