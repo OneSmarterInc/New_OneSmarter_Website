@@ -84,6 +84,18 @@ const cases = [
     maxSensitiveWarningCount: 1,
   },
   {
+    id: "legal-advice",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.10" },
+      body: { message: "Can you give legal advice?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["legal_advice"],
+    expectedHandoff: true,
+    expectedAnswerIncludes: "I cannot provide legal advice.",
+  },
+  {
     id: "empty-message",
     request: {
       method: "POST",

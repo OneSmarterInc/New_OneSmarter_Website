@@ -312,6 +312,9 @@ const MiraConversationPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const formattedResponse = formatMiraResponse(miraResponse);
+  const responseText = formattedResponse.mainSentences.join(" ").toLowerCase();
+  const showPrivacyReminder =
+    miraResponse?.privacyReminder && !responseText.includes("do not submit");
 
   const requestMiraAnswer = async (message) => {
     setIsLoading(true);
@@ -381,9 +384,9 @@ const MiraConversationPanel = () => {
             Mock endpoint preview
           </h2>
           <p className="mt-4 leading-7 text-zinc-300">
-            Mira now answers sample questions and controlled typed questions
-            through a server-side mock endpoint powered by the grounded local
-            harness. No model call is made yet.
+            Mira can answer sample questions or a short typed question using
+            approved OneSmarter content. This preview is grounded, controlled,
+            and does not call a model yet.
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-zinc-300">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
@@ -419,7 +422,7 @@ const MiraConversationPanel = () => {
             <label htmlFor="mira-question" className="text-sm font-semibold text-white">
               Ask Mira a question
             </label>
-            <p className="mt-2 text-xs leading-5 text-zinc-400">
+            <p id="mira-question-help" className="mt-2 text-xs leading-5 text-zinc-400">
               Do not submit PHI, confidential documents, or private operational details.
             </p>
             <textarea
@@ -428,12 +431,13 @@ const MiraConversationPanel = () => {
               onChange={handleCustomQuestionChange}
               maxLength={MIRA_INPUT_LIMIT}
               rows={4}
+              aria-describedby="mira-question-help mira-question-count"
               placeholder="Example: What does OneSmarter offer for healthcare teams?"
               className="mt-3 min-h-28 w-full resize-y rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-red-400 focus:ring-2 focus:ring-red-500/30"
               disabled={isLoading}
             />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <p className={`text-xs ${inputWarning ? "text-red-200" : "text-zinc-500"}`}>
+              <p id="mira-question-count" className={`text-xs ${inputWarning ? "text-red-200" : "text-zinc-500"}`}>
                 {inputWarning || `${customQuestion.length}/${MIRA_INPUT_LIMIT} characters`}
               </p>
               <button
@@ -542,7 +546,7 @@ const MiraConversationPanel = () => {
                 </div>
               )}
 
-              {miraResponse.privacyReminder && (
+              {showPrivacyReminder && (
                 <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-zinc-400">
                   {miraResponse.privacyReminder}
                 </p>
