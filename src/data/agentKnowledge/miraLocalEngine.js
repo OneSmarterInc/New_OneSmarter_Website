@@ -109,13 +109,23 @@ const RISK_RULES = [
 
 const unique = (items) => [...new Set(items)];
 
+const normalizeOneSmarterAliases = (text) =>
+  text
+    .replace(/\bone\s*[-\s]\s*smarter\s+inc\b/g, "onesmarter")
+    .replace(/\bonesmarter\s+inc\b/g, "onesmarter")
+    .replace(/\bone\s*[-\s]\s*smarter\b/g, "onesmarter")
+    .replace(/\b1smarter\b/g, "onesmarter")
+    .replace(/\bonsmarter\b/g, "onesmarter");
+
 export const normalizeQuestion = (question = "") =>
-  question
+  normalizeOneSmarterAliases(
+    question
     .toLowerCase()
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9\s/.-]/g, " ")
     .replace(/\s+/g, " ")
-    .trim();
+      .trim(),
+  );
 
 const tokenize = (text = "") =>
   unique(
@@ -224,6 +234,13 @@ export const scoreKbEntry = (question, entry) => {
 
   if (/\bcontact\b|\bemail\b|\breach\b/.test(normalized)) {
     if (entry.id === "contact-handoff") score += 10;
+  }
+
+  if (
+    /\bonesmarter\b/.test(normalized) &&
+    /\b(what does|what is|who is|tell me about)\b/.test(normalized)
+  ) {
+    if (entry.id === "company-overview") score += 10;
   }
 
   if (/\bhipaa\b/.test(normalized)) {

@@ -34,6 +34,19 @@ const cases = [
     expectedHandoff: false,
   },
   {
+    id: "company-question-onsmarter-typo",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.11" },
+      body: { message: "What does onsmarter do?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: [],
+    expectedSourceIds: ["company-overview"],
+    expectedHandoff: false,
+    minimumConfidence: "medium",
+  },
+  {
     id: "hipaa-claim-boundary",
     request: {
       method: "POST",
@@ -200,6 +213,12 @@ for (const testCase of cases) {
     if (!body.answerSeed) fail(`${testCase.id}: missing answerSeed.`);
     if (!["high", "medium", "low"].includes(body.confidence)) {
       fail(`${testCase.id}: invalid confidence ${body.confidence}.`);
+    }
+    if (
+      testCase.minimumConfidence === "medium" &&
+      !["high", "medium"].includes(body.confidence)
+    ) {
+      fail(`${testCase.id}: expected medium or high confidence, got ${body.confidence}.`);
     }
     if (!Array.isArray(body.riskFlags)) fail(`${testCase.id}: riskFlags must be an array.`);
     if (!Array.isArray(body.matchedSources)) {
