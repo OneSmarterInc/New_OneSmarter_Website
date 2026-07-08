@@ -17,6 +17,8 @@ Current Mira status:
 - No audio capture.
 - No uploads.
 
+Future voice and persona work may eventually apply to multiple OneSmarter agents, including Maya Renshaw as a possible intake/routing voice. Mira remains the first voice candidate because she already has the approved public-knowledge mock endpoint and safety harness.
+
 ## 1. Voice Vision
 
 Mira's future voice layer should make the guide feel more natural while staying professional, controlled, and clearly bounded.

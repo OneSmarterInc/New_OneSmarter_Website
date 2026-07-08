@@ -170,6 +170,24 @@ The mock endpoint prepares for later model integration by fixing the server-side
 - Privacy warnings.
 - Testable response schema.
 
+### Future Agent Expansion
+
+Mira remains the only active endpoint agent for now.
+
+Maya Renshaw is a future intake/routing agent concept, not an implemented endpoint agent. Any future Maya endpoint should follow the same staged process used for Mira:
+
+1. Approved public knowledge base.
+2. Claim-boundary rules.
+3. Validator.
+4. Local deterministic harness.
+5. Mock endpoint contract.
+6. Safety controls, logging, rate limits, and normalized errors.
+7. UI wiring.
+8. QA and review.
+9. Real model design only after the previous stages are approved.
+
+No additional agent should bypass the safety, privacy, logging, rate-limit, and review gates established for Mira.
+
 ### Request Flow
 
 1. Visitor asks a question in the `/ai-agents` UI.

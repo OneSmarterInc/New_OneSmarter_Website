@@ -68,6 +68,27 @@ Memory themes:
 
 First task: Answer visitor questions about OneSmarter from approved public website content.
 
+### Maya Renshaw - The Client Navigator
+
+Role: Helps visitors figure out where to start and which OneSmarter capability fits their problem.
+
+Personality: Warm, perceptive, practical, slightly conversational.
+
+Background: Maya's fictional background is in client onboarding, service discovery, and early-stage problem framing. She is good at listening to a visitor describe a messy situation and turning it into a clearer path: platform, technology service, business service, compliance review, or human follow-up.
+
+Memory themes:
+
+- First conversations with new clients.
+- Turning vague problems into clear next steps.
+- Recognizing when a visitor needs a platform versus a service.
+- Routing sensitive or business-specific questions to care@onesmarter.com.
+
+How she speaks:
+
+> "Let's not start with the solution. Tell me what is frustrating, slow, risky, or unclear - then I'll help you find the right OneSmarter path."
+
+Future task: Maya could become the intake/routing agent. She asks the first few questions and then introduces Mira, Theo, Elena, Ravi, or Selene depending on what the visitor needs.
+
 ### Theo Mercer - The Analyst
 
 Role: AI readability and public website analysis.
@@ -262,6 +283,20 @@ Messaging direction:
 | Phase 7 | Optional live AI integration | Only after backend, logging, consent, safety, and privacy requirements are approved |
 | Phase 8 | Agent world visuals and collaboration | Agent society visuals, voice, memory engine, video-style scenes, and agent-to-agent messaging are future phases |
 
+## Agent Expansion Roadmap
+
+New OneSmarter agents should be added in deliberate layers so the public concept, safety model, and implementation maturity stay aligned.
+
+| Layer | Scope | Requirements |
+| --- | --- | --- |
+| Layer 1 | Static concept only | Name, role, personality, background, memory themes, speaking style, and future task. |
+| Layer 2 | Page presence | Agent card, scene appearance, or static roster mention. No behavior implied beyond the approved concept. |
+| Layer 3 | Mock behavior | Deterministic local harness or scripted interaction. No real AI call, uploads, private data, or unreviewed claims. |
+| Layer 4 | Endpoint behavior | Production-shaped endpoint contract with validation, logging, rate limits, safe errors, and test coverage. |
+| Layer 5 | Live model behavior | Only after approved KB, claim rules, validator, local harness, mock endpoint, safety controls, UI wiring, QA, and review. |
+
+Maya should start at Layer 1 only. Mira remains the only active endpoint agent until a future package explicitly approves another staged agent implementation.
+
 ## Guardrails
 
 - No PHI.
@@ -310,4 +345,4 @@ Messaging direction:
 
 ## Recommended Next Work Package
 
-Work Package V2-1 should create a static `/ai-agents` Agent Showcase page on the `v2/agent-showcase` branch only. It should introduce the named agent team, feature Mira Vale as the first guide concept, include cards for Theo, Elena, Ravi, and Selene as future capabilities, keep all CTAs as `mailto:care@onesmarter.com`, and avoid live scanning, uploads, voice, video, backend dependencies, or AI API calls.
+Work Package V2-1 should create a static `/ai-agents` Agent Showcase page on the `v2/agent-showcase` branch only. It should introduce the named agent team, feature Mira Vale as the first guide concept, include cards for Maya, Theo, Elena, Ravi, and Selene as future capabilities, keep all CTAs as `mailto:care@onesmarter.com`, and avoid live scanning, uploads, voice, video, backend dependencies, or AI API calls.
