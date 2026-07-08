@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "validate:mira-kb": "node scripts/validate-mira-kb.js",
-    "test:mira-local": "node scripts/test-mira-local-engine.js"
+    "test:mira-local": "node scripts/test-mira-local-engine.js",
+    "test:mira-api": "node scripts/test-mira-api-contract.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",

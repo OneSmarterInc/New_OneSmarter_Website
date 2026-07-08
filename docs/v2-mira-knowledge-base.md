@@ -227,6 +227,70 @@ The local engine does not yet:
 
 This prepares for a future backend/API layer by proving that approved public content, risk detection, handoff behavior, and fixture-based safety checks can run before any model call is introduced.
 
+## Mock API Contract
+
+The first production-shaped mock endpoint is:
+
+`POST /api/agents/mira/chat`
+
+Files:
+
+- `api/agents/mira/chat.js`
+- `api/agents/mira/chatCore.js`
+- `scripts/test-mira-api-contract.js`
+
+The endpoint runs in `local_harness_mock` mode. It calls `runMiraLocalHarness` and returns a structured response with `answer`, `answerSeed`, confidence, risk flags, matched sources, handoff status, suggested follow-ups, and a disclaimer when needed.
+
+Request body:
+
+```json
+{
+  "message": "string",
+  "conversationId": "optional string",
+  "persona": "optional string",
+  "memoryTheme": "optional string",
+  "empathyState": "optional string"
+}
+```
+
+Response body:
+
+```json
+{
+  "agent": "Mira Vale",
+  "mode": "local_harness_mock",
+  "conversationId": "string",
+  "answer": "string",
+  "answerSeed": "string",
+  "confidence": "high | medium | low",
+  "riskFlags": [],
+  "handoffNeeded": true,
+  "handoffReason": "string or null",
+  "matchedSources": [],
+  "suggestedFollowUps": [],
+  "disclaimer": "string"
+}
+```
+
+Run the API contract tests with:
+
+```powershell
+npm.cmd run test:mira-api
+```
+
+The mock endpoint does not yet:
+
+- Call a real AI model.
+- Use API keys.
+- Store conversations.
+- Add authentication.
+- Add rate limiting.
+- Accept file uploads.
+- Connect to the `/ai-agents` UI.
+- Replace legal, medical, compliance, security, or procurement review.
+
+This prepares for later real LLM integration by fixing the request/response shape, input validation behavior, privacy warning behavior, and source-grounded safety metadata before a model call is introduced.
+
 ## Adding Future Entries
 
 When adding a new knowledge entry:

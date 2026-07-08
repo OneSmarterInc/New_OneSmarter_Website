@@ -38,6 +38,98 @@ Mira should not answer from general internet knowledge, private documents, user-
 | Error handling | Returns calm fallback messages when retrieval, safety, or model calls fail | Fail closed: route visitors to care@onesmarter.com |
 | Email handoff | Provides a clear path to a human | Use care@onesmarter.com for business-specific or uncertain requests |
 
+## Mock API Contract
+
+The first production-shaped endpoint is:
+
+`POST /api/agents/mira/chat`
+
+Implementation files:
+
+- `api/agents/mira/chat.js` - thin Vercel serverless handler.
+- `api/agents/mira/chatCore.js` - testable request/response contract helper.
+
+Current mode:
+
+`local_harness_mock`
+
+This endpoint calls `runMiraLocalHarness` only. It does not call an LLM, use API keys, browse the internet, store messages, accept uploads, or connect to the `/ai-agents` UI.
+
+### Request Schema
+
+```json
+{
+  "message": "string",
+  "conversationId": "optional string",
+  "persona": "optional string",
+  "memoryTheme": "optional string",
+  "empathyState": "optional string"
+}
+```
+
+Validation rules:
+
+- Method must be `POST`.
+- `message` is required.
+- `message` must be a string.
+- Empty messages are rejected.
+- Messages longer than 1000 characters are rejected.
+- Invalid JSON receives a JSON error response.
+
+### Response Schema
+
+```json
+{
+  "agent": "Mira Vale",
+  "mode": "local_harness_mock",
+  "conversationId": "string",
+  "answer": "string",
+  "answerSeed": "string",
+  "confidence": "high | medium | low",
+  "riskFlags": [],
+  "handoffNeeded": true,
+  "handoffReason": "string or null",
+  "matchedSources": [
+    {
+      "id": "string",
+      "title": "string",
+      "route": "string",
+      "sourceLabel": "string",
+      "score": 0
+    }
+  ],
+  "suggestedFollowUps": [],
+  "disclaimer": "string",
+  "requestContext": {
+    "persona": "string",
+    "memoryTheme": "string",
+    "empathyState": "string"
+  }
+}
+```
+
+### Error Response Shape
+
+```json
+{
+  "agent": "Mira Vale",
+  "mode": "local_harness_mock",
+  "error": "string",
+  "message": "string"
+}
+```
+
+### Future LLM Integration
+
+The mock endpoint prepares for later model integration by fixing the server-side contract before any API keys or model SDKs are introduced. A future phase can replace or extend the deterministic `answer` field with an LLM-generated response while preserving:
+
+- Input validation.
+- Risk flags.
+- Matched approved sources.
+- Handoff behavior.
+- Privacy warnings.
+- Testable response schema.
+
 ### Request Flow
 
 1. Visitor asks a question in the `/ai-agents` UI.
