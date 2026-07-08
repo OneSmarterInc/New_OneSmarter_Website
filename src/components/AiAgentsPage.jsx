@@ -141,6 +141,27 @@ const exchange = [
   ["Mira", "Good. I can explain that simply when a visitor asks."],
 ];
 
+const askMiraMockEndpoint = async (message) => {
+  const response = await fetch("/api/agents/mira/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message,
+      persona: "Warm Guide",
+      memoryTheme: "Public website content",
+      empathyState: "Welcoming",
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Mira endpoint request failed.");
+  }
+  return data;
+};
+
 const AgentNetwork = () => (
   <div className="relative min-h-[340px] overflow-hidden rounded-lg border border-white/10 bg-black/45 p-4 shadow-2xl shadow-black/40 sm:min-h-[360px] sm:p-6">
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.20),transparent_52%)]" />
@@ -234,7 +255,28 @@ const AgentCard = ({ agent }) => (
 
 const MiraConversationPanel = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [miraResponse, setMiraResponse] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const selected = conversationExamples[selectedIndex];
+
+  const handleQuestionClick = async (example, index) => {
+    setSelectedIndex(index);
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await askMiraMockEndpoint(example.question);
+      setMiraResponse(response);
+    } catch {
+      setMiraResponse(null);
+      setErrorMessage(
+        "Mira is not available right now. For business inquiries, email care@onesmarter.com.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
@@ -244,19 +286,31 @@ const MiraConversationPanel = () => {
             Guide interaction
           </p>
           <h2 className="text-2xl font-bold md:text-4xl">
-            Guide interaction preview
+            Mock endpoint preview
           </h2>
           <p className="mt-4 leading-7 text-zinc-300">
-            Mira's first job is simple: answer ordinary visitor questions
-            clearly, stay inside approved public content, and route business
-            inquiries to care@onesmarter.com.
+            Mira now answers these sample questions through a server-side mock
+            endpoint powered by the grounded local harness. No model call is
+            made yet.
           </p>
+          <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-zinc-300">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+              Mock endpoint preview
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+              Grounded local harness
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+              No model call yet
+            </span>
+          </div>
           <div className="mt-7 grid gap-3">
             {conversationExamples.map((example, index) => (
               <button
                 key={example.question}
                 type="button"
-                onClick={() => setSelectedIndex(index)}
+                onClick={() => handleQuestionClick(example, index)}
+                disabled={isLoading}
                 className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
                   selectedIndex === index
                     ? "border-red-500 bg-red-600 text-white"
@@ -277,11 +331,11 @@ const MiraConversationPanel = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Mira Vale</h3>
-                <p className="text-sm text-zinc-400">The OneSmarter Guide</p>
+                <p className="text-sm text-zinc-400">local_harness_mock</p>
               </div>
             </div>
             <span className="rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200">
-              Guide preview
+              Mock endpoint
             </span>
           </div>
 
@@ -293,12 +347,64 @@ const MiraConversationPanel = () => {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
                 Mira
               </p>
-              {selected.answer}
+              {isLoading && "Checking the approved OneSmarter knowledge base..."}
+              {!isLoading && errorMessage && errorMessage}
+              {!isLoading &&
+                !errorMessage &&
+                (miraResponse?.answer ||
+                  "Choose a sample question to preview Mira's grounded mock endpoint response.")}
             </div>
           </div>
 
+          {miraResponse && !isLoading && !errorMessage && (
+            <div className="mt-6 grid gap-3 rounded-md border border-white/10 bg-white/[0.04] p-4 text-xs leading-5 text-zinc-400">
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-white px-3 py-1 font-semibold text-zinc-950">
+                  Confidence: {miraResponse.confidence}
+                </span>
+                {miraResponse.riskFlags?.map((flag) => (
+                  <span
+                    key={flag}
+                    className="rounded-full border border-red-500/30 bg-red-950/40 px-3 py-1 font-semibold text-red-100"
+                  >
+                    {flag}
+                  </span>
+                ))}
+              </div>
+
+              {miraResponse.handoffNeeded && (
+                <p className="rounded border border-red-500/20 bg-red-950/20 px-3 py-2 text-red-100">
+                  Handoff recommended: email care@onesmarter.com.
+                </p>
+              )}
+
+              {!!miraResponse.matchedSources?.length && (
+                <div>
+                  <p className="font-semibold uppercase tracking-wide text-zinc-300">
+                    Grounded in
+                  </p>
+                  <div className="mt-2 grid gap-2">
+                    {miraResponse.matchedSources.slice(0, 3).map((source) => (
+                      <a
+                        key={source.id}
+                        href={source.route}
+                        className="block rounded border border-white/10 bg-black/25 px-3 py-2 text-zinc-300 transition hover:border-red-500/40 hover:text-white"
+                      >
+                        {source.title}
+                        <span className="block text-[11px] text-zinc-500">
+                          {source.route}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
-            Prepared example responses only.
+            Sample buttons call the mock endpoint only. No free-text input,
+            uploads, or model call are enabled.
           </p>
         </div>
       </div>

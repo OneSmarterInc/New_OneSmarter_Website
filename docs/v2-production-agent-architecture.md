@@ -53,7 +53,9 @@ Current mode:
 
 `local_harness_mock`
 
-This endpoint calls `runMiraLocalHarness` only. It does not call an LLM, use API keys, browse the internet, store messages, accept uploads, or connect to the `/ai-agents` UI.
+This endpoint calls `runMiraLocalHarness` only. It does not call an LLM, use API keys, browse the internet, store messages, or accept uploads.
+
+The `/ai-agents` Mira conversation panel now calls this mock endpoint from its sample question buttons. The frontend displays Mira's deterministic answer, confidence, risk flags when present, handoff state, and matched source titles/routes. No free-text input is enabled in this phase.
 
 ### Request Schema
 

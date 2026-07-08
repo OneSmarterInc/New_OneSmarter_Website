@@ -241,6 +241,8 @@ Files:
 
 The endpoint runs in `local_harness_mock` mode. It calls `runMiraLocalHarness` and returns a structured response with `answer`, `answerSeed`, confidence, risk flags, matched sources, handoff status, suggested follow-ups, and a disclaimer when needed.
 
+The `/ai-agents` Mira conversation panel now calls this mock endpoint when a visitor clicks one of the sample question buttons. The UI displays the endpoint answer, confidence, risk flags when present, handoff guidance, and matched source titles/routes in a small grounding area.
+
 Request body:
 
 ```json
@@ -286,7 +288,7 @@ The mock endpoint does not yet:
 - Add authentication.
 - Add rate limiting.
 - Accept file uploads.
-- Connect to the `/ai-agents` UI.
+- Accept free-text visitor input.
 - Replace legal, medical, compliance, security, or procurement review.
 
 This prepares for later real LLM integration by fixing the request/response shape, input validation behavior, privacy warning behavior, and source-grounded safety metadata before a model call is introduced.
