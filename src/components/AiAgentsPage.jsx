@@ -162,6 +162,51 @@ const askMiraMockEndpoint = async (message) => {
   return data;
 };
 
+const formatMiraResponse = (response) => {
+  if (!response?.answer) {
+    return {
+      mainSentences: [
+        "Choose a sample question to preview Mira's grounded mock endpoint response.",
+      ],
+      relatedTopics: [],
+      handoffNote: "",
+    };
+  }
+
+  let answer = response.answer;
+  const relatedMatch = answer.match(/Related approved topics:\s*([^.]*)\./i);
+  const relatedTopics = relatedMatch
+    ? relatedMatch[1].split(",").map((topic) => topic.trim()).filter(Boolean)
+    : [];
+
+  answer = answer
+    .replace(/\s*Related approved topics:\s*[^.]*\./i, "")
+    .replace(/\s*Route [^.]*care@onesmarter\.com\./i, "")
+    .trim();
+
+  let handoffNote = "";
+  const handoffMatch = answer.match(
+    /For business-specific questions,\s*email care@onesmarter\.com\./i,
+  );
+  if (handoffMatch) {
+    handoffNote = "For business-specific questions, email care@onesmarter.com.";
+    answer = answer.replace(handoffMatch[0], "").trim();
+  } else if (response.handoffNeeded) {
+    handoffNote = "For business inquiries or review, email care@onesmarter.com.";
+  }
+
+  const mainSentences = answer
+    .split(/(?<=\.)\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  return {
+    mainSentences: mainSentences.length ? mainSentences : [response.answer],
+    relatedTopics,
+    handoffNote,
+  };
+};
+
 const AgentNetwork = () => (
   <div className="relative min-h-[340px] overflow-hidden rounded-lg border border-white/10 bg-black/45 p-4 shadow-2xl shadow-black/40 sm:min-h-[360px] sm:p-6">
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.20),transparent_52%)]" />
@@ -259,6 +304,7 @@ const MiraConversationPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const selected = conversationExamples[selectedIndex];
+  const formattedResponse = formatMiraResponse(miraResponse);
 
   const handleQuestionClick = async (example, index) => {
     setSelectedIndex(index);
@@ -311,6 +357,8 @@ const MiraConversationPanel = () => {
                 type="button"
                 onClick={() => handleQuestionClick(example, index)}
                 disabled={isLoading}
+                aria-label={`Ask Mira: ${example.question}`}
+                aria-pressed={selectedIndex === index}
                 className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
                   selectedIndex === index
                     ? "border-red-500 bg-red-600 text-white"
@@ -343,38 +391,56 @@ const MiraConversationPanel = () => {
             <div className="ml-auto max-w-[86%] rounded-2xl rounded-tr-sm bg-white px-5 py-4 text-sm leading-6 text-zinc-950">
               {selected.question}
             </div>
-            <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200">
+            <div
+              className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200"
+              aria-live="polite"
+            >
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
                 Mira
               </p>
               {isLoading && "Checking the approved OneSmarter knowledge base..."}
               {!isLoading && errorMessage && errorMessage}
-              {!isLoading &&
-                !errorMessage &&
-                (miraResponse?.answer ||
-                  "Choose a sample question to preview Mira's grounded mock endpoint response.")}
+              {!isLoading && !errorMessage && (
+                <div className="grid gap-3">
+                  {formattedResponse.mainSentences.map((sentence) => (
+                    <p key={sentence}>{sentence}</p>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {miraResponse && !isLoading && !errorMessage && (
-            <div className="mt-6 grid gap-3 rounded-md border border-white/10 bg-white/[0.04] p-4 text-xs leading-5 text-zinc-400">
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-white px-3 py-1 font-semibold text-zinc-950">
-                  Confidence: {miraResponse.confidence}
+            <div className="mt-6 grid gap-4 rounded-md border border-white/10 bg-white/[0.04] p-4 text-xs leading-5 text-zinc-400">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-white px-3 py-1 font-semibold capitalize text-zinc-950">
+                  {miraResponse.confidence} confidence
                 </span>
                 {miraResponse.riskFlags?.map((flag) => (
                   <span
                     key={flag}
-                    className="rounded-full border border-red-500/30 bg-red-950/40 px-3 py-1 font-semibold text-red-100"
+                    className="rounded-full border border-white/10 bg-zinc-900 px-3 py-1 font-semibold text-zinc-200"
                   >
-                    {flag}
+                    {flag.replaceAll("_", " ")}
                   </span>
                 ))}
               </div>
 
+              {!!formattedResponse.relatedTopics.length && (
+                <div className="rounded border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="font-semibold uppercase tracking-wide text-zinc-300">
+                    Related topics
+                  </p>
+                  <p className="mt-1 text-zinc-400">
+                    {formattedResponse.relatedTopics.join(", ")}
+                  </p>
+                </div>
+              )}
+
               {miraResponse.handoffNeeded && (
                 <p className="rounded border border-red-500/20 bg-red-950/20 px-3 py-2 text-red-100">
-                  Handoff recommended: email care@onesmarter.com.
+                  {formattedResponse.handoffNote ||
+                    "For business inquiries or review, email care@onesmarter.com."}
                 </p>
               )}
 
@@ -383,12 +449,12 @@ const MiraConversationPanel = () => {
                   <p className="font-semibold uppercase tracking-wide text-zinc-300">
                     Grounded in
                   </p>
-                  <div className="mt-2 grid gap-2">
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {miraResponse.matchedSources.slice(0, 3).map((source) => (
                       <a
                         key={source.id}
                         href={source.route}
-                        className="block rounded border border-white/10 bg-black/25 px-3 py-2 text-zinc-300 transition hover:border-red-500/40 hover:text-white"
+                        className="block rounded border border-white/10 bg-black/25 px-3 py-2 text-zinc-300 transition hover:border-red-500/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                       >
                         {source.title}
                         <span className="block text-[11px] text-zinc-500">

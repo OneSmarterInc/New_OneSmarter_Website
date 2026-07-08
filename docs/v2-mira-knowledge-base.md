@@ -241,7 +241,9 @@ Files:
 
 The endpoint runs in `local_harness_mock` mode. It calls `runMiraLocalHarness` and returns a structured response with `answer`, `answerSeed`, confidence, risk flags, matched sources, handoff status, suggested follow-ups, and a disclaimer when needed.
 
-The `/ai-agents` Mira conversation panel now calls this mock endpoint when a visitor clicks one of the sample question buttons. The UI displays the endpoint answer, confidence, risk flags when present, handoff guidance, and matched source titles/routes in a small grounding area.
+The `/ai-agents` Mira conversation panel now calls this mock endpoint when a visitor clicks one of the sample question buttons. The UI formats the endpoint response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, and matched source titles/routes in a compact grounding area.
+
+PHI and confidential-data warnings are deduplicated in the mock endpoint response so the user sees one clear safety message: do not submit sensitive information through the public agent, and route business-specific questions to care@onesmarter.com.
 
 Request body:
 

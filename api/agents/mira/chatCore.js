@@ -49,7 +49,7 @@ const disclaimerFor = (result) => {
 
 const buildAnswer = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
-    return `${result.answerSeed} Please do not submit PHI or confidential information through this public agent.`;
+    return "I cannot review PHI, confidential documents, or private operational details here. Please do not submit sensitive information through this public agent. For business-specific questions, email care@onesmarter.com.";
   }
   return result.answerSeed;
 };
