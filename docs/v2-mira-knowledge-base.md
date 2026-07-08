@@ -174,6 +174,59 @@ Intentional prohibited phrase test cases should remain in clearly marked rule or
 
 Do not put prohibited wording in `approvedSummary`, `sourceFacts`, `allowedClaims`, `handoffGuidance`, or public response examples unless the wording is explicitly part of a correction or refusal pattern.
 
+## Local Retrieval And Safety Harness
+
+The local Mira harness lives in `src/data/agentKnowledge/miraLocalEngine.js`.
+
+It is a deterministic behavior layer for local testing only. It does not call an AI model, create a backend endpoint, browse the internet, store chats, accept uploads, or change the `/ai-agents` UI.
+
+The engine exports:
+
+- `normalizeQuestion(question)`
+- `detectRiskFlags(question, claimRules)`
+- `scoreKbEntry(question, entry)`
+- `retrieveMiraContext(question, options)`
+- `buildSafeAnswerSeed(question, retrievalResult)`
+- `runMiraLocalHarness(question, options)`
+
+The engine works by:
+
+- Normalizing the visitor question.
+- Tokenizing the question and approved KB entries.
+- Applying simple topic expansion for healthcare, platforms, contact, telecom, SOC 2, HIPAA, legal/privacy, and AI topics.
+- Scoring KB entries using title, category, route, related questions, approved summaries, source facts, and allowed claims.
+- Detecting risk flags for claim-boundary questions, legal or medical advice, PHI or confidential data, business-specific reviews, prompt injection, and out-of-scope requests.
+- Returning a structured answer seed with matched entries, confidence, risk flags, handoff state, handoff reason, and suggested follow-up prompts.
+
+Run the local engine tests with:
+
+```powershell
+npm.cmd run test:mira-local
+```
+
+The local test script uses `miraTestQuestions.js` and checks:
+
+- Expected risk flags appear.
+- Expected handling categories match.
+- In-scope questions retrieve approved KB entries.
+- Handoff-required questions set `handoffNeeded`.
+- `answerSeed` is non-empty.
+- `answerSeed` avoids unsafe prohibited phrases.
+- Required fixture themes appear where expected.
+
+The local engine does not yet:
+
+- Generate final conversational answers.
+- Call an LLM.
+- Use embeddings or semantic search.
+- Persist chat history.
+- Apply server-side rate limiting.
+- Log production telemetry.
+- Accept private documents or file uploads.
+- Replace legal, medical, compliance, security, or procurement review.
+
+This prepares for a future backend/API layer by proving that approved public content, risk detection, handoff behavior, and fixture-based safety checks can run before any model call is introduced.
+
 ## Adding Future Entries
 
 When adding a new knowledge entry:
