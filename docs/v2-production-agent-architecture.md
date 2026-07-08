@@ -59,6 +59,16 @@ The `/ai-agents` Mira conversation panel now calls this mock endpoint from its s
 
 PHI and confidential-data warnings are deduplicated in `chatCore.js` so the public answer uses one clear safety message while preserving handoff behavior.
 
+The mock endpoint now includes operational safety metadata and controls:
+
+- `requestId` on every response.
+- `timestamp` on every response.
+- `privacyReminder` on every successful response.
+- Best-effort in-memory rate limiting by IP or anonymous fallback key.
+- Safe structured console logging without full messages, raw bodies, full answers, stack traces, PHI, or confidential content.
+
+The current rate limit is 20 requests per minute per key. Because Vercel serverless functions may not preserve memory between invocations, this limiter is best-effort only and is not a final production-grade abuse-control layer.
+
 ### Request Schema
 
 ```json
@@ -116,12 +126,27 @@ Validation rules:
 
 ```json
 {
+  "requestId": "string",
+  "timestamp": "string",
   "agent": "Mira Vale",
   "mode": "local_harness_mock",
+  "status": 400,
   "error": "string",
   "message": "string"
 }
 ```
+
+Normalized error codes:
+
+- `method_not_allowed`
+- `invalid_json`
+- `missing_message`
+- `empty_message`
+- `message_too_long`
+- `rate_limited`
+- `internal_error`
+
+Rate-limited responses also include `retryAfterSeconds`.
 
 ### Future LLM Integration
 

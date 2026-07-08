@@ -245,6 +245,32 @@ The `/ai-agents` Mira conversation panel now calls this mock endpoint when a vis
 
 PHI and confidential-data warnings are deduplicated in the mock endpoint response so the user sees one clear safety message: do not submit sensitive information through the public agent, and route business-specific questions to care@onesmarter.com.
 
+Every mock endpoint response includes:
+
+- `requestId`
+- `timestamp`
+- `agent`
+- `mode`
+- `conversationId` when available
+
+Every successful response also includes:
+
+- `privacyReminder`: `Do not submit PHI, confidential documents, or private operational details through this public agent.`
+
+The endpoint includes a best-effort in-memory rate limiter:
+
+- Limit: 20 requests per minute per key.
+- Key: IP from request headers when available, otherwise an anonymous fallback key.
+- Rate-limited responses use HTTP `429`, `error: "rate_limited"`, and `retryAfterSeconds`.
+
+This is not a final production-grade rate limiter because Vercel serverless function memory may not persist reliably between invocations.
+
+The endpoint logs safe structured events to console for now. Logged fields include request ID, timestamp, endpoint, method, status, mode, conversation ID, message length, risk flags, handoff status, confidence, matched source IDs, and error code.
+
+The endpoint intentionally does not log full user messages, PHI, confidential content, full answer text, raw request bodies, or stack traces.
+
+Normalized error responses include `requestId`, `timestamp`, `status`, `error`, and a safe user-facing `message`.
+
 Request body:
 
 ```json

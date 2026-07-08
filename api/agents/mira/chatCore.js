@@ -4,14 +4,33 @@ import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalE
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
 const MODE = "local_harness_mock";
+const ENDPOINT = "/api/agents/mira/chat";
+const PRIVACY_REMINDER =
+  "Do not submit PHI, confidential documents, or private operational details through this public agent.";
+const RATE_LIMIT_MAX_REQUESTS = 20;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const rateLimitBuckets = new Map();
 
-const jsonError = (status, error, message) => ({
+const createRequestId = (providedRequestId) => {
+  if (typeof providedRequestId === "string" && providedRequestId.trim()) {
+    return providedRequestId.trim().slice(0, 120);
+  }
+  return crypto.randomUUID();
+};
+
+const jsonError = (status, error, message, metadata = {}) => ({
   status,
   body: {
+    requestId: metadata.requestId,
+    timestamp: metadata.timestamp,
     agent: AGENT_NAME,
     mode: MODE,
+    status,
     error,
     message,
+    ...(metadata.retryAfterSeconds
+      ? { retryAfterSeconds: metadata.retryAfterSeconds }
+      : {}),
   },
 });
 
@@ -26,6 +45,58 @@ const normalizeConversationId = (conversationId) => {
     return conversationId.trim().slice(0, 120);
   }
   return crypto.randomUUID();
+};
+
+const headerValue = (headers = {}, key) => {
+  const lowerKey = key.toLowerCase();
+  const match = Object.entries(headers).find(
+    ([headerName]) => headerName.toLowerCase() === lowerKey,
+  );
+  const value = match?.[1];
+  return Array.isArray(value) ? value[0] : value;
+};
+
+const getRateLimitKey = (headers = {}) => {
+  const forwardedFor = headerValue(headers, "x-forwarded-for");
+  const realIp = headerValue(headers, "x-real-ip");
+  const forwardedIp =
+    typeof forwardedFor === "string" ? forwardedFor.split(",")[0].trim() : "";
+  return forwardedIp || realIp || "anonymous";
+};
+
+const checkRateLimit = (key, nowMs = Date.now()) => {
+  const existing = rateLimitBuckets.get(key);
+  if (!existing || nowMs >= existing.resetAt) {
+    rateLimitBuckets.set(key, {
+      count: 1,
+      resetAt: nowMs + RATE_LIMIT_WINDOW_MS,
+    });
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
+  if (existing.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - nowMs) / 1000)),
+    };
+  }
+
+  existing.count += 1;
+  return { allowed: true, retryAfterSeconds: 0 };
+};
+
+export const resetMiraRateLimitForTests = () => {
+  rateLimitBuckets.clear();
+};
+
+const safeLogEvent = (event, logger = console) => {
+  if (!logger?.log) return;
+  logger.log(
+    JSON.stringify({
+      endpoint: ENDPOINT,
+      ...event,
+    }),
+  );
 };
 
 const compactSources = (matchedEntries) =>
@@ -54,43 +125,181 @@ const buildAnswer = (result) => {
   return result.answerSeed;
 };
 
-export const handleMiraChatRequest = ({ method = "GET", body } = {}) => {
-  if (method !== "POST") {
-    return jsonError(405, "method_not_allowed", "Use POST for /api/agents/mira/chat.");
-  }
+export const handleMiraChatRequest = ({
+  method = "GET",
+  body,
+  headers = {},
+  now = new Date(),
+  logger = console,
+} = {}) => {
+  const timestamp = now.toISOString();
+  let parsedBody = {};
 
-  let parsedBody;
   try {
     parsedBody = parseBody(body);
   } catch {
-    return jsonError(400, "invalid_json", "Request body must be valid JSON.");
+    const requestId = createRequestId();
+    const errorResult = jsonError(400, "invalid_json", "Request body must be valid JSON.", {
+      requestId,
+      timestamp,
+    });
+    safeLogEvent(
+      {
+        requestId,
+        timestamp,
+        method,
+        status: errorResult.status,
+        mode: MODE,
+        conversationId: "",
+        messageLength: 0,
+        riskFlags: [],
+        handoffNeeded: false,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "invalid_json",
+      },
+      logger,
+    );
+    return errorResult;
+  }
+
+  const requestId = createRequestId(parsedBody.requestId || headerValue(headers, "x-request-id"));
+  const logBase = {
+    requestId,
+    timestamp,
+    method,
+    mode: MODE,
+    conversationId:
+      typeof parsedBody.conversationId === "string" ? parsedBody.conversationId : "",
+  };
+
+  if (method !== "POST") {
+    const errorResult = jsonError(405, "method_not_allowed", "Use POST for /api/agents/mira/chat.", {
+      requestId,
+      timestamp,
+    });
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength: 0,
+        riskFlags: [],
+        handoffNeeded: false,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "method_not_allowed",
+      },
+      logger,
+    );
+    return errorResult;
+  }
+
+  const rateLimit = checkRateLimit(getRateLimitKey(headers), now.getTime());
+  if (!rateLimit.allowed) {
+    const errorResult = jsonError(
+      429,
+      "rate_limited",
+      "Mira is receiving too many requests right now. Please try again shortly or email care@onesmarter.com.",
+      {
+        requestId,
+        timestamp,
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      },
+    );
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength:
+          typeof parsedBody.message === "string" ? parsedBody.message.length : 0,
+        riskFlags: [],
+        handoffNeeded: true,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "rate_limited",
+      },
+      logger,
+    );
+    return errorResult;
   }
 
   const { message, conversationId, persona, memoryTheme, empathyState } = parsedBody;
 
   if (typeof message !== "string") {
-    return jsonError(400, "invalid_message", "message is required and must be a string.");
+    const errorResult = jsonError(400, "missing_message", "message is required and must be a string.", {
+      requestId,
+      timestamp,
+    });
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength: 0,
+        riskFlags: [],
+        handoffNeeded: false,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "missing_message",
+      },
+      logger,
+    );
+    return errorResult;
   }
 
   const trimmedMessage = message.trim();
   if (!trimmedMessage) {
-    return jsonError(400, "empty_message", "message must not be empty.");
+    const errorResult = jsonError(400, "empty_message", "message must not be empty.", {
+      requestId,
+      timestamp,
+    });
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength: message.length,
+        riskFlags: [],
+        handoffNeeded: false,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "empty_message",
+      },
+      logger,
+    );
+    return errorResult;
   }
 
   if (trimmedMessage.length > MAX_MESSAGE_LENGTH) {
-    return jsonError(
+    const errorResult = jsonError(
       413,
       "message_too_long",
       `message must be ${MAX_MESSAGE_LENGTH} characters or fewer.`,
+      {
+        requestId,
+        timestamp,
+      },
     );
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength: trimmedMessage.length,
+        riskFlags: [],
+        handoffNeeded: false,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "message_too_long",
+      },
+      logger,
+    );
+    return errorResult;
   }
 
-  const result = runMiraLocalHarness(trimmedMessage);
-  const normalizedConversationId = normalizeConversationId(conversationId);
-
-  return {
-    status: 200,
-    body: {
+  try {
+    const result = runMiraLocalHarness(trimmedMessage);
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    const responseBody = {
+      requestId,
+      timestamp,
       agent: AGENT_NAME,
       mode: MODE,
       conversationId: normalizedConversationId,
@@ -103,13 +312,58 @@ export const handleMiraChatRequest = ({ method = "GET", body } = {}) => {
       matchedSources: compactSources(result.matchedEntries),
       suggestedFollowUps: result.suggestedFollowUps,
       disclaimer: disclaimerFor(result),
+      privacyReminder: PRIVACY_REMINDER,
       requestContext: {
         persona: typeof persona === "string" ? persona : "",
         memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
         empathyState: typeof empathyState === "string" ? empathyState : "",
       },
-    },
-  };
+    };
+
+    safeLogEvent(
+      {
+        ...logBase,
+        conversationId: normalizedConversationId,
+        status: 200,
+        messageLength: trimmedMessage.length,
+        riskFlags: result.riskFlags,
+        handoffNeeded: result.handoffNeeded,
+        confidence: result.confidence,
+        matchedSourceIds: result.matchedEntries.map((entry) => entry.id),
+        errorCode: "",
+      },
+      logger,
+    );
+
+    return {
+      status: 200,
+      body: responseBody,
+    };
+  } catch {
+    const errorResult = jsonError(
+      500,
+      "internal_error",
+      "Mira is not available right now. For business inquiries, email care@onesmarter.com.",
+      {
+        requestId,
+        timestamp,
+      },
+    );
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength: trimmedMessage.length,
+        riskFlags: [],
+        handoffNeeded: true,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: "internal_error",
+      },
+      logger,
+    );
+    return errorResult;
+  }
 };
 
 export default handleMiraChatRequest;
