@@ -55,7 +55,18 @@ Current mode:
 
 This endpoint calls `runMiraLocalHarness` only. It does not call an LLM, use API keys, browse the internet, store messages, or accept uploads.
 
-The `/ai-agents` Mira conversation panel now calls this mock endpoint from its sample question buttons. The frontend formats Mira's deterministic response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, and compact matched source titles/routes. No free-text input is enabled in this phase.
+The `/ai-agents` Mira conversation panel now calls this mock endpoint from its sample question buttons and a controlled free-text question field. The frontend formats Mira's deterministic response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, compact matched source titles/routes, and the endpoint privacy reminder.
+
+The free-text field is still mock-mode only:
+
+- Client-side input is capped at 500 characters.
+- Empty submissions are blocked in the browser.
+- A PHI/confidential-information warning is shown before submission.
+- No uploads are accepted.
+- No persistent memory is created.
+- No real model call is made.
+
+The endpoint continues to enforce a 1000-character server-side maximum.
 
 PHI and confidential-data warnings are deduplicated in `chatCore.js` so the public answer uses one clear safety message while preserving handoff behavior.
 

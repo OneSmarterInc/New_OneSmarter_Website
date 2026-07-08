@@ -141,6 +141,8 @@ const exchange = [
   ["Mira", "Good. I can explain that simply when a visitor asks."],
 ];
 
+const MIRA_INPUT_LIMIT = 500;
+
 const askMiraMockEndpoint = async (message) => {
   const response = await fetch("/api/agents/mira/chat", {
     method: "POST",
@@ -157,7 +159,10 @@ const askMiraMockEndpoint = async (message) => {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || "Mira endpoint request failed.");
+    const error = new Error(data.message || "Mira endpoint request failed.");
+    error.status = response.status;
+    error.code = data.error;
+    throw error;
   }
   return data;
 };
@@ -300,29 +305,70 @@ const AgentCard = ({ agent }) => (
 
 const MiraConversationPanel = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeQuestion, setActiveQuestion] = useState(conversationExamples[0].question);
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [inputWarning, setInputWarning] = useState("");
   const [miraResponse, setMiraResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const selected = conversationExamples[selectedIndex];
   const formattedResponse = formatMiraResponse(miraResponse);
 
-  const handleQuestionClick = async (example, index) => {
-    setSelectedIndex(index);
+  const requestMiraAnswer = async (message) => {
     setIsLoading(true);
     setErrorMessage("");
+    setInputWarning("");
 
     try {
-      const response = await askMiraMockEndpoint(example.question);
+      const response = await askMiraMockEndpoint(message);
       setMiraResponse(response);
-    } catch {
+    } catch (error) {
       setMiraResponse(null);
       setErrorMessage(
-        "Mira is not available right now. For business inquiries, email care@onesmarter.com.",
+        error.status === 429
+          ? "Mira is receiving too many requests right now. Please try again shortly or email care@onesmarter.com."
+          : "Mira is not available right now. For business inquiries, email care@onesmarter.com.",
       );
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleQuestionClick = async (example, index) => {
+    setSelectedIndex(index);
+    setActiveQuestion(example.question);
+    await requestMiraAnswer(example.question);
+  };
+
+  const handleCustomQuestionChange = (event) => {
+    const value = event.target.value;
+    setCustomQuestion(value);
+    if (value.length >= MIRA_INPUT_LIMIT) {
+      setInputWarning("Question limit reached. Please keep your question to 500 characters.");
+    } else if (inputWarning) {
+      setInputWarning("");
+    }
+  };
+
+  const handleCustomQuestionSubmit = async (event) => {
+    event.preventDefault();
+    const trimmedQuestion = customQuestion.trim();
+
+    if (!trimmedQuestion) {
+      setInputWarning("Enter a question for Mira before submitting.");
+      return;
+    }
+
+    if (trimmedQuestion.length > MIRA_INPUT_LIMIT) {
+      setInputWarning("Please shorten your question to 500 characters or fewer.");
+      return;
+    }
+
+    setSelectedIndex(null);
+    setActiveQuestion(trimmedQuestion);
+    await requestMiraAnswer(trimmedQuestion);
+  };
+
+  const isSubmitDisabled = isLoading || !customQuestion.trim();
 
   return (
     <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
@@ -335,9 +381,9 @@ const MiraConversationPanel = () => {
             Mock endpoint preview
           </h2>
           <p className="mt-4 leading-7 text-zinc-300">
-            Mira now answers these sample questions through a server-side mock
-            endpoint powered by the grounded local harness. No model call is
-            made yet.
+            Mira now answers sample questions and controlled typed questions
+            through a server-side mock endpoint powered by the grounded local
+            harness. No model call is made yet.
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-zinc-300">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
@@ -369,6 +415,36 @@ const MiraConversationPanel = () => {
               </button>
             ))}
           </div>
+          <form className="mt-6 rounded-lg border border-white/10 bg-white/[0.04] p-4" onSubmit={handleCustomQuestionSubmit}>
+            <label htmlFor="mira-question" className="text-sm font-semibold text-white">
+              Ask Mira a question
+            </label>
+            <p className="mt-2 text-xs leading-5 text-zinc-400">
+              Do not submit PHI, confidential documents, or private operational details.
+            </p>
+            <textarea
+              id="mira-question"
+              value={customQuestion}
+              onChange={handleCustomQuestionChange}
+              maxLength={MIRA_INPUT_LIMIT}
+              rows={4}
+              placeholder="Example: What does OneSmarter offer for healthcare teams?"
+              className="mt-3 min-h-28 w-full resize-y rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-red-400 focus:ring-2 focus:ring-red-500/30"
+              disabled={isLoading}
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className={`text-xs ${inputWarning ? "text-red-200" : "text-zinc-500"}`}>
+                {inputWarning || `${customQuestion.length}/${MIRA_INPUT_LIMIT} characters`}
+              </p>
+              <button
+                type="submit"
+                disabled={isSubmitDisabled}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+              >
+                {isLoading ? "Asking Mira..." : "Ask Mira"}
+              </button>
+            </div>
+          </form>
         </div>
 
         <div className="rounded-lg border border-white/10 bg-[#090909] p-5 shadow-2xl shadow-black/40 md:p-6">
@@ -389,7 +465,7 @@ const MiraConversationPanel = () => {
 
           <div className="mt-6 grid gap-5">
             <div className="ml-auto max-w-[86%] rounded-2xl rounded-tr-sm bg-white px-5 py-4 text-sm leading-6 text-zinc-950">
-              {selected.question}
+              {activeQuestion}
             </div>
             <div
               className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200"
@@ -465,12 +541,18 @@ const MiraConversationPanel = () => {
                   </div>
                 </div>
               )}
+
+              {miraResponse.privacyReminder && (
+                <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-zinc-400">
+                  {miraResponse.privacyReminder}
+                </p>
+              )}
             </div>
           )}
 
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
-            Sample buttons call the mock endpoint only. No free-text input,
-            uploads, or model call are enabled.
+            Sample buttons and typed questions call the mock endpoint only. No
+            uploads, persistent memory, or model call are enabled.
           </p>
         </div>
       </div>

@@ -241,7 +241,18 @@ Files:
 
 The endpoint runs in `local_harness_mock` mode. It calls `runMiraLocalHarness` and returns a structured response with `answer`, `answerSeed`, confidence, risk flags, matched sources, handoff status, suggested follow-ups, and a disclaimer when needed.
 
-The `/ai-agents` Mira conversation panel now calls this mock endpoint when a visitor clicks one of the sample question buttons. The UI formats the endpoint response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, and matched source titles/routes in a compact grounding area.
+The `/ai-agents` Mira conversation panel now calls this mock endpoint when a visitor clicks one of the sample question buttons or submits a controlled typed question. The UI formats the endpoint response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, matched source titles/routes in a compact grounding area, and the endpoint privacy reminder.
+
+The typed question field is intentionally constrained:
+
+- 500-character client-side limit.
+- Empty submissions are blocked.
+- PHI/confidential-information warning is shown near the input.
+- No file uploads.
+- No persistent user memory.
+- No real model call.
+
+The endpoint still enforces its own 1000-character server-side limit.
 
 PHI and confidential-data warnings are deduplicated in the mock endpoint response so the user sees one clear safety message: do not submit sensitive information through the public agent, and route business-specific questions to care@onesmarter.com.
 
@@ -314,9 +325,7 @@ The mock endpoint does not yet:
 - Use API keys.
 - Store conversations.
 - Add authentication.
-- Add rate limiting.
 - Accept file uploads.
-- Accept free-text visitor input.
 - Replace legal, medical, compliance, security, or procurement review.
 
 This prepares for later real LLM integration by fixing the request/response shape, input validation behavior, privacy warning behavior, and source-grounded safety metadata before a model call is introduced.
