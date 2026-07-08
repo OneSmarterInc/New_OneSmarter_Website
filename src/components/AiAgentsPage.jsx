@@ -371,6 +371,13 @@ const MiraConversationPanel = () => {
     await requestMiraAnswer(trimmedQuestion);
   };
 
+  const handleCustomQuestionKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
+  };
+
   const isSubmitDisabled = isLoading || !customQuestion.trim();
 
   return (
@@ -429,6 +436,7 @@ const MiraConversationPanel = () => {
               id="mira-question"
               value={customQuestion}
               onChange={handleCustomQuestionChange}
+              onKeyDown={handleCustomQuestionKeyDown}
               maxLength={MIRA_INPUT_LIMIT}
               rows={4}
               aria-describedby="mira-question-help mira-question-count"
