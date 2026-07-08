@@ -34,6 +34,7 @@ Current mode: `local_harness_mock`
 | Empty input | Submit an empty or whitespace-only question | Browser blocks submission and shows an inline warning | Not run |
 | Over 500 characters | Paste more than 500 characters | Input stops at 500 characters and shows the limit warning/counter | Not run |
 | Rapid repeated clicks | Click sample buttons repeatedly or submit quickly | Loading/disabled state prevents confusing duplicate UI behavior; rate limit message appears if endpoint returns 429 | Not run |
+| Sample/free-text response sync | Click `What platforms do you offer?`, then type `do you guarantee compliance?`, then click `What platforms do you offer?` again | The platform answer returns after the final click, the user bubble matches the platform question, and no `compliance guarantee` risk flag remains | Not run |
 | Endpoint unavailable fallback | Simulate failed endpoint or network error | Fallback message appears and user can ask another question afterward | Not run |
 | Mobile layout | Test at 320px, 375px, 414px, and tablet width | No horizontal scrolling; response bubbles and source cards wrap cleanly | Not run |
 

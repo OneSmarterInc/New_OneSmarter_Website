@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 const agents = [
   {
@@ -304,6 +304,7 @@ const AgentCard = ({ agent }) => (
 );
 
 const MiraConversationPanel = () => {
+  const latestRequestId = useRef(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeQuestion, setActiveQuestion] = useState(conversationExamples[0].question);
   const [customQuestion, setCustomQuestion] = useState("");
@@ -317,14 +318,19 @@ const MiraConversationPanel = () => {
     miraResponse?.privacyReminder && !responseText.includes("do not submit");
 
   const requestMiraAnswer = async (message) => {
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
     setIsLoading(true);
     setErrorMessage("");
     setInputWarning("");
+    setMiraResponse(null);
 
     try {
       const response = await askMiraMockEndpoint(message);
+      if (requestId !== latestRequestId.current) return;
       setMiraResponse(response);
     } catch (error) {
+      if (requestId !== latestRequestId.current) return;
       setMiraResponse(null);
       setErrorMessage(
         error.status === 429
@@ -332,7 +338,9 @@ const MiraConversationPanel = () => {
           : "Mira is not available right now. For business inquiries, email care@onesmarter.com.",
       );
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestId.current) {
+        setIsLoading(false);
+      }
     }
   };
 
