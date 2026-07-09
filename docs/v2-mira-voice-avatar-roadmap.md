@@ -138,6 +138,38 @@ Guidelines:
 - Avoid over-animated or entertainment-first presentation for enterprise/security contexts.
 - Make the visual state support comprehension, not distract from the answer.
 
+### Mood Signal and Expression State Layer
+
+A future mood/tone meter may sit beside the agent or conversation panel to show the current controlled presentation state. It could use simple colored scales, bars, or labeled chips for states such as welcoming, curious, helpful, thoughtful, careful, concerned, and confident.
+
+Possible expression states:
+
+- Blink
+- Smile
+- Serious look
+- Eyebrow raise
+- Eyebrow pucker / concerned look
+- Pondering look
+- Attentive eye movement
+
+Requirements:
+
+- Respect reduced-motion preferences.
+- Keep expressions restrained and professional for enterprise contexts.
+- Provide a text fallback that describes the current state for accessibility.
+- Do not require animation for the first prototype.
+- Do not imply the agent has unbounded emotion or human-like awareness.
+
+Future implementation path:
+
+| Phase | Scope |
+| --- | --- |
+| Mood P1 | Static mood-signal concept in `/ai-agents`. |
+| Mood P2 | Derive mood state from mock endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
+| Mood P3 | Add simple expression-state visuals without video/avatar implementation. |
+| Mood P4 | Connect expression state to future voice/avatar behavior. |
+| Mood P5 | Allow real LLM output to propose a `presentationState` only after strict allowed-value validation. |
+
 ## 8. Recommended Next Build Step
 
 Recommended next package:

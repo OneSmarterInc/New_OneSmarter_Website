@@ -178,6 +178,30 @@ Notes:
 - `matchedSources` should come from retrieval, not model invention.
 - `groundingStatus` and `outputSafetyStatus` should help QA without exposing debug internals publicly.
 
+Future real model integration may output or recommend a controlled `presentationState`, but the UI should accept only known allowed values, not arbitrary emotional labels.
+
+Example future field:
+
+```json
+{
+  "presentationState": {
+    "posture": "careful",
+    "moodSignals": ["careful", "thoughtful"],
+    "expression": "pondering"
+  }
+}
+```
+
+Allowed values must be enumerated and validated before reaching the UI. A future implementation path could be:
+
+| Phase | Scope |
+| --- | --- |
+| Mood P1 | Static mood-signal concept in `/ai-agents`. |
+| Mood P2 | Derive mood state from mock endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
+| Mood P3 | Add simple expression-state visuals without video/avatar implementation. |
+| Mood P4 | Connect expression state to future voice/avatar behavior. |
+| Mood P5 | Allow a real LLM to propose `presentationState`, but only through strict allowed-value validation. |
+
 ## Safety Gates Before LLM Call
 
 Pre-call gates should run before any model request:

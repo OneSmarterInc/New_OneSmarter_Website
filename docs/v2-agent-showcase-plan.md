@@ -185,6 +185,42 @@ Sample exchange:
 >
 > Mira: "Good. I can explain that simply when a visitor asks."
 
+## Agent Mood Signal and Expression States
+
+A future side-panel or side-of-screen indicator may show the agent's current conversation posture. This should be a controlled presentation layer, not an open-ended emotional simulation.
+
+Example posture dimensions:
+
+- Welcoming
+- Curious
+- Helpful
+- Thoughtful
+- Careful
+- Concerned
+- Confident
+
+The state may be derived from question type, risk flags, handoff status, confidence, and conversation context. These states should be enumerated and reviewed before any UI, avatar, voice, or model integration uses them.
+
+Example mappings:
+
+| Conversation context | Possible posture |
+| --- | --- |
+| General company question | Helpful / Welcoming |
+| HIPAA or SOC wording question | Careful / Thoughtful |
+| PHI or confidential data question | Concerned / Careful |
+| Strategy question | Curious / Thoughtful |
+| Successful grounded answer | Confident / Helpful |
+
+Future implementation path:
+
+| Phase | Scope |
+| --- | --- |
+| Mood P1 | Static mood-signal concept in `/ai-agents`. |
+| Mood P2 | Derive mood state from current mock endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
+| Mood P3 | Add a simple expression-state visual without video or avatar implementation. |
+| Mood P4 | Connect expression state to a future voice/avatar layer. |
+| Mood P5 | Allow a real LLM to propose `presentationState`, but only through strict allowed-value validation. |
+
 ## Agent Concepts
 
 ### OneSmarter Website Guide Agent
