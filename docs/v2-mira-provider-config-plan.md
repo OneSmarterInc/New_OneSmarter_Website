@@ -43,6 +43,8 @@ The OpenAI adapter is a stub only:
 - `staging_llm` and `production_llm` with `MIRA_LLM_PROVIDER=openai` still fall back to `local_harness_mock`.
 - Raw secret values are not returned in config or responses.
 
+The staging-only real OpenAI implementation plan and approval gates are documented in `docs/v2-openai-staging-implementation-plan.md`.
+
 ## Feature Flag Plan
 
 Recommended feature flag:

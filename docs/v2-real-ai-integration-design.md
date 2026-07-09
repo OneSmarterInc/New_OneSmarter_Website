@@ -426,3 +426,7 @@ The provider decision and environment variable plan now lives in:
 The safest next implementation package after that planning step is a provider-adapter design or mocked provider-adapter test package. It should still avoid real API keys and real model calls until the staging readiness gates are complete.
 
 After the OpenAI stub, the next package should be a staging-only real OpenAI adapter implementation plan and risk gate. That package should still be blocked on environment review, provider/privacy review, prompt-output validation, cost controls, and explicit staging enablement.
+
+The staging implementation plan and risk gate is documented in:
+
+`docs/v2-openai-staging-implementation-plan.md`
