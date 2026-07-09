@@ -24,13 +24,18 @@ const readString = (value, fallback = "") =>
 export const readMiraRuntimeConfig = (env = process.env) => {
   const requestedMode = readString(env.MIRA_LLM_MODE, DEFAULT_MODE).toLowerCase();
   const mode = ALLOWED_MODES.has(requestedMode) ? requestedMode : DEFAULT_MODE;
+  const provider = readString(env.MIRA_LLM_PROVIDER, "");
+  const model = readString(env.MIRA_LLM_MODEL, "");
+  const apiKeyConfigured = Boolean(readString(env.MIRA_LLM_API_KEY, ""));
 
   return {
     mode,
     requestedMode,
     modeWasValid: mode === requestedMode,
-    provider: readString(env.MIRA_LLM_PROVIDER, ""),
-    model: readString(env.MIRA_LLM_MODEL, ""),
+    provider,
+    model,
+    apiKeyConfigured,
+    providerConfigComplete: Boolean(provider && model && apiKeyConfigured),
     timeoutMs: readNumber(env.MIRA_LLM_TIMEOUT_MS, 8000),
     maxTokens: readNumber(env.MIRA_LLM_MAX_TOKENS, 600),
     temperature: readNumber(env.MIRA_LLM_TEMPERATURE, 0.2),

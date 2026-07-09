@@ -22,8 +22,17 @@ Current implementation is intentionally mock/off only:
 - `off` returns a safe unavailable handoff response.
 - `staging_llm` and `production_llm` are placeholders and fall back to the deterministic local harness.
 - Invalid mode values fall back to `mock`.
+- `MIRA_LLM_API_KEY` is read only as `apiKeyConfigured: true|false`; the secret value is not returned or logged.
 
-No SDK, API key, external provider call, model adapter, prompt assembly layer, or post-model validation layer has been added yet.
+No SDK, API key, external provider call, or real model adapter has been added yet.
+
+The prompt contract and mocked output validator now exist for local testing:
+
+- `api/agents/mira/miraPromptContract.js`
+- `api/agents/mira/miraOutputValidator.js`
+- `scripts/test-mira-prompt-contract.js`
+
+These modules define the future prompt shape and post-output safety checks, but they do not call a provider or change endpoint behavior.
 
 ## Feature Flag Plan
 
@@ -212,6 +221,8 @@ Future implementation should keep the provider adapter behind the existing endpo
 - Provider-specific logic should live in a small adapter module that can be mocked in tests.
 - The adapter should receive only approved retrieved context, claim rules, and a bounded prompt payload.
 - Post-output validation should run before any model output reaches the frontend.
+- Prompt payloads should be assembled through `miraPromptContract.js`.
+- Mocked or real model outputs should be checked through `miraOutputValidator.js`.
 
 The first implementation package did not remove `local_harness_mock`; it added a config and adapter seam only. Future provider work should add real behavior as an explicitly gated branch behind this interface, after readiness gates are complete.
 

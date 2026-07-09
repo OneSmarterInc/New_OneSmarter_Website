@@ -90,6 +90,14 @@ The endpoint also has an internal runtime config and adapter boundary:
 
 No real provider SDK, API key, provider implementation, or external model call exists yet.
 
+The future real-LLM prompt and output safety contract is now defined locally:
+
+- `api/agents/mira/miraPromptContract.js` builds the system instructions, approved context block, user prompt, claim-boundary guidance, and expected JSON-like output schema.
+- `api/agents/mira/miraOutputValidator.js` validates mocked future model outputs before they could reach the public response path.
+- `scripts/test-mira-prompt-contract.js` tests approved-context grounding, claim-boundary instructions, prohibited wording, PHI/confidential upload invitations, legal advice handling, malformed output, and insufficient-context fallback.
+
+This keeps P13 as a no-provider test layer. The live endpoint remains deterministic unless a later reviewed provider adapter is explicitly implemented and enabled.
+
 ### Request Schema
 
 ```json

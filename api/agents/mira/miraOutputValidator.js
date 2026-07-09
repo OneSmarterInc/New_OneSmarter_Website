@@ -1,0 +1,170 @@
+import { miraClaimRules } from "../../../src/data/agentKnowledge/miraClaimRules.js";
+import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalEngine.js";
+
+const VALID_GROUNDING_STATUSES = new Set(["grounded", "insufficient_context", "refused"]);
+const VALID_OUTPUT_SAFETY_STATUSES = new Set(["passed", "corrected", "refused"]);
+const HANDOFF_REQUIRED_FLAGS = new Set([
+  "legal_advice",
+  "medical_advice",
+  "phi_or_confidential_data",
+  "compliance_guarantee",
+  "business_specific_review",
+]);
+
+const PROHIBITED_PATTERNS = [
+  { label: "HIPAA Certified", pattern: /\bHIPAA\s+Certified\b/i },
+  { label: "HIPAA Certification", pattern: /\bHIPAA\s+Certification\b/i },
+  { label: "SOC 2 Certified", pattern: /\bSOC\s*2\s+Certified\b/i },
+  { label: "guaranteed compliance", pattern: /\bguaranteed\s+compliance\b/i },
+  { label: "fully compliant", pattern: /\bfully\s+compliant\b/i },
+  { label: "HIPPA", pattern: /\bHIPPA\b/i },
+];
+
+const PHI_INVITATION_PATTERN =
+  /\b(upload|paste|send|share|provide)\b.*\b(PHI|patient|claim number|claims data|confidential|credentials|private operational)\b/i;
+
+const isSafeCorrectionContext = (answer, label) => {
+  const hasCorrectionLanguage =
+    /\b(cannot|can't|do not|don't|should not|avoid|rather than|instead of|not describe|not use)\b/i.test(
+      answer,
+    );
+
+  if (!hasCorrectionLanguage) return false;
+
+  if (label.toLowerCase().includes("hipaa")) {
+    return /HIPAA Security Rule Compliance Assessment Completed/i.test(answer);
+  }
+
+  if (label.toLowerCase().includes("soc 2")) {
+    return /SOC 2 Type II Attested/i.test(answer);
+  }
+
+  if (label.toLowerCase().includes("compliance") || label.toLowerCase().includes("compliant")) {
+    return /\b(readiness|assessment|evidence|control documentation|care@onesmarter\.com)\b/i.test(
+      answer,
+    );
+  }
+
+  if (label.toLowerCase() === "hippa") {
+    return /\bHIPAA\b/.test(answer);
+  }
+
+  return false;
+};
+
+const safeFallbackFor = ({ message = "", localHarnessResult, claimRules = miraClaimRules } = {}) => {
+  const fallback = localHarnessResult || runMiraLocalHarness(message || "What does OneSmarter do?");
+  const fallbackResponse =
+    fallback.answerSeed ||
+    claimRules.refusalPatterns.find((pattern) => pattern.category === "unknown_or_not_grounded")
+      ?.response ||
+    "I do not have an approved public answer for that yet. For business-specific questions, email care@onesmarter.com.";
+
+  return {
+    answer: fallbackResponse,
+    handoffNeeded: Boolean(fallback.handoffNeeded),
+    handoffReason: fallback.handoffReason || "safe_fallback",
+    suggestedFollowUps: fallback.suggestedFollowUps || [],
+    groundingStatus: fallback.confidence === "low" ? "insufficient_context" : "grounded",
+    outputSafetyStatus: "corrected",
+  };
+};
+
+const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
+
+export const validateMiraModelOutput = (
+  modelOutput,
+  {
+    message = "",
+    riskFlags = [],
+    localHarnessResult,
+    claimRules = miraClaimRules,
+  } = {},
+) => {
+  const violations = [];
+
+  if (!isObject(modelOutput)) {
+    return {
+      valid: false,
+      violations: ["model_output_malformed"],
+      safeFallback: safeFallbackFor({ message, localHarnessResult, claimRules }),
+    };
+  }
+
+  if (typeof modelOutput.answer !== "string" || !modelOutput.answer.trim()) {
+    violations.push("answer_missing_or_invalid");
+  }
+
+  if (typeof modelOutput.handoffNeeded !== "boolean") {
+    violations.push("handoff_needed_invalid");
+  }
+
+  if (
+    modelOutput.handoffReason !== null &&
+    modelOutput.handoffReason !== undefined &&
+    typeof modelOutput.handoffReason !== "string"
+  ) {
+    violations.push("handoff_reason_invalid");
+  }
+
+  if (!Array.isArray(modelOutput.suggestedFollowUps)) {
+    violations.push("suggested_followups_invalid");
+  }
+
+  if (!VALID_GROUNDING_STATUSES.has(modelOutput.groundingStatus)) {
+    violations.push("grounding_status_invalid");
+  }
+
+  if (!VALID_OUTPUT_SAFETY_STATUSES.has(modelOutput.outputSafetyStatus)) {
+    violations.push("output_safety_status_invalid");
+  }
+
+  const answer = modelOutput.answer || "";
+  for (const { label, pattern } of PROHIBITED_PATTERNS) {
+    if (pattern.test(answer) && !isSafeCorrectionContext(answer, label)) {
+      violations.push(`prohibited_phrase:${label}`);
+    }
+  }
+
+  if (PHI_INVITATION_PATTERN.test(answer)) {
+    violations.push("invites_phi_or_confidential_submission");
+  }
+
+  if (/\bguarantee(s|d)?\b.*\b(compliance|secure|security)\b/i.test(answer)) {
+    violations.push("unsupported_guarantee");
+  }
+
+  if (
+    riskFlags.some((flag) => HANDOFF_REQUIRED_FLAGS.has(flag)) &&
+    modelOutput.handoffNeeded !== true
+  ) {
+    violations.push("handoff_required_for_risk");
+  }
+
+  if (modelOutput.groundingStatus === "insufficient_context" && modelOutput.handoffNeeded !== true) {
+    violations.push("handoff_required_for_insufficient_context");
+  }
+
+  if (violations.length) {
+    return {
+      valid: false,
+      violations,
+      safeFallback: safeFallbackFor({ message, localHarnessResult, claimRules }),
+    };
+  }
+
+  return {
+    valid: true,
+    violations: [],
+    correctedOutput: {
+      answer: modelOutput.answer.trim(),
+      handoffNeeded: modelOutput.handoffNeeded,
+      handoffReason: modelOutput.handoffReason || null,
+      suggestedFollowUps: modelOutput.suggestedFollowUps,
+      groundingStatus: modelOutput.groundingStatus,
+      outputSafetyStatus: modelOutput.outputSafetyStatus,
+    },
+  };
+};
+
+export default validateMiraModelOutput;

@@ -27,6 +27,8 @@ export const runMiraResponseAdapter = ({
 
   // `staging_llm` and `production_llm` are intentionally placeholders for now.
   // Until a reviewed provider adapter exists, they fall back to the local harness.
+  // Future provider paths should build prompts with miraPromptContract.js and
+  // validate model outputs with miraOutputValidator.js before returning them.
   return {
     ...localHarness(message),
     mode: LOCAL_HARNESS_MODE,

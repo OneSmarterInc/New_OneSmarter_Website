@@ -40,6 +40,7 @@ Mira currently runs in `local_harness_mock` mode with:
 - Normalized errors.
 - Manual QA checklist.
 - A runtime config helper and LLM adapter interface that currently support only `mock`, `off`, and fallback-to-mock placeholder behavior. No real provider adapter, SDK, API key, or external model call exists yet.
+- A prompt contract module and output validator for mocked model-response testing. These are not wired to a real provider yet.
 
 ## Recommended Architecture
 
@@ -82,6 +83,8 @@ Recommended first provider path:
 ## Prompt Architecture
 
 The future prompt should be assembled server-side only. API keys and prompt details must never be exposed to the browser.
+
+The prompt contract is defined in `api/agents/mira/miraPromptContract.js`.
 
 Prompt components:
 
@@ -131,6 +134,8 @@ Refusal rules:
 Output:
 Return JSON matching the expected schema.
 ```
+
+The context block includes only retrieved approved KB entries, including source id, title, route, approved summary, source facts, allowed claims, and handoff guidance. Disallowed claims are not presented as ordinary source statements; unsafe phrases appear only in clearly labeled claim-boundary or avoidance instructions.
 
 ## Future Output Schema
 
@@ -224,6 +229,8 @@ If output fails validation:
 - Return deterministic safe fallback from the local harness.
 - Set `outputSafetyStatus` to `failed_fallback`.
 - Log safe metadata only.
+
+The mocked output validator now lives in `api/agents/mira/miraOutputValidator.js`. It checks shape, prohibited wording, unsupported certification claims, compliance guarantees, PHI/confidential upload invitations, grounding status, output safety status, and required handoff behavior for risky topics.
 
 ## Logging And Privacy
 
@@ -345,6 +352,14 @@ Current behavior:
 - Invalid mode values fall back to `mock`.
 
 This preserves the current endpoint contract and visible `/ai-agents` behavior while preparing a narrow future integration point for provider-specific code.
+
+Prompt and mocked response tests run with:
+
+```powershell
+npm.cmd run test:mira-prompt
+```
+
+These tests validate prompt construction, context-only grounding, claim-boundary instructions, and mocked model output rejection/fallback behavior without calling any provider.
 
 ## Production Gates
 
