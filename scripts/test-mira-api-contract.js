@@ -9,6 +9,7 @@ const ENV_KEYS = [
   "MIRA_LLM_MODE",
   "MIRA_LLM_PROVIDER",
   "MIRA_LLM_MODEL",
+  "MIRA_LLM_API_KEY",
   "MIRA_LLM_TIMEOUT_MS",
   "MIRA_LLM_MAX_TOKENS",
   "MIRA_LLM_TEMPERATURE",
@@ -339,11 +340,37 @@ const modeCases = [
     expectedStatus: 200,
   },
   {
+    id: "mode-staging-openai-stub-falls-back-to-mock",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
     id: "mode-production-llm-falls-back-to-mock",
     env: { MIRA_LLM_MODE: "production_llm" },
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
+  },
+  {
+    id: "mode-production-openai-stub-falls-back-to-mock",
+    env: {
+      MIRA_LLM_MODE: "production_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "another-secret-value-that-must-not-be-exposed",
+    },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    forbiddenResponseText: "another-secret-value-that-must-not-be-exposed",
   },
   {
     id: "mode-invalid-falls-back-to-mock",
@@ -383,6 +410,12 @@ for (const modeCase of modeCases) {
     !contains(result.body.answer, modeCase.expectedAnswerIncludes)
   ) {
     fail(`${modeCase.id}: answer missing ${modeCase.expectedAnswerIncludes}.`);
+  }
+  if (
+    modeCase.forbiddenResponseText &&
+    JSON.stringify(result.body).includes(modeCase.forbiddenResponseText)
+  ) {
+    fail(`${modeCase.id}: response exposed forbidden secret text.`);
   }
 }
 

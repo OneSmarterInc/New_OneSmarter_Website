@@ -6,6 +6,7 @@ import {
 } from "../api/agents/mira/miraPromptContract.js";
 import { validateMiraModelOutput } from "../api/agents/mira/miraOutputValidator.js";
 import { readMiraRuntimeConfig } from "../api/agents/mira/miraRuntimeConfig.js";
+import { runOpenAiMiraAdapter } from "../api/agents/mira/openAiAdapter.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -44,6 +45,44 @@ if (runtimeConfig.apiKeyConfigured !== true) {
 
 if (Object.values(runtimeConfig).includes("secret-value-that-must-not-be-returned")) {
   fail("config: runtime config must not expose the raw API key.");
+}
+
+const openAiStub = runOpenAiMiraAdapter({
+  message: "What does OneSmarter do?",
+  conversationId: "prompt-contract-test",
+  requestContext: {
+    persona: "Warm Guide",
+    memoryTheme: "Client onboarding",
+    empathyState: "Welcoming",
+  },
+  retrievalResult: companyRetrieval,
+  riskFlags: companyRetrieval.riskFlags,
+  promptPayload: companyPrompt,
+  config: runtimeConfig,
+});
+
+if (openAiStub.provider !== "openai") {
+  fail("openai-stub: expected provider openai.");
+}
+
+if (openAiStub.mode !== "staging_llm_stub") {
+  fail("openai-stub: expected staging_llm_stub mode.");
+}
+
+if (openAiStub.implemented !== false) {
+  fail("openai-stub: expected implemented=false.");
+}
+
+if (openAiStub.modelOutput !== null) {
+  fail("openai-stub: expected null modelOutput.");
+}
+
+if (openAiStub.error !== "openai_adapter_not_implemented") {
+  fail("openai-stub: expected openai_adapter_not_implemented error.");
+}
+
+if (JSON.stringify(openAiStub).includes("secret-value-that-must-not-be-returned")) {
+  fail("openai-stub: must not expose raw API key value.");
 }
 
 if (!contains(companyPrompt.system, "You are Mira Vale")) {

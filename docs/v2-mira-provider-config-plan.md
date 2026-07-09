@@ -30,9 +30,18 @@ The prompt contract and mocked output validator now exist for local testing:
 
 - `api/agents/mira/miraPromptContract.js`
 - `api/agents/mira/miraOutputValidator.js`
+- `api/agents/mira/openAiAdapter.js`
 - `scripts/test-mira-prompt-contract.js`
 
-These modules define the future prompt shape and post-output safety checks, but they do not call a provider or change endpoint behavior.
+These modules define the future prompt shape, post-output safety checks, and OpenAI provider boundary, but they do not call a provider or change visible endpoint behavior.
+
+The OpenAI adapter is a stub only:
+
+- No OpenAI SDK is imported.
+- No API key is used.
+- No external API is called.
+- `staging_llm` and `production_llm` with `MIRA_LLM_PROVIDER=openai` still fall back to `local_harness_mock`.
+- Raw secret values are not returned in config or responses.
 
 ## Feature Flag Plan
 
@@ -54,8 +63,8 @@ Mode behavior:
 | --- | --- |
 | `off` | The Mira endpoint returns a safe unavailable response and routes visitors to care@onesmarter.com. |
 | `mock` | The endpoint uses the current deterministic local harness only and returns `mode: local_harness_mock`. |
-| `staging_llm` | Reserved for a future real provider in staging. Current implementation falls back to `mock` behavior. |
-| `production_llm` | Reserved for a future real provider in production. Current implementation falls back to `mock` behavior. |
+| `staging_llm` | Reserved for a future real provider in staging. Current OpenAI path calls only the stub and falls back to `mock` behavior. |
+| `production_llm` | Reserved for a future real provider in production. Current OpenAI path calls only the stub and falls back to `mock` behavior. |
 
 The endpoint should fail closed. If the mode is invalid, provider configuration is missing, or a provider call fails, Mira should fall back to deterministic mock behavior or an unavailable/handoff response rather than crashing.
 

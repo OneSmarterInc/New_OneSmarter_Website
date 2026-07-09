@@ -1,4 +1,6 @@
 import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalEngine.js";
+import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
+import { buildMiraPromptPayload } from "./miraPromptContract.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 
@@ -18,19 +20,54 @@ const unavailableResponse = (message) => ({
 
 export const runMiraResponseAdapter = ({
   message,
+  conversationId,
+  persona,
+  memoryTheme,
+  empathyState,
   config,
   localHarness = runMiraLocalHarness,
+  openAiAdapter = runOpenAiMiraAdapter,
 } = {}) => {
   if (config?.mode === "off") {
     return unavailableResponse(message);
   }
 
-  // `staging_llm` and `production_llm` are intentionally placeholders for now.
-  // Until a reviewed provider adapter exists, they fall back to the local harness.
-  // Future provider paths should build prompts with miraPromptContract.js and
-  // validate model outputs with miraOutputValidator.js before returning them.
+  const localResult = localHarness(message);
+
+  if (
+    ["staging_llm", "production_llm"].includes(config?.mode) &&
+    config?.provider === "openai"
+  ) {
+    const requestContext = {
+      persona: typeof persona === "string" ? persona : "",
+      memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
+      empathyState: typeof empathyState === "string" ? empathyState : "",
+    };
+    const promptPayload = buildMiraPromptPayload({
+      message,
+      retrievalResult: localResult,
+      riskFlags: localResult.riskFlags,
+      requestContext,
+    });
+    const providerStub = openAiAdapter({
+      message,
+      conversationId,
+      requestContext,
+      retrievalResult: localResult,
+      riskFlags: localResult.riskFlags,
+      promptPayload,
+      config,
+    });
+
+    return {
+      ...localResult,
+      mode: LOCAL_HARNESS_MODE,
+      providerStub,
+    };
+  }
+
   return {
-    ...localHarness(message),
+    ...localResult,
     mode: LOCAL_HARNESS_MODE,
   };
 };

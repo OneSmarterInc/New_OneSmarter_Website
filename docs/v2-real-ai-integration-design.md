@@ -41,6 +41,7 @@ Mira currently runs in `local_harness_mock` mode with:
 - Manual QA checklist.
 - A runtime config helper and LLM adapter interface that currently support only `mock`, `off`, and fallback-to-mock placeholder behavior. No real provider adapter, SDK, API key, or external model call exists yet.
 - A prompt contract module and output validator for mocked model-response testing. These are not wired to a real provider yet.
+- An OpenAI adapter stub that returns provider metadata and `openai_adapter_not_implemented` without importing an SDK or making an external call.
 
 ## Recommended Architecture
 
@@ -342,13 +343,15 @@ The internal adapter seam now exists in:
 
 - `api/agents/mira/miraRuntimeConfig.js`
 - `api/agents/mira/llmAdapter.js`
+- `api/agents/mira/openAiAdapter.js`
 
 Current behavior:
 
 - Missing `MIRA_LLM_MODE` defaults to `mock`.
 - `mock` uses the deterministic local harness and returns `mode: local_harness_mock`.
 - `off` returns a safe unavailable handoff response.
-- `staging_llm` and `production_llm` do not call a provider yet; they fall back to the deterministic local harness until a reviewed provider adapter is implemented.
+- `staging_llm` and `production_llm` with `MIRA_LLM_PROVIDER=openai` call only the OpenAI stub, then fall back to the deterministic local harness.
+- The OpenAI stub does not import the OpenAI SDK, call fetch, call an external API, or expose API key values.
 - Invalid mode values fall back to `mock`.
 
 This preserves the current endpoint contract and visible `/ai-agents` behavior while preparing a narrow future integration point for provider-specific code.
@@ -397,3 +400,5 @@ The provider decision and environment variable plan now lives in:
 `docs/v2-mira-provider-config-plan.md`
 
 The safest next implementation package after that planning step is a provider-adapter design or mocked provider-adapter test package. It should still avoid real API keys and real model calls until the staging readiness gates are complete.
+
+After the OpenAI stub, the next package should be a staging-only real OpenAI adapter implementation plan and risk gate. That package should still be blocked on environment review, provider/privacy review, prompt-output validation, cost controls, and explicit staging enablement.
