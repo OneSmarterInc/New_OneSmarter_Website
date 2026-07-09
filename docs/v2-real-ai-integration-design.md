@@ -303,6 +303,8 @@ LLM integration tests should cover:
 
 ## Feature Flag Plan
 
+Detailed provider configuration, environment variable names, deployment behavior, readiness gates, and rollback rules are defined in `docs/v2-mira-provider-config-plan.md`.
+
 Recommended flag:
 
 ```text
@@ -357,8 +359,8 @@ Rollback should be simple:
 
 ## Recommendation
 
-The safest next implementation package is:
+The provider decision and environment variable plan now lives in:
 
-`V2-P11: Provider Decision And Environment Variable Plan`
+`docs/v2-mira-provider-config-plan.md`
 
-This should come before any adapter code. It lets the team decide provider, model family, environment variable names, staging/prod flag behavior, secret ownership, cost limits, and review requirements without creating a model dependency prematurely.
+The safest next implementation package after that planning step is a provider-adapter design or mocked provider-adapter test package. It should still avoid real API keys and real model calls until the staging readiness gates are complete.
