@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
-import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalEngine.js";
+import { runMiraResponseAdapter } from "./llmAdapter.js";
+import { readMiraRuntimeConfig } from "./miraRuntimeConfig.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -295,13 +296,21 @@ export const handleMiraChatRequest = ({
   }
 
   try {
-    const result = runMiraLocalHarness(trimmedMessage);
+    const runtimeConfig = readMiraRuntimeConfig();
+    const result = runMiraResponseAdapter({
+      message: trimmedMessage,
+      conversationId,
+      persona,
+      memoryTheme,
+      empathyState,
+      config: runtimeConfig,
+    });
     const normalizedConversationId = normalizeConversationId(conversationId);
     const responseBody = {
       requestId,
       timestamp,
       agent: AGENT_NAME,
-      mode: MODE,
+      mode: result.mode || MODE,
       conversationId: normalizedConversationId,
       answer: buildAnswer(result),
       answerSeed: result.answerSeed,

@@ -5,6 +5,16 @@ import {
 } from "../api/agents/mira/chatCore.js";
 
 const failures = [];
+const ENV_KEYS = [
+  "MIRA_LLM_MODE",
+  "MIRA_LLM_PROVIDER",
+  "MIRA_LLM_MODEL",
+  "MIRA_LLM_TIMEOUT_MS",
+  "MIRA_LLM_MAX_TOKENS",
+  "MIRA_LLM_TEMPERATURE",
+  "MIRA_LLM_ENABLE_POST_VALIDATION",
+];
+const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
 
 const riskyPhrasePatterns = [
   { label: "HIPAA Certified", pattern: /\bHIPAA\s+certified\b/i },
@@ -160,115 +170,219 @@ const unsafeMatches = (text) =>
     .filter(({ pattern }) => pattern.test(text))
     .map(({ label }) => label);
 
+const withEnv = (values, callback) => {
+  for (const key of ENV_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(values, key)) {
+      if (values[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = values[key];
+      }
+    }
+  }
+
+  try {
+    return callback();
+  } finally {
+    for (const [key, value] of Object.entries(originalEnv)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+};
+
 resetMiraRateLimitForTests();
 
-for (const testCase of cases) {
-  const result = handleMiraChatRequest({
-    ...testCase.request,
-    now: new Date("2026-07-08T12:00:00.000Z"),
-    logger: null,
-  });
-  const body = result.body;
+withEnv({ MIRA_LLM_MODE: undefined }, () => {
+  for (const testCase of cases) {
+    const result = handleMiraChatRequest({
+      ...testCase.request,
+      now: new Date("2026-07-08T12:00:00.000Z"),
+      logger: null,
+    });
+    const body = result.body;
 
-  if (result.status !== testCase.expectedStatus) {
-    fail(`${testCase.id}: expected status ${testCase.expectedStatus}, got ${result.status}.`);
-  }
-
-  if (body.agent !== "Mira Vale") {
-    fail(`${testCase.id}: expected agent Mira Vale.`);
-  }
-
-  if (body.mode !== "local_harness_mock") {
-    fail(`${testCase.id}: expected mode local_harness_mock.`);
-  }
-
-  if (!body.requestId) {
-    fail(`${testCase.id}: missing requestId.`);
-  }
-
-  if (!body.timestamp) {
-    fail(`${testCase.id}: missing timestamp.`);
-  }
-
-  if (typeof body.message === "string" && /stack|at\s+.+\.js:/i.test(body.message)) {
-    fail(`${testCase.id}: error message appears to expose stack trace details.`);
-  }
-
-  if (typeof body.stack === "string") {
-    fail(`${testCase.id}: response must not include stack traces.`);
-  }
-
-  if (testCase.expectedError && body.error !== testCase.expectedError) {
-    fail(`${testCase.id}: expected error ${testCase.expectedError}, got ${body.error}.`);
-  }
-
-  if (testCase.expectedError && body.status !== testCase.expectedStatus) {
-    fail(`${testCase.id}: expected error status field ${testCase.expectedStatus}.`);
-  }
-
-  if (result.status === 200) {
-    if (!body.conversationId) fail(`${testCase.id}: missing conversationId.`);
-    if (!body.privacyReminder) fail(`${testCase.id}: missing privacyReminder.`);
-    if (!body.answer) fail(`${testCase.id}: missing answer.`);
-    if (!body.answerSeed) fail(`${testCase.id}: missing answerSeed.`);
-    if (!["high", "medium", "low"].includes(body.confidence)) {
-      fail(`${testCase.id}: invalid confidence ${body.confidence}.`);
-    }
-    if (
-      testCase.minimumConfidence === "medium" &&
-      !["high", "medium"].includes(body.confidence)
-    ) {
-      fail(`${testCase.id}: expected medium or high confidence, got ${body.confidence}.`);
-    }
-    if (!Array.isArray(body.riskFlags)) fail(`${testCase.id}: riskFlags must be an array.`);
-    if (!Array.isArray(body.matchedSources)) {
-      fail(`${testCase.id}: matchedSources must be an array.`);
-    }
-    if (!Array.isArray(body.suggestedFollowUps)) {
-      fail(`${testCase.id}: suggestedFollowUps must be an array.`);
+    if (result.status !== testCase.expectedStatus) {
+      fail(`${testCase.id}: expected status ${testCase.expectedStatus}, got ${result.status}.`);
     }
 
-    for (const flag of testCase.expectedFlags || []) {
-      if (!body.riskFlags.includes(flag)) {
-        fail(`${testCase.id}: missing expected risk flag ${flag}.`);
+    if (body.agent !== "Mira Vale") {
+      fail(`${testCase.id}: expected agent Mira Vale.`);
+    }
+
+    if (body.mode !== "local_harness_mock") {
+      fail(`${testCase.id}: expected mode local_harness_mock.`);
+    }
+
+    if (!body.requestId) {
+      fail(`${testCase.id}: missing requestId.`);
+    }
+
+    if (!body.timestamp) {
+      fail(`${testCase.id}: missing timestamp.`);
+    }
+
+    if (typeof body.message === "string" && /stack|at\s+.+\.js:/i.test(body.message)) {
+      fail(`${testCase.id}: error message appears to expose stack trace details.`);
+    }
+
+    if (typeof body.stack === "string") {
+      fail(`${testCase.id}: response must not include stack traces.`);
+    }
+
+    if (testCase.expectedError && body.error !== testCase.expectedError) {
+      fail(`${testCase.id}: expected error ${testCase.expectedError}, got ${body.error}.`);
+    }
+
+    if (testCase.expectedError && body.status !== testCase.expectedStatus) {
+      fail(`${testCase.id}: expected error status field ${testCase.expectedStatus}.`);
+    }
+
+    if (result.status === 200) {
+      if (!body.conversationId) fail(`${testCase.id}: missing conversationId.`);
+      if (!body.privacyReminder) fail(`${testCase.id}: missing privacyReminder.`);
+      if (!body.answer) fail(`${testCase.id}: missing answer.`);
+      if (!body.answerSeed) fail(`${testCase.id}: missing answerSeed.`);
+      if (!["high", "medium", "low"].includes(body.confidence)) {
+        fail(`${testCase.id}: invalid confidence ${body.confidence}.`);
+      }
+      if (
+        testCase.minimumConfidence === "medium" &&
+        !["high", "medium"].includes(body.confidence)
+      ) {
+        fail(`${testCase.id}: expected medium or high confidence, got ${body.confidence}.`);
+      }
+      if (!Array.isArray(body.riskFlags)) fail(`${testCase.id}: riskFlags must be an array.`);
+      if (!Array.isArray(body.matchedSources)) {
+        fail(`${testCase.id}: matchedSources must be an array.`);
+      }
+      if (!Array.isArray(body.suggestedFollowUps)) {
+        fail(`${testCase.id}: suggestedFollowUps must be an array.`);
+      }
+
+      for (const flag of testCase.expectedFlags || []) {
+        if (!body.riskFlags.includes(flag)) {
+          fail(`${testCase.id}: missing expected risk flag ${flag}.`);
+        }
+      }
+
+      if (
+        typeof testCase.expectedHandoff === "boolean" &&
+        body.handoffNeeded !== testCase.expectedHandoff
+      ) {
+        fail(`${testCase.id}: expected handoffNeeded=${testCase.expectedHandoff}.`);
+      }
+
+      for (const sourceId of testCase.expectedSourceIds || []) {
+        if (!body.matchedSources.some((source) => source.id === sourceId)) {
+          fail(`${testCase.id}: missing matched source ${sourceId}.`);
+        }
+      }
+
+      if (
+        testCase.expectedDisclaimerIncludes &&
+        !contains(body.disclaimer, testCase.expectedDisclaimerIncludes)
+      ) {
+        fail(`${testCase.id}: disclaimer missing ${testCase.expectedDisclaimerIncludes}.`);
+      }
+
+      if (testCase.expectedAnswerIncludes && !contains(body.answer, testCase.expectedAnswerIncludes)) {
+        fail(`${testCase.id}: answer missing ${testCase.expectedAnswerIncludes}.`);
+      }
+
+      if (testCase.maxSensitiveWarningCount) {
+        const warningCount = (body.answer.match(/do not submit/gi) || []).length;
+        if (warningCount > testCase.maxSensitiveWarningCount) {
+          fail(`${testCase.id}: answer repeats sensitive-data warning ${warningCount} times.`);
+        }
+      }
+
+      const unsafe = unsafeMatches(`${body.answer} ${body.answerSeed}`);
+      if (unsafe.length) {
+        fail(`${testCase.id}: response contains unsafe phrase(s): ${unsafe.join(", ")}.`);
       }
     }
+  }
+});
 
-    if (
-      typeof testCase.expectedHandoff === "boolean" &&
-      body.handoffNeeded !== testCase.expectedHandoff
-    ) {
-      fail(`${testCase.id}: expected handoffNeeded=${testCase.expectedHandoff}.`);
-    }
+const modeCases = [
+  {
+    id: "mode-missing-env-defaults-to-mock",
+    env: { MIRA_LLM_MODE: undefined },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+  },
+  {
+    id: "mode-explicit-mock",
+    env: { MIRA_LLM_MODE: "mock" },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+  },
+  {
+    id: "mode-off-safe-unavailable",
+    env: { MIRA_LLM_MODE: "off" },
+    expectedMode: "off",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedAnswerIncludes: "Mira is not available right now",
+  },
+  {
+    id: "mode-staging-llm-falls-back-to-mock",
+    env: { MIRA_LLM_MODE: "staging_llm" },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+  },
+  {
+    id: "mode-production-llm-falls-back-to-mock",
+    env: { MIRA_LLM_MODE: "production_llm" },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+  },
+  {
+    id: "mode-invalid-falls-back-to-mock",
+    env: { MIRA_LLM_MODE: "surprise_llm" },
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+  },
+];
 
-    for (const sourceId of testCase.expectedSourceIds || []) {
-      if (!body.matchedSources.some((source) => source.id === sourceId)) {
-        fail(`${testCase.id}: missing matched source ${sourceId}.`);
-      }
-    }
+for (const modeCase of modeCases) {
+  resetMiraRateLimitForTests();
+  const result = withEnv(modeCase.env, () =>
+    handleMiraChatRequest({
+      method: "POST",
+      headers: { "x-forwarded-for": `192.0.2.${modeCases.indexOf(modeCase) + 1}` },
+      body: { message: "What does OneSmarter do?" },
+      now: new Date("2026-07-08T12:00:30.000Z"),
+      logger: null,
+    }),
+  );
 
-    if (
-      testCase.expectedDisclaimerIncludes &&
-      !contains(body.disclaimer, testCase.expectedDisclaimerIncludes)
-    ) {
-      fail(`${testCase.id}: disclaimer missing ${testCase.expectedDisclaimerIncludes}.`);
-    }
-
-    if (testCase.expectedAnswerIncludes && !contains(body.answer, testCase.expectedAnswerIncludes)) {
-      fail(`${testCase.id}: answer missing ${testCase.expectedAnswerIncludes}.`);
-    }
-
-    if (testCase.maxSensitiveWarningCount) {
-      const warningCount = (body.answer.match(/do not submit/gi) || []).length;
-      if (warningCount > testCase.maxSensitiveWarningCount) {
-        fail(`${testCase.id}: answer repeats sensitive-data warning ${warningCount} times.`);
-      }
-    }
-
-    const unsafe = unsafeMatches(`${body.answer} ${body.answerSeed}`);
-    if (unsafe.length) {
-      fail(`${testCase.id}: response contains unsafe phrase(s): ${unsafe.join(", ")}.`);
-    }
+  if (result.status !== modeCase.expectedStatus) {
+    fail(`${modeCase.id}: expected status ${modeCase.expectedStatus}, got ${result.status}.`);
+  }
+  if (result.body.mode !== modeCase.expectedMode) {
+    fail(`${modeCase.id}: expected mode ${modeCase.expectedMode}, got ${result.body.mode}.`);
+  }
+  if (result.body.handoffNeeded !== modeCase.expectedHandoff) {
+    fail(`${modeCase.id}: expected handoffNeeded=${modeCase.expectedHandoff}.`);
+  }
+  if (!result.body.answer || !result.body.answerSeed || !result.body.privacyReminder) {
+    fail(`${modeCase.id}: expected stable success response fields.`);
+  }
+  if (
+    modeCase.expectedAnswerIncludes &&
+    !contains(result.body.answer, modeCase.expectedAnswerIncludes)
+  ) {
+    fail(`${modeCase.id}: answer missing ${modeCase.expectedAnswerIncludes}.`);
   }
 }
 
@@ -311,4 +425,4 @@ if (failures.length) {
 }
 
 console.log("Mira API contract tests passed.");
-console.log(`Ran ${cases.length} API contract cases.`);
+console.log(`Ran ${cases.length} API contract cases and ${modeCases.length} runtime mode cases.`);

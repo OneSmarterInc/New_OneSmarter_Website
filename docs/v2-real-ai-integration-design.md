@@ -39,6 +39,7 @@ Mira currently runs in `local_harness_mock` mode with:
 - `privacyReminder`.
 - Normalized errors.
 - Manual QA checklist.
+- A runtime config helper and LLM adapter interface that currently support only `mock`, `off`, and fallback-to-mock placeholder behavior. No real provider adapter, SDK, API key, or external model call exists yet.
 
 ## Recommended Architecture
 
@@ -327,6 +328,23 @@ Mode behavior:
 | `production_llm` | LLM enabled publicly only after all production gates pass. |
 
 No production LLM mode should be enabled without legal/privacy review, security review, safety tests, cost controls, internal signoff, and rollback approval.
+
+## Current Adapter Interface
+
+The internal adapter seam now exists in:
+
+- `api/agents/mira/miraRuntimeConfig.js`
+- `api/agents/mira/llmAdapter.js`
+
+Current behavior:
+
+- Missing `MIRA_LLM_MODE` defaults to `mock`.
+- `mock` uses the deterministic local harness and returns `mode: local_harness_mock`.
+- `off` returns a safe unavailable handoff response.
+- `staging_llm` and `production_llm` do not call a provider yet; they fall back to the deterministic local harness until a reviewed provider adapter is implemented.
+- Invalid mode values fall back to `mock`.
+
+This preserves the current endpoint contract and visible `/ai-agents` behavior while preparing a narrow future integration point for provider-specific code.
 
 ## Production Gates
 

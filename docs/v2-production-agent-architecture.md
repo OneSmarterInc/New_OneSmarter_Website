@@ -80,6 +80,16 @@ The mock endpoint now includes operational safety metadata and controls:
 
 The current rate limit is 20 requests per minute per key. Because Vercel serverless functions may not preserve memory between invocations, this limiter is best-effort only and is not a final production-grade abuse-control layer.
 
+The endpoint also has an internal runtime config and adapter boundary:
+
+- `api/agents/mira/miraRuntimeConfig.js` reads `MIRA_LLM_MODE` and future provider configuration safely.
+- `api/agents/mira/llmAdapter.js` defines the response adapter seam.
+- Default and `mock` mode continue to use `local_harness_mock`.
+- `off` mode returns a safe unavailable handoff response.
+- `staging_llm` and `production_llm` are placeholders only and currently fall back to mock behavior.
+
+No real provider SDK, API key, provider implementation, or external model call exists yet.
+
 ### Request Schema
 
 ```json

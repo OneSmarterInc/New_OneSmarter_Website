@@ -8,6 +8,23 @@ Mira should remain in `local_harness_mock` mode by default until a real provider
 
 The current deterministic harness remains the default safety baseline and rollback path.
 
+## Current Implementation Status
+
+The runtime config helper and adapter interface now exist:
+
+- `api/agents/mira/miraRuntimeConfig.js`
+- `api/agents/mira/llmAdapter.js`
+
+Current implementation is intentionally mock/off only:
+
+- Missing `MIRA_LLM_MODE` defaults to `mock`.
+- `mock` uses the deterministic local harness and returns `mode: local_harness_mock`.
+- `off` returns a safe unavailable handoff response.
+- `staging_llm` and `production_llm` are placeholders and fall back to the deterministic local harness.
+- Invalid mode values fall back to `mock`.
+
+No SDK, API key, external provider call, model adapter, prompt assembly layer, or post-model validation layer has been added yet.
+
 ## Feature Flag Plan
 
 Recommended feature flag:
@@ -28,8 +45,8 @@ Mode behavior:
 | --- | --- |
 | `off` | The Mira endpoint returns a safe unavailable response and routes visitors to care@onesmarter.com. |
 | `mock` | The endpoint uses the current deterministic local harness only and returns `mode: local_harness_mock`. |
-| `staging_llm` | A real provider may be used only in staging or controlled preview environments after staging readiness gates pass. |
-| `production_llm` | A real provider may be used in production only after production readiness gates pass and explicit approval is recorded. |
+| `staging_llm` | Reserved for a future real provider in staging. Current implementation falls back to `mock` behavior. |
+| `production_llm` | Reserved for a future real provider in production. Current implementation falls back to `mock` behavior. |
 
 The endpoint should fail closed. If the mode is invalid, provider configuration is missing, or a provider call fails, Mira should fall back to deterministic mock behavior or an unavailable/handoff response rather than crashing.
 
@@ -196,7 +213,7 @@ Future implementation should keep the provider adapter behind the existing endpo
 - The adapter should receive only approved retrieved context, claim rules, and a bounded prompt payload.
 - Post-output validation should run before any model output reaches the frontend.
 
-The first implementation package should not remove `local_harness_mock`; it should add real provider behavior as an explicitly gated branch.
+The first implementation package did not remove `local_harness_mock`; it added a config and adapter seam only. Future provider work should add real behavior as an explicitly gated branch behind this interface, after readiness gates are complete.
 
 ## Out Of Scope
 
