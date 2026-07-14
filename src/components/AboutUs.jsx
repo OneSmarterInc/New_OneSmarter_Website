@@ -89,7 +89,7 @@ const AboutUs = () => {
           </div>
         </div>
 
-        <div className="qa-container mx-auto mt-8">
+        {/* <div className="qa-container mx-auto mt-8">
           <div className="flex flex-col items-center gap-6 rounded border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-start sm:p-8">
             <img
               src={img}
@@ -109,7 +109,7 @@ const AboutUs = () => {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
       </section>
     </main>
   );
