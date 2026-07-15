@@ -28,11 +28,9 @@ Organizations evaluating OneSmarter services.
 ## Related Pages
 - [Technology Solutions | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/index.md)
 - [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md)
-- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md)
+- [Email OneSmarter](mailto:care@onesmarter.com)
 
 ## Contact
 Email: care@onesmarter.com
-
-Phone: +1 937 344 6241
 
 Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223

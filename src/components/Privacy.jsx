@@ -38,9 +38,33 @@ const Privacy = () => {
           We do not sell or rent your personal information. We share it only with trusted partners or as required by law.
         </p>
 
-        <h3 className="text-lg font-semibold mb-2">Cookies</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          Cookies, Google Analytics, and Consent
+        </h3>
         <p className="mb-4">
-          Our site uses cookies and web beacons for personalization and analytics. Third-party advertisers may also set cookies based on their policies.
+          We use Google Analytics 4 to understand how visitors use our website,
+          improve website performance, and enhance user experience.
+        </p>
+        <p className="mb-4">
+          Google Analytics operates based on your cookie and consent choices. If
+          you accept analytics cookies, Google Analytics may use cookies or
+          similar technologies to collect usage information such as page visits,
+          browser/device details, and interactions with our website.
+        </p>
+        <p className="mb-4">
+          If you reject analytics cookies, Google Analytics will not store or
+          access analytics cookies on your device. Because Google Consent Mode is
+          implemented on this website, limited cookieless measurement signals may
+          still be sent to Google Analytics for aggregated measurement and
+          modeling without storing analytics cookies on your device.
+        </p>
+        <p className="mb-4">
+          We do not use Google Analytics for advertising, remarketing, or
+          personalized advertising on this website.
+        </p>
+        <p className="mb-4">
+          You can change or withdraw your cookie preferences at any time using
+          the Cookie Settings option available on our website.
         </p>
 
         <h3 className="text-lg font-semibold mb-2">Data Security</h3>
@@ -53,8 +77,8 @@ const Privacy = () => {
           We may update this policy. Any significant changes will be communicated via email or site notification.
         </p>
 
-        <p className="text-sm italic">Last updated: October 1, 2018</p>
-        <p className="text-sm italic">Last reviewed: January 1, 2025</p>
+        <p className="text-sm italic">Last updated: July 7, 2026</p>
+        <p className="text-sm italic">Last reviewed: July 7, 2026</p>
 
       </div>
     </main>

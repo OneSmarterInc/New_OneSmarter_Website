@@ -14,15 +14,12 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 
 ## Core
 - [OneSmarter | Secure Platforms, Practical AI, Trusted Execution](https://www.onesmarter.com/ai-pages/index.md): OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Website: https://www.onesmarter.com
-- [Insights | OneSmarter](https://www.onesmarter.com/ai-pages/insights.md): Insights will cover secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement. Website: https://www.onesmarter.com/insights
 - [About OneSmarter](https://www.onesmarter.com/ai-pages/aboutus/Introduction.md): OneSmarter is a Dayton, Ohio company providing secure technology, business services, compliance support, and trusted execution. Website: https://www.onesmarter.com/aboutus/Introduction
-- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md): Contact OneSmarter by email at care@onesmarter.com, phone at +1 937 344 6241, or mail at 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223. Website: https://www.onesmarter.com/contact
 
 ## Platforms
-- [Platforms | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/index.md): OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management. Website: https://www.onesmarter.com/platforms
-- [Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/hipaa-regulated-ticketing.md): Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows. Website: https://www.onesmarter.com/platforms/hipaa-regulated-ticketing
-- [Bill Audit ERP & Bill Pay | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/bill-audit-erp-bill-pay.md): A bill audit ERP and bill pay platform for vendor bill workflows, approvals, discrepancy tracking, reporting, and payment coordination. Website: https://www.onesmarter.com/platforms/bill-audit-erp-bill-pay
-- [Telecom Expense Management | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/telecom-expense-management.md): Telecom expense management for bill analysis, optimization, historical review, contract comparison, and cost-control workflows. Website: https://www.onesmarter.com/platforms/telecom-expense-management
+- [Platforms | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/index.md): OneSmarter platforms support secure ticketing and case management, plus bill audit and bill pay workflows. Website: https://www.onesmarter.com/platforms
+- [Secure Ticketing and Case Management | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/hipaa-regulated-ticketing.md): Secure ticketing and case management built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution. Website: https://www.onesmarter.com/platforms/hipaa-regulated-ticketing
+- [Bill Audit & Bill Pay | OneSmarter](https://www.onesmarter.com/ai-pages/platforms/bill-audit-erp-bill-pay.md): A bill audit and bill pay platform for vendor bill review, recurring expense analysis, discrepancy tracking, approvals, payment workflows, and telecom expense management use cases. Website: https://www.onesmarter.com/platforms/bill-audit-erp-bill-pay
 
 ## Technology Solutions
 - [Technology Solutions | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/index.md): Technology services for healthcare operations, claims processing services, practical AI, IBM i / AS400, enterprise software, and support consolidation. Website: https://www.onesmarter.com/technology-solutions
@@ -31,7 +28,7 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 - [AI Agentic Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ai-agentic-services.md): Practical AI services for controlled automation, document workflows, decision support, and repeatable business processes. Website: https://www.onesmarter.com/technology-solutions/ai-agentic-services
 - [IBM i / AS400 Services | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/ibm-i-as400.md): IBM i / AS400 services for modernization, application support, RPG and CL development, integrations, and operational continuity. Website: https://www.onesmarter.com/technology-solutions/ibm-i-as400
 - [Enterprise Software Development | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/enterprise-software.md): Enterprise software development for custom applications, portals, dashboards, integrations, workflow tools, and secure operations. Website: https://www.onesmarter.com/technology-solutions/enterprise-software
-- [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
+- [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
 
 ## Business Services
 - [Business Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/index.md): Business services for finance, HR, payment, benefits, and back-office workflows. Website: https://www.onesmarter.com/business-services
@@ -64,7 +61,6 @@ OneSmarter builds secure platforms, practical AI workflows, business services, a
 
 ## Contact
 - Email: care@onesmarter.com
-- Phone: +1 937 344 6241
 - Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
 
 ## AI Page Mirrors

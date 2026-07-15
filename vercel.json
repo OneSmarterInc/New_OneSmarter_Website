@@ -30,6 +30,28 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/platforms/telecom-expense-management",
+      "destination": "/platforms/bill-audit-erp-bill-pay",
+      "permanent": true
+    },
+    {
+      "source": "/technology-solutions/telecom-expense-management",
+      "destination": "/platforms/bill-audit-erp-bill-pay",
+      "permanent": true
+    },
+    {
+      "source": "/platforms/hipaa-compliant-ticketing",
+      "destination": "/platforms/hipaa-regulated-ticketing",
+      "permanent": true
+    },
+    {
+      "source": "/insights",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ]

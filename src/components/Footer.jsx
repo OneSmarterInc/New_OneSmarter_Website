@@ -7,9 +7,8 @@ const footerColumns = [
   {
     title: "Platforms",
     links: [
-      { label: "Secure Ticketing", path: "/platforms/hipaa-regulated-ticketing" },
-      { label: "Bill Audit ERP & Bill Pay", path: "/platforms/bill-audit-erp-bill-pay" },
-      { label: "Telecom Expense Management", path: "/platforms/telecom-expense-management" },
+      { label: "Secure Ticketing and Case Management", path: "/platforms/hipaa-regulated-ticketing" },
+      { label: "Bill Audit & Bill Pay", path: "/platforms/bill-audit-erp-bill-pay" },
     ],
   },
   {
@@ -70,6 +69,10 @@ const socialLinks = [
 ];
 
 const Footer = () => {
+  const openCookieSettings = () => {
+    window.onesmarterOpenCookieSettings?.();
+  };
+
   return (
     <footer className="relative z-10 overflow-x-hidden bg-zinc-950 px-4 py-12 text-sm text-gray-300 sm:px-6 lg:px-12">
       <div className="qa-container mx-auto">
@@ -139,12 +142,6 @@ const Footer = () => {
               >
                 care@onesmarter.com
               </a>
-              <a
-                href="tel:+19373446241"
-                className="block text-gray-400 transition hover:text-red-400"
-              >
-                +1 937 344 6241
-              </a>
               <p className="text-gray-400">
                 707 Miamisburg-Centerville Road
                 <br />
@@ -188,6 +185,13 @@ const Footer = () => {
             >
               Terms Of Use
             </Link>
+            <button
+              type="button"
+              onClick={openCookieSettings}
+              className="transition hover:text-red-400"
+            >
+              Cookie Settings
+            </button>
           </div>
         </div>
       </div>

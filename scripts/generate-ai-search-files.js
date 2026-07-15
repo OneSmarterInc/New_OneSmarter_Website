@@ -3,6 +3,7 @@ import path from "path";
 import { create } from "xmlbuilder2";
 import {
   groupedSiteDirectory,
+  promotedSiteDirectory,
   siteBaseUrl,
   siteContact,
   siteDirectory,
@@ -17,13 +18,14 @@ const writeFile = (relativePath, content) => {
 };
 
 const pageUrl = (route) => `${siteBaseUrl}${route === "/" ? "" : route}`;
+const emailContactLink = `[Email OneSmarter](mailto:${siteContact.email})`;
 const aiPageUrl = (route) => `${siteBaseUrl}/${markdownPathForRoute(route).replaceAll("\\", "/")}`;
 
 const asList = (items) =>
   items.length ? items.map((item) => `- ${item}`).join("\n") : "- Not specified.";
 
 const hasChildRoutes = (route) =>
-  route !== "/" && siteDirectory.some((page) => page.route.startsWith(`${route}/`));
+  route !== "/" && promotedSiteDirectory.some((page) => page.route.startsWith(`${route}/`));
 
 const markdownPathForRoute = (route) => {
   if (route === "/") {
@@ -53,12 +55,25 @@ const removeLegacyMarkdownMirrors = () => {
       fs.rmSync(stalePath);
     }
   });
+
+  siteDirectory
+    .filter((page) => !page.promoted)
+    .forEach((page) => {
+      const aiPath = path.join(publicDir, markdownPathForRoute(page.route));
+      if (fs.existsSync(aiPath)) {
+        fs.rmSync(aiPath);
+      }
+    });
 };
 
 const markdownForPage = (page) => {
   const related = page.relatedRoutes
     .map((route) => {
-      const relatedPage = siteDirectory.find((item) => item.route === route);
+      if (route === "/contact") {
+        return `- ${emailContactLink}`;
+      }
+
+      const relatedPage = promotedSiteDirectory.find((item) => item.route === route);
       return relatedPage
         ? `- [${relatedPage.title}](${aiPageUrl(route)})`
         : `- ${pageUrl(route)}`;
@@ -85,12 +100,10 @@ ${asList(page.keyOfferings)}
 ${asList([...page.trustNotes, ...page.complianceNotes])}
 
 ## Related Pages
-${related || "- [Contact OneSmarter](${siteBaseUrl}/contact)"}
+${related || `- ${emailContactLink}`}
 
 ## Contact
 Email: ${siteContact.email}
-
-Phone: ${siteContact.phone}
 
 Address: ${siteContact.address}`;
 };
@@ -142,14 +155,13 @@ ${llmsSections}
 
 ## Contact
 - Email: ${siteContact.email}
-- Phone: ${siteContact.phone}
 - Address: ${siteContact.address}
 
 ## AI Page Mirrors
 AI-readable markdown mirrors are published under /ai-pages/ so they do not shadow website routes.`
 );
 
-const fullDirectory = siteDirectory
+const fullDirectory = promotedSiteDirectory
   .map(
     (page) => `## ${page.title}
 
@@ -184,7 +196,6 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
 - Independent HIPAA Security Rule compliance assessment
-- HIPAA Security Rule Assessed
 - Built for HIPAA-regulated workflows
 - Designed for PHI-sensitive workflows
 - Secure software development
@@ -203,8 +214,6 @@ ${fullDirectory}
 ## Contact
 Email: ${siteContact.email}
 
-Phone: ${siteContact.phone}
-
 Address: ${siteContact.address}
 
 ## Claim Boundaries
@@ -215,7 +224,7 @@ Address: ${siteContact.address}
 - Do not describe staffing as a current public service category.`
 );
 
-siteDirectory.forEach((page) => {
+promotedSiteDirectory.forEach((page) => {
   writeFile(markdownPathForRoute(page.route), markdownForPage(page));
 });
 
@@ -231,7 +240,7 @@ const root = create({ version: "1.0" }).ele("urlset", {
   xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
 });
 
-siteDirectory.forEach((page) => {
+promotedSiteDirectory.forEach((page) => {
   root.ele("url").ele("loc").txt(pageUrl(page.route));
 });
 

@@ -23,6 +23,7 @@ const entry = ({
   keyOfferings = [],
   complianceNotes = [],
   relatedRoutes = [],
+  promoted = true,
 }) => ({
   route,
   title,
@@ -35,6 +36,7 @@ const entry = ({
   trustNotes,
   complianceNotes,
   relatedRoutes,
+  promoted,
   markdownSummary: `${shortSummary}${keyOfferings.length ? ` Key offerings include ${keyOfferings.join(", ")}.` : ""}`,
 });
 
@@ -56,23 +58,23 @@ export const siteDirectory = [
     route: "/platforms",
     title: "Platforms | OneSmarter",
     metaDescription:
-      "Operational platforms for ticketing and case management built for HIPAA-regulated workflows, bill audit ERP and bill pay, and telecom expense management.",
+      "Operational platforms for secure ticketing and case management, plus bill audit and bill pay workflows.",
     category: "Platforms",
     shortSummary:
-      "OneSmarter platforms support secure case management, bill audit and bill pay workflows, and telecom expense management.",
+      "OneSmarter platforms support secure ticketing and case management, plus bill audit and bill pay workflows.",
     serviceType: "Platform category",
-    keyOfferings: ["Ticketing & Case Management for HIPAA-Regulated Workflows", "Bill Audit ERP & Bill Pay", "Telecom Expense Management"],
-    relatedRoutes: ["/platforms/hipaa-regulated-ticketing", "/platforms/bill-audit-erp-bill-pay", "/platforms/telecom-expense-management"],
+    keyOfferings: ["Secure Ticketing and Case Management", "Bill Audit & Bill Pay"],
+    relatedRoutes: ["/platforms/hipaa-regulated-ticketing", "/platforms/bill-audit-erp-bill-pay"],
   }),
   entry({
     route: "/platforms/hipaa-regulated-ticketing",
-    title: "Ticketing & Case Management for HIPAA-Regulated Workflows | OneSmarter",
+    title: "Secure Ticketing and Case Management | OneSmarter",
     metaDescription:
-      "Ticketing and case management built for HIPAA-regulated workflows with secure intake, role-based access, audit history, controlled communication, and compliance-aware operations.",
+      "Secure ticketing and case management built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution.",
     category: "Platforms",
     audience: "Healthcare and operational teams managing PHI-sensitive workflows.",
     shortSummary:
-      "Ticketing and case management built for HIPAA-regulated workflows and designed for PHI-sensitive workflows.",
+      "Secure ticketing and case management built for HIPAA-regulated workflows, PHI-sensitive operations, role-based access, audit history, and accountable issue resolution.",
     serviceType: "Software platform",
     keyOfferings: ["Secure intake", "Role-based access", "Audit history", "Controlled communication", "Workflow tracking"],
     complianceNotes: ["Built for HIPAA-regulated workflows", "Designed for PHI-sensitive workflows", "Supports compliance-aware ticketing and case management"],
@@ -80,28 +82,29 @@ export const siteDirectory = [
   }),
   entry({
     route: "/platforms/bill-audit-erp-bill-pay",
-    title: "Bill Audit ERP & Bill Pay | OneSmarter",
+    title: "Bill Audit & Bill Pay | OneSmarter",
     metaDescription:
-      "ERP support for vendor bill intake, bill audit, historical comparison, contract analysis, discrepancy tracking, approval workflows, reporting, and bill payment coordination.",
+      "Bill Audit & Bill Pay for vendor bill review, recurring expense analysis, discrepancy tracking, approval coordination, payment workflows, and telecom expense management use cases.",
     category: "Platforms",
     shortSummary:
-      "A bill audit ERP and bill pay platform for vendor bill workflows, approvals, discrepancy tracking, reporting, and payment coordination.",
+      "A bill audit and bill pay platform for vendor bill review, recurring expense analysis, discrepancy tracking, approvals, payment workflows, and telecom expense management use cases.",
     serviceType: "Software platform",
-    keyOfferings: ["Vendor bill intake", "Bill audit", "Contract analysis", "Approval workflows", "Reporting"],
+    keyOfferings: ["Vendor bill review", "Recurring expense analysis", "Discrepancy tracking", "Approval workflows", "Payment workflows", "Telecom expense management use cases"],
     relatedRoutes: ["/platforms", "/technology-solutions/enterprise-software", "/contact"],
   }),
   entry({
     route: "/platforms/telecom-expense-management",
-    title: "Telecom Expense Management | OneSmarter",
+    title: "Telecom Expense Management Use Case | OneSmarter",
+    promoted: false,
     metaDescription:
-      "Telecom expense management for organizations managing large mobile fleets, including bill analysis, optimization, contract comparison, and cost-control workflows.",
+      "Telecom expense management is handled as a Bill Audit & Bill Pay use case for organizations managing large mobile-device fleets.",
     category: "Platforms",
     audience: "Organizations managing more than 100 mobile devices.",
     shortSummary:
-      "Telecom expense management for bill analysis, optimization, historical review, contract comparison, and cost-control workflows.",
-    serviceType: "Platform and service",
-    keyOfferings: ["Bill analysis", "Optimization", "Historical review", "Contract comparison", "Cost-control reporting"],
-    relatedRoutes: ["/platforms", "/contact"],
+      "Telecom expense management is a Bill Audit & Bill Pay use case for bill analysis, contract and rate comparison, historical usage review, and cost-control reporting.",
+    serviceType: "Use case",
+    keyOfferings: ["Bill analysis", "Contract and rate comparison", "Historical usage review", "Cost-control reporting"],
+    relatedRoutes: ["/platforms/bill-audit-erp-bill-pay", "/contact"],
   }),
   entry({
     route: "/technology-solutions",
@@ -183,10 +186,10 @@ export const siteDirectory = [
     route: "/technology-solutions/software-support-consolidation",
     title: "Software Support Consolidation | OneSmarter",
     metaDescription:
-      "Software support consolidation through Asia-based delivery centers for maintenance, enhancements, documentation, and operational continuity.",
+      "Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and operational continuity.",
     category: "Technology Solutions",
     shortSummary:
-      "Software support consolidation from Asia-based delivery centers for maintenance, enhancements, documentation, and continuity.",
+      "Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity.",
     serviceType: "Technology support service",
     keyOfferings: ["Maintenance", "Enhancements", "Issue resolution", "Documentation", "Knowledge transfer"],
     relatedRoutes: ["/technology-solutions", "/business-services/eor-hr", "/contact"],
@@ -399,7 +402,7 @@ export const siteDirectory = [
       "OneSmarter has completed an independent HIPAA Security Rule compliance assessment covering applicable safeguards and practices.",
     serviceType: "Trust information",
     keyOfferings: ["Administrative safeguards", "Technical safeguards", "Physical safeguards", "Access management", "Ongoing risk awareness"],
-    complianceNotes: ["HIPAA Security Rule Assessed", "Do not describe this assessment as a certification"],
+    complianceNotes: ["HIPAA Security Rule Compliance Assessment Completed", "Do not describe this assessment as a certification"],
     relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
   }),
   entry({
@@ -429,6 +432,7 @@ export const siteDirectory = [
   entry({
     route: "/insights",
     title: "Insights | OneSmarter",
+    promoted: false,
     metaDescription:
       "Practical notes on secure software, AI operations, healthcare technology, IBM i modernization, automation, compliance readiness, and back-office improvement.",
     category: "Core",
@@ -453,14 +457,15 @@ export const siteDirectory = [
   entry({
     route: "/contact",
     title: "Contact OneSmarter",
+    promoted: false,
     metaDescription:
-      "Contact OneSmarter at care@onesmarter.com or +1 937 344 6241. Headquarters: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223.",
+      "Contact OneSmarter by email at care@onesmarter.com.",
     category: "Core",
     audience: "Prospects, clients, and partners.",
     shortSummary:
-      `Contact OneSmarter by email at ${contact.email}, phone at ${contact.phone}, or mail at ${contact.address}.`,
+      `Contact OneSmarter by email at ${contact.email}.`,
     serviceType: "Contact",
-    keyOfferings: ["Email", "Phone", "Address"],
+    keyOfferings: ["Email"],
     relatedRoutes: ["/", "/trust-center"],
   }),
   entry({
@@ -491,12 +496,13 @@ export const siteDirectory = [
 
 export const siteContact = contact;
 export const siteBaseUrl = "https://www.onesmarter.com";
-export const activePublicRoutes = siteDirectory.map((item) => item.route);
+export const promotedSiteDirectory = siteDirectory.filter((item) => item.promoted);
+export const activePublicRoutes = promotedSiteDirectory.map((item) => item.route);
 
 export const getSiteEntry = (route) =>
   siteDirectory.find((item) => item.route === route);
 
-export const groupedSiteDirectory = siteDirectory.reduce((groups, item) => {
+export const groupedSiteDirectory = promotedSiteDirectory.reduce((groups, item) => {
   groups[item.category] = groups[item.category] || [];
   groups[item.category].push(item);
   return groups;

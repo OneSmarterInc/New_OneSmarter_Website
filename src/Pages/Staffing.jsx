@@ -57,9 +57,9 @@ const StaffingHome = () => {
               </Link>
             </li>
             <li>
-              <Link to="/contact" className="text-white cursor-pointer hover:text-gray-300 transition-colors">
+              <a href="mailto:care@onesmarter.com" className="text-white cursor-pointer hover:text-gray-300 transition-colors">
                 Contact Us
-              </Link>
+              </a>
             </li>
           </ul>
         )}
@@ -68,7 +68,7 @@ const StaffingHome = () => {
           <div className="absolute left-0 right-0 top-full bg-red-600 text-white flex flex-col items-center py-4">
             <Link className="w-full text-center py-2" to="/" onClick={onToggle}>Services</Link>
             <Link className="w-full text-center py-2" to="/aboutus/introduction" onClick={onToggle}>About Us</Link>
-            <Link className="w-full text-center py-2" to="/contact" onClick={onToggle}>Contact Us</Link>
+            <a className="w-full text-center py-2" href="mailto:care@onesmarter.com" onClick={onToggle}>Contact Us</a>
           </div>
         )}
       </nav>

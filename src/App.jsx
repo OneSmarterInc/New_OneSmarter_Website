@@ -1,5 +1,11 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
 import MyProvider from "./ContextApi/MyProvider";
 
@@ -21,6 +27,18 @@ import NotFound from "./components/NotFound";
 
 import TitleUpdater from "./RouteTitles";
 
+const ScrollToTop = () => {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }, [pathname, search]);
+
+  return null;
+};
+
 const App = () => {
   useEffect(() => {
     AOS.init({ once: true });
@@ -40,6 +58,7 @@ const App = () => {
         theme="light"
       />
       <Router>
+        <ScrollToTop />
         <TitleUpdater />
         <Navbar />
         <Routes>
@@ -81,7 +100,7 @@ const App = () => {
           />
           <Route
             path="/platforms/telecom-expense-management"
-            element={<OfferingPage page="telecomExpense" />}
+            element={<Navigate to="/platforms/bill-audit-erp-bill-pay" replace />}
           />
           <Route
             path="/platforms/claims-processing-system"

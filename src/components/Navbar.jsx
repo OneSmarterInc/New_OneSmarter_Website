@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo2.png";
 
 const navGroups = [
   {
@@ -9,16 +9,12 @@ const navGroups = [
     path: "/platforms",
     items: [
       {
-        label: "Secure Ticketing",
+        label: "Secure Ticketing and Case Management",
         path: "/platforms/hipaa-regulated-ticketing",
       },
       {
-        label: "Bill Audit ERP & Bill Pay",
+        label: "Bill Audit & Bill Pay",
         path: "/platforms/bill-audit-erp-bill-pay",
-      },
-      {
-        label: "Telecom Expense Management",
-        path: "/platforms/telecom-expense-management",
       },
     ],
   },
@@ -137,9 +133,7 @@ const navGroups = [
 ];
 
 const simpleLinks = [
-  { label: "Insights", path: "/insights" },
   { label: "About", path: "/aboutus/Introduction" },
-  { label: "Contact", path: "/contact" },
 ];
 
 const Navbar = () => {
@@ -147,6 +141,11 @@ const Navbar = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mobileOpenGroup, setMobileOpenGroup] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isWhiteHeroRoute =
+    location.pathname.startsWith("/trust-center") ||
+    location.pathname.startsWith("/aboutus");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -183,47 +182,46 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
           ? "bg-[#0c0c0c]/95 backdrop-blur-sm shadow-md py-2"
-          : "bg-transparent py-4"
-      }`}
+          : isWhiteHeroRoute
+            ? "bg-white shadow-md py-4"
+            : "bg-transparent py-4"
+        }`}
     >
       <div
-        className={`qa-container-wide mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between transition-all duration-500 ${
-          isScrolled ? "h-[65px]" : "h-[85px]"
-        }`}
+        className={`qa-container-wide mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between transition-all duration-500 ${isScrolled ? "h-[65px]" : "h-[85px]"
+          }`}
       >
         <Link to="/" aria-label="OneSmarter home" className="shrink-0">
           <img
             src={logo}
             alt="OneSmarter"
-            className={`transition-all duration-500 w-auto ${
-              isScrolled
-                ? "h-[36px] max-w-[210px] md:h-[54px] md:max-w-none lg:h-[62px]"
-                : "h-[40px] max-w-[220px] md:h-[66px] md:max-w-none lg:h-[74px]"
-            }`}
+            className={`transition-all duration-500 w-auto ${isScrolled
+                ? "h-[44px] max-w-[260px] md:h-[66px] md:max-w-none lg:h-[75px]"
+                : "h-[50px] max-w-[270px] md:h-[82px] md:max-w-none lg:h-[92px]"
+              }`}
           />
         </Link>
 
         <ul className="ml-8 hidden flex-1 items-center justify-end gap-2 md:flex lg:ml-12 lg:gap-4 xl:gap-5">
           {navGroups.map((group) => (
-            <li key={group.label} className="relative group">
+            <li key={group.label} className="group relative flex items-center py-0.5">
               <Link
                 to={group.path}
-                className="flex items-center whitespace-nowrap text-[13px] font-medium text-red-600 transition-all duration-300 hover:text-white lg:text-[14px] xl:text-[15px]"
+                className="relative z-50 flex items-center whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-500 transition-all duration-300 group-hover:bg-zinc-950/80 group-hover:text-white hover:text-white lg:text-[14px] xl:text-[15px]"
               >
                 {group.label}
                 <svg className="ml-1 w-4 h-4 fill-current" viewBox="0 0 20 20">
                   <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
                 </svg>
               </Link>
-              <ul className="absolute left-0 top-full mt-3 w-80 rounded border border-red-700/50 bg-zinc-950 py-2 shadow-xl z-40 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200">
+              <ul className="invisible absolute left-0 top-full z-40 mt-1 w-80 rounded-md border border-white/10 bg-[#111111] py-1.5 opacity-0 shadow-lg shadow-black/30 transition-all duration-200 group-hover:visible group-hover:opacity-100">
                 {group.items.map((item) => (
                   <li key={item.path}>
                     <Link
                       to={item.path}
-                      className="block px-4 py-2.5 text-sm leading-5 text-white transition hover:bg-red-600"
+                      className="block px-4 py-2 text-sm leading-5 text-zinc-100 transition hover:bg-red-950/45 hover:text-white"
                     >
                       {item.label}
                     </Link>
@@ -237,7 +235,7 @@ const Navbar = () => {
             <li key={link.path}>
               <Link
                 to={link.path}
-                className="whitespace-nowrap text-[13px] font-medium text-red-600 transition-all duration-300 hover:text-white lg:text-[14px] xl:text-[15px]"
+                className="whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-600 transition-all duration-300 hover:bg-zinc-950/80 hover:text-white lg:text-[14px] xl:text-[15px]"
               >
                 {link.label}
               </Link>

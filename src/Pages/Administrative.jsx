@@ -248,13 +248,13 @@ const Administrative = () => {
           >
             About Us
           </Link>
-          <Link
-            to="/contact"
+          <a
+            href="mailto:care@onesmarter.com"
             className="nav-link px-3 md:px-4 py-2 text-white text-sm tracking-wider"
             style={{ fontFamily: "'Kanit', sans-serif" }}
           >
             Contact Us
-          </Link>
+          </a>
         </div>
       </nav>
     </div>

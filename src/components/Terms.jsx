@@ -45,8 +45,8 @@ const Terms = () => {
           We do not guarantee uninterrupted service. Our liability is limited to the fees paid or $100, whichever is less.
         </p>
 
-        <p className="text-sm italic">Effective Date: June 1, 2013</p>
-        <p className="text-sm italic">Last reviewed: January 1, 2025</p>
+        <p className="text-sm italic">Effective Date: July 7, 2026</p>
+        <p className="text-sm italic">Last reviewed: July 7, 2026</p>
 
       </div>
     </main>

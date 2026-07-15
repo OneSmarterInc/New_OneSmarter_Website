@@ -1,0 +1,25 @@
+<svg width="220" height="120" viewBox="0 0 220 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">HIPAA Badge</title>
+  <desc id="desc">A custom non-official HIPAA trust badge with a white tile, dark shield, red accent, and HIPAA text.</desc>
+
+  <!-- Badge tile -->
+  <rect x="2" y="2" width="216" height="116" rx="14" fill="#FFFFFF"/>
+  <rect x="2" y="2" width="216" height="116" rx="14" stroke="#D8DEE8" stroke-width="2"/>
+
+  <!-- Subtle top red accent -->
+  <path d="M18 2H202C210.837 2 218 9.16344 218 18V20H2V18C2 9.16344 9.16344 2 18 2Z" fill="#E30613" opacity="0.08"/>
+
+  <!-- Main shield -->
+  <path d="M110 18L150 33V61C150 84 133.5 98.5 110 105C86.5 98.5 70 84 70 61V33L110 18Z" fill="#111827"/>
+  <path d="M110 18L150 33V61C150 84 133.5 98.5 110 105C86.5 98.5 70 84 70 61V33L110 18Z" stroke="#E30613" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Inner shield -->
+  <path d="M110 39L128 46V60C128 71 120.5 78.5 110 82C99.5 78.5 92 71 92 60V46L110 39Z" fill="#FFFFFF" opacity="0.95"/>
+  <path d="M110 44L123 49V60C123 68 117.5 73.5 110 76C102.5 73.5 97 68 97 60V49L110 44Z" fill="#1F2937"/>
+
+  <!-- Check mark -->
+  <path d="M103.2 60.4L108.1 65.3L117.6 55.8" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- HIPAA text -->
+  <text x="110" y="94" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" fill="#111827" letter-spacing="1.5">HIPAA</text>
+</svg>

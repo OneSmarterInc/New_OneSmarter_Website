@@ -24,17 +24,15 @@ Organizations evaluating OneSmarter services.
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
-- HIPAA Security Rule Assessed
+- HIPAA Security Rule Compliance Assessment Completed
 - Do not describe this assessment as a certification
 
 ## Related Pages
 - [Trust Center | OneSmarter](https://www.onesmarter.com/ai-pages/trust-center/index.md)
 - [Security Practices | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/security-practices.md)
-- [Contact OneSmarter](https://www.onesmarter.com/ai-pages/contact.md)
+- [Email OneSmarter](mailto:care@onesmarter.com)
 
 ## Contact
 Email: care@onesmarter.com
-
-Phone: +1 937 344 6241
 
 Address: 707 Miamisburg-Centerville Road, Dayton, OH 45459, STE 223
