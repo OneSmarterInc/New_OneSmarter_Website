@@ -4,9 +4,9 @@
 
 This document defines how OneSmarter can add the first real OpenAI-backed Mira response path in staging only.
 
-This is a planning and risk-gate document only. It does not add an OpenAI SDK, API keys, external provider calls, endpoint behavior changes, UI changes, uploads, authentication, database storage, persistent memory, voice, microphone, avatar behavior, or production LLM enablement.
+The staging implementation now exists behind `MIRA_LLM_MODE=staging_llm` and `MIRA_LLM_PROVIDER=openai`. It does not add an OpenAI SDK, commit API keys, expose keys to frontend code, add uploads, authentication, database storage, persistent memory, voice, microphone, avatar behavior, or production LLM enablement.
 
-The future staging path must stay behind feature flags and must preserve rollback to `local_harness_mock`.
+The staging path stays behind feature flags and preserves rollback to `local_harness_mock`.
 
 ## Current State
 
@@ -16,12 +16,13 @@ Mira currently has:
 - Runtime config helper.
 - LLM adapter seam.
 - OpenAI adapter stub.
+- Real OpenAI Responses API staging adapter behind feature flags.
 - Prompt contract.
 - Output validator.
 - Mocked model-response tests.
 - Default `local_harness_mock` behavior.
 
-No real provider call exists yet.
+The real provider path is Preview/staging-only. Production remains `mock` unless separately approved.
 
 ## Required Environment Variables
 
@@ -56,9 +57,9 @@ Recommended staging defaults:
 | `MIRA_LLM_TEMPERATURE` | `0.2` or lower |
 | `MIRA_LLM_ENABLE_POST_VALIDATION` | `true` |
 
-## Proposed Implementation Flow
+## Implementation Flow
 
-Future staging flow:
+Current staging flow:
 
 1. Request reaches `api/agents/mira/chat.js`.
 2. `chatCore.js` validates method, JSON body, message type, empty input, and message length.
@@ -66,7 +67,7 @@ Future staging flow:
 4. Local harness performs risk detection and approved KB retrieval.
 5. If high-risk deterministic handoff is required, skip the model call.
 6. Build prompt payload through `miraPromptContract.js`.
-7. Call the OpenAI adapter with timeout.
+7. Call the OpenAI Responses API adapter with timeout.
 8. Parse expected model output.
 9. Validate model output through `miraOutputValidator.js`.
 10. If valid, format the final response into the existing endpoint schema.
@@ -195,9 +196,9 @@ Do not log by default:
 
 Any transcript, prompt, or answer logging for quality review requires separate privacy/legal review and retention rules.
 
-## Test Plan Before Implementation
+## Test Plan
 
-Before any real staging implementation, tests should cover:
+Automated tests mock all provider requests and cover:
 
 - `mock` mode unchanged.
 - `off` mode unchanged.
@@ -274,6 +275,6 @@ Production must remain `mock` until a separate production LLM work package is ap
 
 Recommended next package:
 
-`V2-P16: Staging OpenAI Adapter Implementation Behind Feature Flag`
+`V2-P17: Staging Verification, Browser QA, And Security Review Prep`
 
-That package should implement the first real OpenAI call only in staging, behind `MIRA_LLM_MODE=staging_llm`, using the prompt contract and output validator. It should keep the endpoint schema stable, retain `local_harness_mock` fallback, and include mocked provider tests before any live-provider verification.
+That package should verify the Preview deployment with staging env vars, run browser QA against `/ai-agents`, review safe logs, confirm rollback to `MIRA_LLM_MODE=mock`, and prepare the Fable/security review package before any production LLM discussion.

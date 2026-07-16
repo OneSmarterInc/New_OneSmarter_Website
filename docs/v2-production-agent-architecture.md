@@ -84,12 +84,13 @@ The endpoint also has an internal runtime config and adapter boundary:
 
 - `api/agents/mira/miraRuntimeConfig.js` reads `MIRA_LLM_MODE` and future provider configuration safely.
 - `api/agents/mira/llmAdapter.js` defines the response adapter seam.
-- `api/agents/mira/openAiAdapter.js` defines the OpenAI provider boundary as a no-call stub.
+- `api/agents/mira/openAiAdapter.js` defines the staging-only OpenAI Responses API provider boundary.
 - Default and `mock` mode continue to use `local_harness_mock`.
 - `off` mode returns a safe unavailable handoff response.
-- `staging_llm` and `production_llm` with `MIRA_LLM_PROVIDER=openai` call only the stub and then fall back to mock behavior.
+- `staging_llm` with `MIRA_LLM_PROVIDER=openai` can call the provider from the serverless API path only when config, grounding, and safety gates pass.
+- `production_llm` remains unimplemented and should remain `mock` until separately approved.
 
-No real provider SDK, API key, provider implementation, or external model call exists yet.
+No OpenAI SDK is installed. API keys are server-side only and must not be exposed to frontend code.
 
 The future real-LLM prompt and output safety contract is now defined locally:
 
@@ -99,7 +100,7 @@ The future real-LLM prompt and output safety contract is now defined locally:
 
 This keeps P13 as a no-provider test layer. The live endpoint remains deterministic unless a later reviewed provider adapter is explicitly implemented and enabled.
 
-P14 adds the OpenAI provider boundary as a staging-only stub. It returns `provider: "openai"`, `mode: "staging_llm_stub"`, `implemented: false`, `modelOutput: null`, and `error: "openai_adapter_not_implemented"` for internal testing only. The public endpoint response continues to use the deterministic local harness.
+P16 adds the first real OpenAI-backed staging path behind `MIRA_LLM_MODE=staging_llm`. The adapter uses the Responses API with structured output, `store: false`, no tools, no browsing, timeout handling, output validation, and deterministic fallback to `local_harness_mock`. The public endpoint schema remains stable.
 
 ### Request Schema
 

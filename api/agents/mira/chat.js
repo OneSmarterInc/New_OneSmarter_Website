@@ -1,7 +1,7 @@
 import { handleMiraChatRequest } from "./chatCore.js";
 
-export default function handler(req, res) {
-  const result = handleMiraChatRequest({
+export default async function handler(req, res) {
+  const result = await handleMiraChatRequest({
     method: req.method,
     body: req.body,
     headers: req.headers,

@@ -126,7 +126,7 @@ const buildAnswer = (result) => {
   return result.answerSeed;
 };
 
-export const handleMiraChatRequest = ({
+export const handleMiraChatRequest = async ({
   method = "GET",
   body,
   headers = {},
@@ -297,7 +297,7 @@ export const handleMiraChatRequest = ({
 
   try {
     const runtimeConfig = readMiraRuntimeConfig();
-    const result = runMiraResponseAdapter({
+    const result = await runMiraResponseAdapter({
       message: trimmedMessage,
       conversationId,
       persona,
@@ -327,6 +327,16 @@ export const handleMiraChatRequest = ({
         memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
         empathyState: typeof empathyState === "string" ? empathyState : "",
       },
+      ...(result.modelProvider ? { modelProvider: result.modelProvider } : {}),
+      ...(result.modelName ? { modelName: result.modelName } : {}),
+      ...(result.groundingStatus ? { groundingStatus: result.groundingStatus } : {}),
+      ...(result.outputSafetyStatus
+        ? { outputSafetyStatus: result.outputSafetyStatus }
+        : {}),
+      ...(typeof result.fallbackUsed === "boolean"
+        ? { fallbackUsed: result.fallbackUsed }
+        : {}),
+      ...(result.fallbackReason ? { fallbackReason: result.fallbackReason } : {}),
     };
 
     safeLogEvent(
@@ -334,6 +344,16 @@ export const handleMiraChatRequest = ({
         ...logBase,
         conversationId: normalizedConversationId,
         status: 200,
+        mode: result.mode || MODE,
+        provider: result.modelProvider || "",
+        model: result.modelName || "",
+        latencyMs: result.providerMetadata?.latencyMs ?? null,
+        providerStatus: result.providerMetadata?.providerStatus || "",
+        providerHttpStatus: result.providerMetadata?.httpStatus ?? null,
+        tokenUsage: result.providerMetadata?.tokenUsage || null,
+        validationStatus: result.outputSafetyStatus || "",
+        fallbackUsed: Boolean(result.fallbackUsed),
+        fallbackReason: result.fallbackReason || "",
         messageLength: trimmedMessage.length,
         riskFlags: result.riskFlags,
         handoffNeeded: result.handoffNeeded,

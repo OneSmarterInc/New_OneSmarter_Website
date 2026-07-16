@@ -15,16 +15,17 @@ The runtime config helper and adapter interface now exist:
 - `api/agents/mira/miraRuntimeConfig.js`
 - `api/agents/mira/llmAdapter.js`
 
-Current implementation is intentionally mock/off only:
+Current implementation is intentionally mock/off by default, with a staging-only OpenAI path:
 
 - Missing `MIRA_LLM_MODE` defaults to `mock`.
 - `mock` uses the deterministic local harness and returns `mode: local_harness_mock`.
 - `off` returns a safe unavailable handoff response.
-- `staging_llm` and `production_llm` are placeholders and fall back to the deterministic local harness.
+- `staging_llm` with `MIRA_LLM_PROVIDER=openai` may call the OpenAI Responses API only when server-side provider config is complete, approved context is adequate, and pre-call safety gates pass.
+- `production_llm` remains unimplemented and must not be enabled without separate approval.
 - Invalid mode values fall back to `mock`.
 - `MIRA_LLM_API_KEY` is read only as `apiKeyConfigured: true|false`; the secret value is not returned or logged.
 
-No SDK, API key, external provider call, or real model adapter has been added yet.
+No SDK has been added. API keys remain server-side only and are not committed or exposed to frontend code.
 
 The prompt contract and mocked output validator now exist for local testing:
 
@@ -33,14 +34,15 @@ The prompt contract and mocked output validator now exist for local testing:
 - `api/agents/mira/openAiAdapter.js`
 - `scripts/test-mira-prompt-contract.js`
 
-These modules define the future prompt shape, post-output safety checks, and OpenAI provider boundary, but they do not call a provider or change visible endpoint behavior.
+These modules define the prompt shape, post-output safety checks, and OpenAI provider boundary. The staging adapter can call the provider only in `staging_llm` mode and falls back safely to `local_harness_mock`.
 
-The OpenAI adapter is a stub only:
+The OpenAI adapter is staging-only:
 
 - No OpenAI SDK is imported.
-- No API key is used.
-- No external API is called.
-- `staging_llm` and `production_llm` with `MIRA_LLM_PROVIDER=openai` still fall back to `local_harness_mock`.
+- API key access is server-side only.
+- No frontend API key or `VITE_` key is used.
+- `staging_llm` can call `POST https://api.openai.com/v1/responses` only through the Vercel API path.
+- `production_llm` still falls back to `local_harness_mock`.
 - Raw secret values are not returned in config or responses.
 
 The staging-only real OpenAI implementation plan and approval gates are documented in `docs/v2-openai-staging-implementation-plan.md`.
@@ -65,8 +67,8 @@ Mode behavior:
 | --- | --- |
 | `off` | The Mira endpoint returns a safe unavailable response and routes visitors to care@onesmarter.com. |
 | `mock` | The endpoint uses the current deterministic local harness only and returns `mode: local_harness_mock`. |
-| `staging_llm` | Reserved for a future real provider in staging. Current OpenAI path calls only the stub and falls back to `mock` behavior. |
-| `production_llm` | Reserved for a future real provider in production. Current OpenAI path calls only the stub and falls back to `mock` behavior. |
+| `staging_llm` | Enables the reviewed staging provider path only in Preview/staging when provider config is complete and safety gates pass. |
+| `production_llm` | Reserved for future production approval. Current implementation does not enable real production provider behavior. |
 
 The endpoint should fail closed. If the mode is invalid, provider configuration is missing, or a provider call fails, Mira should fall back to deterministic mock behavior or an unavailable/handoff response rather than crashing.
 

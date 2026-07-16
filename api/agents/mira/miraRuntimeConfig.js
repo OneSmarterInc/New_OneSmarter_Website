@@ -26,9 +26,10 @@ export const readMiraRuntimeConfig = (env = process.env) => {
   const mode = ALLOWED_MODES.has(requestedMode) ? requestedMode : DEFAULT_MODE;
   const provider = readString(env.MIRA_LLM_PROVIDER, "");
   const model = readString(env.MIRA_LLM_MODEL, "");
-  const apiKeyConfigured = Boolean(readString(env.MIRA_LLM_API_KEY, ""));
+  const apiKey = readString(env.MIRA_LLM_API_KEY, "");
+  const apiKeyConfigured = Boolean(apiKey);
 
-  return {
+  const config = {
     mode,
     requestedMode,
     modeWasValid: mode === requestedMode,
@@ -41,6 +42,15 @@ export const readMiraRuntimeConfig = (env = process.env) => {
     temperature: readNumber(env.MIRA_LLM_TEMPERATURE, 0.2),
     postValidationEnabled: readBoolean(env.MIRA_LLM_ENABLE_POST_VALIDATION, true),
   };
+
+  Object.defineProperty(config, "apiKey", {
+    value: apiKey,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+
+  return config;
 };
 
 export default readMiraRuntimeConfig;

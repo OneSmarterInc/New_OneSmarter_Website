@@ -47,7 +47,17 @@ if (Object.values(runtimeConfig).includes("secret-value-that-must-not-be-returne
   fail("config: runtime config must not expose the raw API key.");
 }
 
-const openAiStub = runOpenAiMiraAdapter({
+const mockedModelOutput = {
+  answer:
+    "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance readiness support.",
+  handoffNeeded: false,
+  handoffReason: null,
+  suggestedFollowUps: ["What platforms do you offer?"],
+  groundingStatus: "grounded",
+  outputSafetyStatus: "passed",
+};
+let capturedOpenAiRequest = null;
+const openAiResult = await runOpenAiMiraAdapter({
   message: "What does OneSmarter do?",
   conversationId: "prompt-contract-test",
   requestContext: {
@@ -59,30 +69,71 @@ const openAiStub = runOpenAiMiraAdapter({
   riskFlags: companyRetrieval.riskFlags,
   promptPayload: companyPrompt,
   config: runtimeConfig,
+  fetchImpl: async (url, request) => {
+    capturedOpenAiRequest = { url, request };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        output_text: JSON.stringify(mockedModelOutput),
+        usage: {
+          input_tokens: 11,
+          output_tokens: 22,
+          total_tokens: 33,
+        },
+      }),
+    };
+  },
 });
 
-if (openAiStub.provider !== "openai") {
-  fail("openai-stub: expected provider openai.");
+if (openAiResult.provider !== "openai") {
+  fail("openai-adapter: expected provider openai.");
 }
 
-if (openAiStub.mode !== "staging_llm_stub") {
-  fail("openai-stub: expected staging_llm_stub mode.");
+if (openAiResult.mode !== "staging_llm") {
+  fail("openai-adapter: expected staging_llm mode.");
 }
 
-if (openAiStub.implemented !== false) {
-  fail("openai-stub: expected implemented=false.");
+if (openAiResult.implemented !== true) {
+  fail("openai-adapter: expected implemented=true.");
 }
 
-if (openAiStub.modelOutput !== null) {
-  fail("openai-stub: expected null modelOutput.");
+if (openAiResult.modelOutput?.answer !== mockedModelOutput.answer) {
+  fail("openai-adapter: expected parsed mocked model output.");
 }
 
-if (openAiStub.error !== "openai_adapter_not_implemented") {
-  fail("openai-stub: expected openai_adapter_not_implemented error.");
+if (openAiResult.error) {
+  fail(`openai-adapter: expected no error, got ${openAiResult.error}.`);
 }
 
-if (JSON.stringify(openAiStub).includes("secret-value-that-must-not-be-returned")) {
-  fail("openai-stub: must not expose raw API key value.");
+if (JSON.stringify(openAiResult).includes("secret-value-that-must-not-be-returned")) {
+  fail("openai-adapter: must not expose raw API key value in adapter result.");
+}
+
+if (capturedOpenAiRequest?.url !== "https://api.openai.com/v1/responses") {
+  fail("openai-adapter: expected Responses API URL.");
+}
+
+const capturedHeaders = capturedOpenAiRequest?.request?.headers || {};
+if (capturedHeaders.Authorization !== "Bearer secret-value-that-must-not-be-returned") {
+  fail("openai-adapter: expected server-side Authorization header in provider request.");
+}
+
+const capturedBody = JSON.parse(capturedOpenAiRequest?.request?.body || "{}");
+if (capturedBody.model !== "future-reviewed-model") {
+  fail("openai-adapter: expected configured model in request.");
+}
+if (capturedBody.store !== false) {
+  fail("openai-adapter: expected store=false.");
+}
+if (capturedBody.tools) {
+  fail("openai-adapter: request must not enable tools.");
+}
+if (capturedBody.text?.format?.type !== "json_schema") {
+  fail("openai-adapter: expected json_schema structured output.");
+}
+if (!capturedBody.instructions || !capturedBody.input) {
+  fail("openai-adapter: expected instructions and input.");
 }
 
 if (!contains(companyPrompt.system, "You are Mira Vale")) {
