@@ -1,7 +1,9 @@
 import process from "node:process";
 
 const ALLOWED_MODES = new Set(["off", "mock", "staging_llm", "production_llm"]);
+const ALLOWED_REASONING_EFFORTS = new Set(["minimal", "low", "medium", "high"]);
 const DEFAULT_MODE = "mock";
+const DEFAULT_REASONING_EFFORT = "minimal";
 
 const readNumber = (value, fallback) => {
   if (value === undefined || value === null || value === "") return fallback;
@@ -28,6 +30,13 @@ export const readMiraRuntimeConfig = (env = process.env) => {
   const model = readString(env.MIRA_LLM_MODEL, "");
   const apiKey = readString(env.MIRA_LLM_API_KEY, "");
   const apiKeyConfigured = Boolean(apiKey);
+  const requestedReasoningEffort = readString(
+    env.MIRA_LLM_REASONING_EFFORT,
+    DEFAULT_REASONING_EFFORT,
+  ).toLowerCase();
+  const reasoningEffort = ALLOWED_REASONING_EFFORTS.has(requestedReasoningEffort)
+    ? requestedReasoningEffort
+    : DEFAULT_REASONING_EFFORT;
 
   const config = {
     mode,
@@ -40,6 +49,9 @@ export const readMiraRuntimeConfig = (env = process.env) => {
     timeoutMs: readNumber(env.MIRA_LLM_TIMEOUT_MS, 8000),
     maxTokens: readNumber(env.MIRA_LLM_MAX_TOKENS, 600),
     temperature: readNumber(env.MIRA_LLM_TEMPERATURE, 0.2),
+    reasoningEffort,
+    requestedReasoningEffort,
+    reasoningEffortWasValid: reasoningEffort === requestedReasoningEffort,
     postValidationEnabled: readBoolean(env.MIRA_LLM_ENABLE_POST_VALIDATION, true),
   };
 

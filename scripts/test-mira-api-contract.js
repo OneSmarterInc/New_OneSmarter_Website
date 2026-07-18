@@ -13,6 +13,7 @@ const ENV_KEYS = [
   "MIRA_LLM_TIMEOUT_MS",
   "MIRA_LLM_MAX_TOKENS",
   "MIRA_LLM_TEMPERATURE",
+  "MIRA_LLM_REASONING_EFFORT",
   "MIRA_LLM_ENABLE_POST_VALIDATION",
 ];
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));

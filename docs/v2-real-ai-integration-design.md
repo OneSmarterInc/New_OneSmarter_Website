@@ -377,6 +377,8 @@ Current behavior:
 - `staging_llm` with `MIRA_LLM_PROVIDER=openai` may call the OpenAI Responses API from the Vercel serverless path only when provider config is complete, approved context is adequate, and pre-call safety gates pass.
 - `production_llm` remains unimplemented and production should remain in `mock` unless separately approved.
 - The OpenAI adapter does not import the OpenAI SDK and does not expose API key values.
+- GPT-5-family staging requests can send `reasoning: { effort: "minimal" | "low" | "medium" | "high" }`; missing or invalid reasoning effort falls back to `minimal`.
+- Preview staging with GPT-5 mini should use `MIRA_LLM_REASONING_EFFORT=minimal` and `MIRA_LLM_MAX_TOKENS=1000` because `max_output_tokens` includes both reasoning and visible structured output.
 - Invalid mode values fall back to `mock`.
 
 This preserves the current endpoint contract and visible `/ai-agents` behavior while preparing a narrow future integration point for provider-specific code.

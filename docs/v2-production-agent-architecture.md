@@ -102,6 +102,8 @@ This keeps P13 as a no-provider test layer. The live endpoint remains determinis
 
 P16 adds the first real OpenAI-backed staging path behind `MIRA_LLM_MODE=staging_llm`. The adapter uses the Responses API with structured output, `store: false`, no tools, no browsing, timeout handling, output validation, and deterministic fallback to `local_harness_mock`. The public endpoint schema remains stable.
 
+For GPT-5-family Preview/staging calls, the adapter supports `MIRA_LLM_REASONING_EFFORT=minimal|low|medium|high` and defaults invalid or missing values to `minimal`. Preview staging with GPT-5 mini should use `MIRA_LLM_REASONING_EFFORT=minimal` and `MIRA_LLM_MAX_TOKENS=1000` so the token allowance covers both reasoning and the required structured JSON output. Production LLM behavior remains unimplemented.
+
 ### Request Schema
 
 ```json

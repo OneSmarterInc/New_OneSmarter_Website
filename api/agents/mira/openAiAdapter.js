@@ -1,6 +1,7 @@
 export const OPENAI_STAGING_MODE = "staging_llm";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_TEMPERATURE_ONLY_MODELS = [/^gpt-5(?:$|-)/i];
+const REASONING_EFFORT_MODELS = [/^gpt-5(?:$|-|\.)/i];
 
 const miraStructuredOutputSchema = {
   type: "object",
@@ -167,6 +168,9 @@ const safeProviderErrorFrom = async (response) => {
 export const supportsCustomTemperature = (model = "") =>
   !DEFAULT_TEMPERATURE_ONLY_MODELS.some((pattern) => pattern.test(model));
 
+export const supportsReasoningEffort = (model = "") =>
+  REASONING_EFFORT_MODELS.some((pattern) => pattern.test(model));
+
 export const buildOpenAiResponsesRequest = ({ promptPayload, config }) => {
   const body = {
     model: config.model,
@@ -186,6 +190,12 @@ export const buildOpenAiResponsesRequest = ({ promptPayload, config }) => {
 
   if (Number.isFinite(config.temperature) && supportsCustomTemperature(config.model)) {
     body.temperature = config.temperature;
+  }
+
+  if (supportsReasoningEffort(config.model)) {
+    body.reasoning = {
+      effort: config.reasoningEffort || "minimal",
+    };
   }
 
   return body;

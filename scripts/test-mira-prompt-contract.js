@@ -126,6 +126,9 @@ if (capturedBody.model !== "future-reviewed-model") {
 if (capturedBody.temperature !== 0.2) {
   fail("openai-adapter: expected temperature for compatible configured model.");
 }
+if (capturedBody.reasoning) {
+  fail("openai-adapter: non-GPT-5 model should not include reasoning effort.");
+}
 if (capturedBody.store !== false) {
   fail("openai-adapter: expected store=false.");
 }
@@ -173,6 +176,80 @@ if (capturedGpt5MiniBody.model !== "gpt-5-mini") {
 }
 if (Object.prototype.hasOwnProperty.call(capturedGpt5MiniBody, "temperature")) {
   fail("openai-adapter: gpt-5-mini request must omit custom temperature.");
+}
+if (capturedGpt5MiniBody.reasoning?.effort !== "minimal") {
+  fail("openai-adapter: gpt-5-mini request must default reasoning effort to minimal.");
+}
+
+for (const effort of ["low", "medium", "high"]) {
+  const effortRuntimeConfig = readMiraRuntimeConfig({
+    MIRA_LLM_MODE: "staging_llm",
+    MIRA_LLM_PROVIDER: "openai",
+    MIRA_LLM_MODEL: "gpt-5-mini",
+    MIRA_LLM_API_KEY: "secret-value-that-must-not-be-returned",
+    MIRA_LLM_REASONING_EFFORT: effort,
+  });
+  let capturedEffortRequest = null;
+  await runOpenAiMiraAdapter({
+    message: "What does OneSmarter do?",
+    conversationId: `prompt-contract-gpt5-${effort}`,
+    requestContext: {},
+    retrievalResult: companyRetrieval,
+    riskFlags: companyRetrieval.riskFlags,
+    promptPayload: companyPrompt,
+    config: effortRuntimeConfig,
+    fetchImpl: async (url, request) => {
+      capturedEffortRequest = { url, request };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          output_text: JSON.stringify(mockedModelOutput),
+        }),
+      };
+    },
+  });
+  const capturedEffortBody = JSON.parse(capturedEffortRequest?.request?.body || "{}");
+  if (capturedEffortBody.reasoning?.effort !== effort) {
+    fail(`openai-adapter: expected configured reasoning effort ${effort}.`);
+  }
+}
+
+const invalidEffortRuntimeConfig = readMiraRuntimeConfig({
+  MIRA_LLM_MODE: "staging_llm",
+  MIRA_LLM_PROVIDER: "openai",
+  MIRA_LLM_MODEL: "gpt-5-mini",
+  MIRA_LLM_API_KEY: "secret-value-that-must-not-be-returned",
+  MIRA_LLM_REASONING_EFFORT: "none",
+});
+let capturedInvalidEffortRequest = null;
+await runOpenAiMiraAdapter({
+  message: "What does OneSmarter do?",
+  conversationId: "prompt-contract-gpt5-invalid-effort",
+  requestContext: {},
+  retrievalResult: companyRetrieval,
+  riskFlags: companyRetrieval.riskFlags,
+  promptPayload: companyPrompt,
+  config: invalidEffortRuntimeConfig,
+  fetchImpl: async (url, request) => {
+    capturedInvalidEffortRequest = { url, request };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        output_text: JSON.stringify(mockedModelOutput),
+      }),
+    };
+  },
+});
+const capturedInvalidEffortBody = JSON.parse(
+  capturedInvalidEffortRequest?.request?.body || "{}",
+);
+if (capturedInvalidEffortBody.reasoning?.effort !== "minimal") {
+  fail("openai-adapter: invalid reasoning effort must fall back to minimal.");
+}
+if (Object.values(invalidEffortRuntimeConfig).includes("secret-value-that-must-not-be-returned")) {
+  fail("config: invalid-effort runtime config must not expose the raw API key.");
 }
 
 if (!contains(companyPrompt.system, "You are Mira Vale")) {

@@ -83,6 +83,7 @@ MIRA_LLM_API_KEY=<secret, never committed>
 MIRA_LLM_TIMEOUT_MS=<number>
 MIRA_LLM_MAX_TOKENS=<number>
 MIRA_LLM_TEMPERATURE=<number>
+MIRA_LLM_REASONING_EFFORT=minimal|low|medium|high
 ```
 
 Optional environment variables:
@@ -98,12 +99,15 @@ Recommended defaults when real provider mode is eventually introduced:
 | --- | --- | --- |
 | `MIRA_LLM_PROVIDER` | `openai` | First reviewed provider path. |
 | `MIRA_LLM_TIMEOUT_MS` | `8000` | Keep public interaction responsive. |
-| `MIRA_LLM_MAX_TOKENS` | `600` | Mira should answer concisely. |
+| `MIRA_LLM_MAX_TOKENS` | `1000` for Preview staging with GPT-5 mini | Mira should answer concisely while leaving room for structured JSON output. |
 | `MIRA_LLM_TEMPERATURE` | `0.2` | Prefer stable, grounded wording. |
+| `MIRA_LLM_REASONING_EFFORT` | `minimal` | Reduce reasoning-token usage for GPT-5-family staging calls. |
 | `MIRA_LLM_LOG_MODEL_METADATA` | `true` | Log provider/model/latency/token metadata only, not prompts or full responses. |
 | `MIRA_LLM_ENABLE_POST_VALIDATION` | `true` | Required before any real model output is returned. |
 
 Model compatibility note: the runtime may omit `MIRA_LLM_TEMPERATURE` from the provider request for models that reject custom temperature values. The current OpenAI adapter omits it for `gpt-5` hyphen-family models such as `gpt-5-mini` while preserving the environment variable for compatible models.
+
+Reasoning compatibility note: the runtime supports `MIRA_LLM_REASONING_EFFORT` values `minimal`, `low`, `medium`, and `high`. Invalid or missing values fall back to `minimal` for GPT-5-family staging requests. Do not configure `none` for `gpt-5-mini` unless official compatibility has been separately confirmed. `max_output_tokens` includes both reasoning and visible output, so minimal reasoning effort and a sufficient output-token allowance are both needed.
 
 The exact model name should be selected during provider review, not hard-coded in planning docs.
 

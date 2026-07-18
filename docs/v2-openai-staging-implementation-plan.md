@@ -36,6 +36,7 @@ MIRA_LLM_API_KEY=<server-side staging secret>
 MIRA_LLM_TIMEOUT_MS=<number>
 MIRA_LLM_MAX_TOKENS=<number>
 MIRA_LLM_TEMPERATURE=<number>
+MIRA_LLM_REASONING_EFFORT=minimal
 MIRA_LLM_ENABLE_POST_VALIDATION=true
 ```
 
@@ -53,11 +54,14 @@ Recommended staging defaults:
 | Variable | Recommended value |
 | --- | --- |
 | `MIRA_LLM_TIMEOUT_MS` | `8000` |
-| `MIRA_LLM_MAX_TOKENS` | `600` |
+| `MIRA_LLM_MAX_TOKENS` | `1000` for Preview staging with GPT-5 mini |
 | `MIRA_LLM_TEMPERATURE` | `0.2` or lower |
+| `MIRA_LLM_REASONING_EFFORT` | `minimal` |
 | `MIRA_LLM_ENABLE_POST_VALIDATION` | `true` |
 
 Compatibility note: the adapter omits custom `temperature` for `gpt-5` hyphen-family models such as `gpt-5-mini`, because those models may reject non-default temperature values with HTTP 400. The environment variable remains available for models that accept custom temperature.
+
+Reasoning-token note: GPT-5-family models may count internal reasoning against `max_output_tokens`. Preview staging should combine `MIRA_LLM_REASONING_EFFORT=minimal` with `MIRA_LLM_MAX_TOKENS=1000` so the model has room for both reasoning and the required structured JSON answer. Do not use `none` for `gpt-5-mini` unless compatibility is separately confirmed.
 
 ## Implementation Flow
 
