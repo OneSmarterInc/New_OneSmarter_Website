@@ -57,6 +57,8 @@ Recommended staging defaults:
 | `MIRA_LLM_TEMPERATURE` | `0.2` or lower |
 | `MIRA_LLM_ENABLE_POST_VALIDATION` | `true` |
 
+Compatibility note: the adapter omits custom `temperature` for `gpt-5` hyphen-family models such as `gpt-5-mini`, because those models may reject non-default temperature values with HTTP 400. The environment variable remains available for models that accept custom temperature.
+
 ## Implementation Flow
 
 Current staging flow:

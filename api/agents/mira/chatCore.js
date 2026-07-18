@@ -337,6 +337,9 @@ export const handleMiraChatRequest = async ({
         ? { fallbackUsed: result.fallbackUsed }
         : {}),
       ...(result.fallbackReason ? { fallbackReason: result.fallbackReason } : {}),
+      ...(result.providerErrorType ? { providerErrorType: result.providerErrorType } : {}),
+      ...(result.providerErrorCode ? { providerErrorCode: result.providerErrorCode } : {}),
+      ...(result.providerErrorParam ? { providerErrorParam: result.providerErrorParam } : {}),
     };
 
     safeLogEvent(
@@ -354,6 +357,10 @@ export const handleMiraChatRequest = async ({
         validationStatus: result.outputSafetyStatus || "",
         fallbackUsed: Boolean(result.fallbackUsed),
         fallbackReason: result.fallbackReason || "",
+        providerErrorType: result.providerMetadata?.providerErrorType || "",
+        providerErrorCode: result.providerMetadata?.providerErrorCode || "",
+        providerErrorParam: result.providerMetadata?.providerErrorParam || "",
+        providerRequestId: result.providerMetadata?.providerRequestId || "",
         messageLength: trimmedMessage.length,
         riskFlags: result.riskFlags,
         handoffNeeded: result.handoffNeeded,

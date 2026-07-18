@@ -1,5 +1,6 @@
 export const OPENAI_STAGING_MODE = "staging_llm";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const DEFAULT_TEMPERATURE_ONLY_MODELS = [/^gpt-5(?:$|-)/i];
 
 const miraStructuredOutputSchema = {
   type: "object",
@@ -82,6 +83,39 @@ const usageFrom = (responseJson) => {
   };
 };
 
+const safeString = (value) =>
+  typeof value === "string" && value.trim() ? value.trim().slice(0, 120) : "";
+
+const headerValue = (headers, key) => {
+  if (!headers?.get) return "";
+  return safeString(headers.get(key));
+};
+
+const safeProviderErrorFrom = async (response) => {
+  let responseJson = {};
+  try {
+    responseJson = await response.json();
+  } catch {
+    responseJson = {};
+  }
+
+  const error = responseJson?.error && typeof responseJson.error === "object"
+    ? responseJson.error
+    : {};
+
+  return {
+    providerErrorType: safeString(error.type),
+    providerErrorCode: safeString(error.code),
+    providerErrorParam: safeString(error.param),
+    providerRequestId:
+      headerValue(response.headers, "x-request-id") ||
+      headerValue(response.headers, "openai-request-id"),
+  };
+};
+
+export const supportsCustomTemperature = (model = "") =>
+  !DEFAULT_TEMPERATURE_ONLY_MODELS.some((pattern) => pattern.test(model));
+
 export const buildOpenAiResponsesRequest = ({ promptPayload, config }) => {
   const body = {
     model: config.model,
@@ -99,7 +133,7 @@ export const buildOpenAiResponsesRequest = ({ promptPayload, config }) => {
     },
   };
 
-  if (Number.isFinite(config.temperature)) {
+  if (Number.isFinite(config.temperature) && supportsCustomTemperature(config.model)) {
     body.temperature = config.temperature;
   }
 
@@ -151,6 +185,7 @@ export const runOpenAiMiraAdapter = async ({
 
     const latencyMs = Date.now() - startedAt;
     if (!response.ok) {
+      const providerError = await safeProviderErrorFrom(response);
       return {
         provider: "openai",
         mode: OPENAI_STAGING_MODE,
@@ -163,6 +198,7 @@ export const runOpenAiMiraAdapter = async ({
           tokenUsage: null,
           providerStatus: "error",
           fallbackReason: `provider_http_${response.status}`,
+          ...providerError,
         },
       };
     }

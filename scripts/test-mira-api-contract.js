@@ -219,6 +219,21 @@ const openAiErrorFetch = async () => ({
   json: async () => ({}),
 });
 
+const openAi400Fetch = async () => ({
+  ok: false,
+  status: 400,
+  headers: new Headers({ "x-request-id": "req_safe_provider_400" }),
+  json: async () => ({
+    error: {
+      message:
+        "Unsupported value: temperature does not support 0.2 with this model.",
+      type: "invalid_request_error",
+      param: "temperature",
+      code: "unsupported_value",
+    },
+  }),
+});
+
 const openAiTimeoutFetch = async () => {
   const error = new Error("Timed out");
   error.name = "AbortError";
@@ -409,6 +424,25 @@ const modeCases = [
     expectedOutputSafetyStatus: "passed",
     expectedAnswerIncludes: "OneSmarter builds secure platforms",
     forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
+    id: "mode-staging-openai-400-safe-diagnostics-fallback",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "gpt-5-mini",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAi400Fetch,
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "provider_http_400",
+    expectedProviderErrorType: "invalid_request_error",
+    expectedProviderErrorCode: "unsupported_value",
+    expectedProviderErrorParam: "temperature",
+    forbiddenResponseText: "Unsupported value",
   },
   {
     id: "mode-staging-openai-timeout-fallback",
@@ -680,6 +714,24 @@ for (const modeCase of modeCases) {
     fail(`${modeCase.id}: expected outputSafetyStatus=${modeCase.expectedOutputSafetyStatus}.`);
   }
   if (
+    modeCase.expectedProviderErrorType &&
+    result.body.providerErrorType !== modeCase.expectedProviderErrorType
+  ) {
+    fail(`${modeCase.id}: expected providerErrorType=${modeCase.expectedProviderErrorType}.`);
+  }
+  if (
+    modeCase.expectedProviderErrorCode &&
+    result.body.providerErrorCode !== modeCase.expectedProviderErrorCode
+  ) {
+    fail(`${modeCase.id}: expected providerErrorCode=${modeCase.expectedProviderErrorCode}.`);
+  }
+  if (
+    modeCase.expectedProviderErrorParam &&
+    result.body.providerErrorParam !== modeCase.expectedProviderErrorParam
+  ) {
+    fail(`${modeCase.id}: expected providerErrorParam=${modeCase.expectedProviderErrorParam}.`);
+  }
+  if (
     modeCase.expectedAnswerIncludes &&
     !contains(result.body.answer, modeCase.expectedAnswerIncludes)
   ) {
@@ -696,6 +748,50 @@ for (const modeCase of modeCases) {
     fetchCalls !== modeCase.expectedFetchCalls
   ) {
     fail(`${modeCase.id}: expected fetch calls ${modeCase.expectedFetchCalls}, got ${fetchCalls}.`);
+  }
+}
+
+resetMiraRateLimitForTests();
+
+const safeLogLines = [];
+await withEnv(
+  {
+    MIRA_LLM_MODE: "staging_llm",
+    MIRA_LLM_PROVIDER: "openai",
+    MIRA_LLM_MODEL: "gpt-5-mini",
+    MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+  },
+  () =>
+    withMockFetch(openAi400Fetch, () =>
+      handleMiraChatRequest({
+        method: "POST",
+        headers: { "x-forwarded-for": "192.0.2.200" },
+        body: { message: "What does OneSmarter do?" },
+        now: new Date("2026-07-08T12:00:45.000Z"),
+        logger: { log: (line) => safeLogLines.push(line) },
+      }),
+    ),
+);
+
+const joinedSafeLogs = safeLogLines.join("\n");
+for (const expected of [
+  "invalid_request_error",
+  "unsupported_value",
+  "temperature",
+  "provider_http_400",
+]) {
+  if (!joinedSafeLogs.includes(expected)) {
+    fail(`safe-provider-logging: expected ${expected} in safe log metadata.`);
+  }
+}
+
+for (const forbidden of [
+  "secret-value-that-must-not-be-exposed",
+  "Unsupported value",
+  "What does OneSmarter do?",
+]) {
+  if (joinedSafeLogs.includes(forbidden)) {
+    fail(`safe-provider-logging: log exposed forbidden text ${forbidden}.`);
   }
 }
 

@@ -103,6 +103,8 @@ Recommended defaults when real provider mode is eventually introduced:
 | `MIRA_LLM_LOG_MODEL_METADATA` | `true` | Log provider/model/latency/token metadata only, not prompts or full responses. |
 | `MIRA_LLM_ENABLE_POST_VALIDATION` | `true` | Required before any real model output is returned. |
 
+Model compatibility note: the runtime may omit `MIRA_LLM_TEMPERATURE` from the provider request for models that reject custom temperature values. The current OpenAI adapter omits it for `gpt-5` hyphen-family models such as `gpt-5-mini` while preserving the environment variable for compatible models.
+
 The exact model name should be selected during provider review, not hard-coded in planning docs.
 
 ## Provider Decision

@@ -123,6 +123,9 @@ const capturedBody = JSON.parse(capturedOpenAiRequest?.request?.body || "{}");
 if (capturedBody.model !== "future-reviewed-model") {
   fail("openai-adapter: expected configured model in request.");
 }
+if (capturedBody.temperature !== 0.2) {
+  fail("openai-adapter: expected temperature for compatible configured model.");
+}
 if (capturedBody.store !== false) {
   fail("openai-adapter: expected store=false.");
 }
@@ -134,6 +137,42 @@ if (capturedBody.text?.format?.type !== "json_schema") {
 }
 if (!capturedBody.instructions || !capturedBody.input) {
   fail("openai-adapter: expected instructions and input.");
+}
+
+const gpt5MiniRuntimeConfig = readMiraRuntimeConfig({
+  MIRA_LLM_MODE: "staging_llm",
+  MIRA_LLM_PROVIDER: "openai",
+  MIRA_LLM_MODEL: "gpt-5-mini",
+  MIRA_LLM_API_KEY: "secret-value-that-must-not-be-returned",
+  MIRA_LLM_TEMPERATURE: "0.2",
+});
+let capturedGpt5MiniRequest = null;
+await runOpenAiMiraAdapter({
+  message: "What does OneSmarter do?",
+  conversationId: "prompt-contract-gpt5-mini",
+  requestContext: {},
+  retrievalResult: companyRetrieval,
+  riskFlags: companyRetrieval.riskFlags,
+  promptPayload: companyPrompt,
+  config: gpt5MiniRuntimeConfig,
+  fetchImpl: async (url, request) => {
+    capturedGpt5MiniRequest = { url, request };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        output_text: JSON.stringify(mockedModelOutput),
+      }),
+    };
+  },
+});
+
+const capturedGpt5MiniBody = JSON.parse(capturedGpt5MiniRequest?.request?.body || "{}");
+if (capturedGpt5MiniBody.model !== "gpt-5-mini") {
+  fail("openai-adapter: expected gpt-5-mini model in compatibility request.");
+}
+if (Object.prototype.hasOwnProperty.call(capturedGpt5MiniBody, "temperature")) {
+  fail("openai-adapter: gpt-5-mini request must omit custom temperature.");
 }
 
 if (!contains(companyPrompt.system, "You are Mira Vale")) {

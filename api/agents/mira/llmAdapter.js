@@ -31,11 +31,26 @@ const unavailableResponse = (message) => ({
   fallbackReason: "",
 });
 
-const withFallbackMetadata = (localResult, fallbackReason) => ({
+const withFallbackMetadata = (localResult, fallbackReason, providerResult = {}) => ({
   ...localResult,
   mode: LOCAL_HARNESS_MODE,
   fallbackUsed: true,
   fallbackReason,
+  providerMetadata: providerResult.metadata
+    ? {
+        latencyMs: providerResult.metadata.latencyMs ?? null,
+        httpStatus: providerResult.metadata.httpStatus ?? null,
+        tokenUsage: providerResult.metadata.tokenUsage ?? null,
+        providerStatus: providerResult.metadata.providerStatus || "",
+        providerErrorType: providerResult.metadata.providerErrorType || "",
+        providerErrorCode: providerResult.metadata.providerErrorCode || "",
+        providerErrorParam: providerResult.metadata.providerErrorParam || "",
+        providerRequestId: providerResult.metadata.providerRequestId || "",
+      }
+    : undefined,
+  providerErrorType: providerResult.metadata?.providerErrorType || "",
+  providerErrorCode: providerResult.metadata?.providerErrorCode || "",
+  providerErrorParam: providerResult.metadata?.providerErrorParam || "",
 });
 
 const hasHardStopRisk = (riskFlags = []) =>
@@ -103,6 +118,7 @@ export const runMiraResponseAdapter = async ({
       return withFallbackMetadata(
         localResult,
         providerResult.metadata?.fallbackReason || providerResult.error || "provider_error",
+        providerResult,
       );
     }
 
