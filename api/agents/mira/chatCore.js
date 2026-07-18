@@ -340,6 +340,28 @@ export const handleMiraChatRequest = async ({
       ...(result.providerErrorType ? { providerErrorType: result.providerErrorType } : {}),
       ...(result.providerErrorCode ? { providerErrorCode: result.providerErrorCode } : {}),
       ...(result.providerErrorParam ? { providerErrorParam: result.providerErrorParam } : {}),
+      ...(result.providerResponseStatus
+        ? { providerResponseStatus: result.providerResponseStatus }
+        : {}),
+      ...(result.providerIncompleteReason
+        ? { providerIncompleteReason: result.providerIncompleteReason }
+        : {}),
+      ...(result.providerOutputItemTypes?.length
+        ? { providerOutputItemTypes: result.providerOutputItemTypes }
+        : {}),
+      ...(result.providerContentPartTypes?.length
+        ? { providerContentPartTypes: result.providerContentPartTypes }
+        : {}),
+      ...(result.providerHasRefusal ? { providerHasRefusal: true } : {}),
+      ...(Number.isFinite(result.providerUsageInputTokens)
+        ? { providerUsageInputTokens: result.providerUsageInputTokens }
+        : {}),
+      ...(Number.isFinite(result.providerUsageOutputTokens)
+        ? { providerUsageOutputTokens: result.providerUsageOutputTokens }
+        : {}),
+      ...(Number.isFinite(result.providerUsageReasoningTokens)
+        ? { providerUsageReasoningTokens: result.providerUsageReasoningTokens }
+        : {}),
     };
 
     safeLogEvent(
@@ -361,6 +383,14 @@ export const handleMiraChatRequest = async ({
         providerErrorCode: result.providerMetadata?.providerErrorCode || "",
         providerErrorParam: result.providerMetadata?.providerErrorParam || "",
         providerRequestId: result.providerMetadata?.providerRequestId || "",
+        providerResponseStatus: result.providerMetadata?.providerResponseStatus || "",
+        providerIncompleteReason: result.providerMetadata?.providerIncompleteReason || "",
+        providerOutputItemTypes: result.providerMetadata?.providerOutputItemTypes || [],
+        providerContentPartTypes: result.providerMetadata?.providerContentPartTypes || [],
+        providerHasRefusal: Boolean(result.providerMetadata?.providerHasRefusal),
+        providerUsageInputTokens: result.providerMetadata?.providerUsageInputTokens ?? null,
+        providerUsageOutputTokens: result.providerMetadata?.providerUsageOutputTokens ?? null,
+        providerUsageReasoningTokens: result.providerMetadata?.providerUsageReasoningTokens ?? null,
         messageLength: trimmedMessage.length,
         riskFlags: result.riskFlags,
         handoffNeeded: result.handoffNeeded,

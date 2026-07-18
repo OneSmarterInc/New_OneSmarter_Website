@@ -205,6 +205,115 @@ const openAiSuccessFetch = (modelOutput, usage = { input_tokens: 10, output_toke
     }),
   });
 
+const openAiNestedSuccessFetch = (
+  modelOutput,
+  outputPrefix = [],
+  usage = {
+    input_tokens: 10,
+    output_tokens: 20,
+    total_tokens: 30,
+    output_tokens_details: { reasoning_tokens: 4 },
+  },
+) =>
+  async () => ({
+    ok: true,
+    status: 200,
+    headers: new Headers({ "x-request-id": "req_safe_nested_success" }),
+    json: async () => ({
+      status: "completed",
+      output: [
+        ...outputPrefix,
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: JSON.stringify(modelOutput),
+            },
+          ],
+        },
+      ],
+      usage,
+    }),
+  });
+
+const openAiIncompleteFetch = async () => ({
+  ok: true,
+  status: 200,
+  headers: new Headers({ "x-request-id": "req_safe_incomplete" }),
+  json: async () => ({
+    status: "incomplete",
+    incomplete_details: { reason: "max_output_tokens" },
+    output: [{ type: "reasoning" }],
+    usage: {
+      input_tokens: 9,
+      output_tokens: 8,
+      total_tokens: 17,
+      output_tokens_details: { reasoning_tokens: 8 },
+    },
+  }),
+});
+
+const openAiRefusalFetch = async () => ({
+  ok: true,
+  status: 200,
+  headers: new Headers({ "x-request-id": "req_safe_refusal" }),
+  json: async () => ({
+    status: "completed",
+    output: [
+      {
+        type: "message",
+        content: [
+          {
+            type: "refusal",
+            refusal: "Refusal text must not be exposed.",
+          },
+        ],
+      },
+    ],
+    usage: { input_tokens: 7, output_tokens: 6, total_tokens: 13 },
+  }),
+});
+
+const openAiNoMessageFetch = async () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({
+    status: "completed",
+    output: [{ type: "reasoning" }],
+    usage: { input_tokens: 5, output_tokens: 4, total_tokens: 9 },
+  }),
+});
+
+const openAiNoOutputTextFetch = async () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({
+    status: "completed",
+    output: [
+      {
+        type: "message",
+        content: [{ type: "summary_text", text: "This must not be parsed." }],
+      },
+    ],
+    usage: { input_tokens: 5, output_tokens: 4, total_tokens: 9 },
+  }),
+});
+
+const openAiNestedMalformedFetch = async () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({
+    status: "completed",
+    output: [
+      {
+        type: "message",
+        content: [{ type: "output_text", text: "{not-json" }],
+      },
+    ],
+  }),
+});
+
 const openAiMalformedFetch = async () => ({
   ok: true,
   status: 200,
@@ -424,6 +533,139 @@ const modeCases = [
     expectedOutputSafetyStatus: "passed",
     expectedAnswerIncludes: "OneSmarter builds secure platforms",
     forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
+    id: "mode-staging-openai-nested-valid-response",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedModelProvider: "openai",
+    expectedModelName: "future-reviewed-model",
+    expectedFallbackUsed: false,
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedAnswerIncludes: "OneSmarter builds secure platforms",
+    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
+    id: "mode-staging-openai-reasoning-then-nested-valid-response",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput, [{ type: "reasoning" }]),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedModelProvider: "openai",
+    expectedModelName: "future-reviewed-model",
+    expectedFallbackUsed: false,
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedAnswerIncludes: "OneSmarter builds secure platforms",
+    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
+    id: "mode-staging-openai-incomplete-fallback",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiIncompleteFetch,
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "provider_incomplete_max_output_tokens",
+    expectedProviderResponseStatus: "incomplete",
+    expectedProviderIncompleteReason: "max_output_tokens",
+    expectedProviderOutputItemTypes: ["reasoning"],
+    expectedProviderUsageInputTokens: 9,
+    expectedProviderUsageOutputTokens: 8,
+    expectedProviderUsageReasoningTokens: 8,
+    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
+    id: "mode-staging-openai-refusal-fallback",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiRefusalFetch,
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "provider_refusal",
+    expectedProviderResponseStatus: "completed",
+    expectedProviderContentPartTypes: ["refusal"],
+    expectedProviderHasRefusal: true,
+    forbiddenResponseText: "Refusal text must not be exposed.",
+  },
+  {
+    id: "mode-staging-openai-no-message-fallback",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiNoMessageFetch,
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "missing_output_text",
+    expectedProviderResponseStatus: "completed",
+    expectedProviderOutputItemTypes: ["reasoning"],
+  },
+  {
+    id: "mode-staging-openai-no-output-text-fallback",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiNoOutputTextFetch,
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "missing_output_text",
+    expectedProviderResponseStatus: "completed",
+    expectedProviderContentPartTypes: ["summary_text"],
+    forbiddenResponseText: "This must not be parsed.",
+  },
+  {
+    id: "mode-staging-openai-nested-malformed-output-fallback",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiNestedMalformedFetch,
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "malformed_model_json",
+    expectedProviderResponseStatus: "completed",
+    expectedProviderContentPartTypes: ["output_text"],
   },
   {
     id: "mode-staging-openai-400-safe-diagnostics-fallback",
@@ -730,6 +972,62 @@ for (const modeCase of modeCases) {
     result.body.providerErrorParam !== modeCase.expectedProviderErrorParam
   ) {
     fail(`${modeCase.id}: expected providerErrorParam=${modeCase.expectedProviderErrorParam}.`);
+  }
+  if (
+    modeCase.expectedProviderResponseStatus &&
+    result.body.providerResponseStatus !== modeCase.expectedProviderResponseStatus
+  ) {
+    fail(
+      `${modeCase.id}: expected providerResponseStatus=${modeCase.expectedProviderResponseStatus}.`,
+    );
+  }
+  if (
+    modeCase.expectedProviderIncompleteReason &&
+    result.body.providerIncompleteReason !== modeCase.expectedProviderIncompleteReason
+  ) {
+    fail(
+      `${modeCase.id}: expected providerIncompleteReason=${modeCase.expectedProviderIncompleteReason}.`,
+    );
+  }
+  for (const expectedType of modeCase.expectedProviderOutputItemTypes || []) {
+    if (!result.body.providerOutputItemTypes?.includes(expectedType)) {
+      fail(`${modeCase.id}: expected providerOutputItemTypes to include ${expectedType}.`);
+    }
+  }
+  for (const expectedType of modeCase.expectedProviderContentPartTypes || []) {
+    if (!result.body.providerContentPartTypes?.includes(expectedType)) {
+      fail(`${modeCase.id}: expected providerContentPartTypes to include ${expectedType}.`);
+    }
+  }
+  if (
+    typeof modeCase.expectedProviderHasRefusal === "boolean" &&
+    Boolean(result.body.providerHasRefusal) !== modeCase.expectedProviderHasRefusal
+  ) {
+    fail(`${modeCase.id}: expected providerHasRefusal=${modeCase.expectedProviderHasRefusal}.`);
+  }
+  if (
+    Number.isFinite(modeCase.expectedProviderUsageInputTokens) &&
+    result.body.providerUsageInputTokens !== modeCase.expectedProviderUsageInputTokens
+  ) {
+    fail(
+      `${modeCase.id}: expected providerUsageInputTokens=${modeCase.expectedProviderUsageInputTokens}.`,
+    );
+  }
+  if (
+    Number.isFinite(modeCase.expectedProviderUsageOutputTokens) &&
+    result.body.providerUsageOutputTokens !== modeCase.expectedProviderUsageOutputTokens
+  ) {
+    fail(
+      `${modeCase.id}: expected providerUsageOutputTokens=${modeCase.expectedProviderUsageOutputTokens}.`,
+    );
+  }
+  if (
+    Number.isFinite(modeCase.expectedProviderUsageReasoningTokens) &&
+    result.body.providerUsageReasoningTokens !== modeCase.expectedProviderUsageReasoningTokens
+  ) {
+    fail(
+      `${modeCase.id}: expected providerUsageReasoningTokens=${modeCase.expectedProviderUsageReasoningTokens}.`,
+    );
   }
   if (
     modeCase.expectedAnswerIncludes &&

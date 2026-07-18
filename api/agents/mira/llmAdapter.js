@@ -46,11 +46,27 @@ const withFallbackMetadata = (localResult, fallbackReason, providerResult = {}) 
         providerErrorCode: providerResult.metadata.providerErrorCode || "",
         providerErrorParam: providerResult.metadata.providerErrorParam || "",
         providerRequestId: providerResult.metadata.providerRequestId || "",
+        providerResponseStatus: providerResult.metadata.providerResponseStatus || "",
+        providerIncompleteReason: providerResult.metadata.providerIncompleteReason || "",
+        providerOutputItemTypes: providerResult.metadata.providerOutputItemTypes || [],
+        providerContentPartTypes: providerResult.metadata.providerContentPartTypes || [],
+        providerHasRefusal: Boolean(providerResult.metadata.providerHasRefusal),
+        providerUsageInputTokens: providerResult.metadata.providerUsageInputTokens ?? null,
+        providerUsageOutputTokens: providerResult.metadata.providerUsageOutputTokens ?? null,
+        providerUsageReasoningTokens: providerResult.metadata.providerUsageReasoningTokens ?? null,
       }
     : undefined,
   providerErrorType: providerResult.metadata?.providerErrorType || "",
   providerErrorCode: providerResult.metadata?.providerErrorCode || "",
   providerErrorParam: providerResult.metadata?.providerErrorParam || "",
+  providerResponseStatus: providerResult.metadata?.providerResponseStatus || "",
+  providerIncompleteReason: providerResult.metadata?.providerIncompleteReason || "",
+  providerOutputItemTypes: providerResult.metadata?.providerOutputItemTypes || [],
+  providerContentPartTypes: providerResult.metadata?.providerContentPartTypes || [],
+  providerHasRefusal: Boolean(providerResult.metadata?.providerHasRefusal),
+  providerUsageInputTokens: providerResult.metadata?.providerUsageInputTokens ?? null,
+  providerUsageOutputTokens: providerResult.metadata?.providerUsageOutputTokens ?? null,
+  providerUsageReasoningTokens: providerResult.metadata?.providerUsageReasoningTokens ?? null,
 });
 
 const hasHardStopRisk = (riskFlags = []) =>
@@ -154,6 +170,14 @@ export const runMiraResponseAdapter = async ({
         httpStatus: providerResult.metadata?.httpStatus ?? null,
         tokenUsage: providerResult.metadata?.tokenUsage ?? null,
         providerStatus: providerResult.metadata?.providerStatus || "",
+        providerResponseStatus: providerResult.metadata?.providerResponseStatus || "",
+        providerIncompleteReason: providerResult.metadata?.providerIncompleteReason || "",
+        providerOutputItemTypes: providerResult.metadata?.providerOutputItemTypes || [],
+        providerContentPartTypes: providerResult.metadata?.providerContentPartTypes || [],
+        providerHasRefusal: Boolean(providerResult.metadata?.providerHasRefusal),
+        providerUsageInputTokens: providerResult.metadata?.providerUsageInputTokens ?? null,
+        providerUsageOutputTokens: providerResult.metadata?.providerUsageOutputTokens ?? null,
+        providerUsageReasoningTokens: providerResult.metadata?.providerUsageReasoningTokens ?? null,
       },
     };
   }

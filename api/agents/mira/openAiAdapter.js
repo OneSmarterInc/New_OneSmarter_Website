@@ -44,6 +44,37 @@ const buildProviderInput = ({ promptPayload }) =>
     JSON.stringify(promptPayload.riskFlags || []),
   ].join("\n");
 
+const uniqueSafeStrings = (values) =>
+  [...new Set(values.filter((value) => typeof value === "string" && value.trim()))].map((value) =>
+    value.trim().slice(0, 80),
+  );
+
+const outputDetailsFrom = (responseJson) => {
+  const output = Array.isArray(responseJson?.output) ? responseJson.output : [];
+  const outputItemTypes = [];
+  const contentPartTypes = [];
+  let hasRefusal = false;
+
+  for (const item of output) {
+    outputItemTypes.push(item?.type);
+    const content = Array.isArray(item?.content) ? item.content : [];
+    for (const contentItem of content) {
+      contentPartTypes.push(contentItem?.type);
+      if (contentItem?.type === "refusal") {
+        hasRefusal = true;
+      }
+    }
+  }
+
+  return {
+    providerResponseStatus: safeString(responseJson?.status),
+    providerIncompleteReason: safeString(responseJson?.incomplete_details?.reason),
+    providerOutputItemTypes: uniqueSafeStrings(outputItemTypes),
+    providerContentPartTypes: uniqueSafeStrings(contentPartTypes),
+    providerHasRefusal: hasRefusal,
+  };
+};
+
 const extractOutputText = (responseJson) => {
   if (typeof responseJson?.output_text === "string") {
     return responseJson.output_text;
@@ -51,9 +82,13 @@ const extractOutputText = (responseJson) => {
 
   const output = Array.isArray(responseJson?.output) ? responseJson.output : [];
   for (const item of output) {
+    if (item?.type && item.type !== "message") continue;
     const content = Array.isArray(item?.content) ? item.content : [];
     for (const contentItem of content) {
-      if (typeof contentItem?.text === "string") return contentItem.text;
+      if (contentItem?.type === "refusal") continue;
+      if (contentItem?.type === "output_text" && typeof contentItem?.text === "string") {
+        return contentItem.text;
+      }
       if (typeof contentItem?.output_text === "string") return contentItem.output_text;
     }
   }
@@ -62,15 +97,30 @@ const extractOutputText = (responseJson) => {
 };
 
 const parseModelOutput = (responseJson) => {
+  const outputDetails = outputDetailsFrom(responseJson);
+  if (outputDetails.providerResponseStatus === "incomplete") {
+    return {
+      modelOutput: null,
+      parseError: outputDetails.providerIncompleteReason
+        ? `provider_incomplete_${outputDetails.providerIncompleteReason}`
+        : "provider_incomplete",
+      outputDetails,
+    };
+  }
+
+  if (outputDetails.providerHasRefusal) {
+    return { modelOutput: null, parseError: "provider_refusal", outputDetails };
+  }
+
   const outputText = extractOutputText(responseJson);
   if (!outputText) {
-    return { modelOutput: null, parseError: "missing_output_text" };
+    return { modelOutput: null, parseError: "missing_output_text", outputDetails };
   }
 
   try {
-    return { modelOutput: JSON.parse(outputText), parseError: "" };
+    return { modelOutput: JSON.parse(outputText), parseError: "", outputDetails };
   } catch {
-    return { modelOutput: null, parseError: "malformed_model_json" };
+    return { modelOutput: null, parseError: "malformed_model_json", outputDetails };
   }
 };
 
@@ -79,6 +129,7 @@ const usageFrom = (responseJson) => {
   return {
     inputTokens: usage.input_tokens ?? usage.prompt_tokens ?? null,
     outputTokens: usage.output_tokens ?? usage.completion_tokens ?? null,
+    reasoningTokens: usage.output_tokens_details?.reasoning_tokens ?? null,
     totalTokens: usage.total_tokens ?? null,
   };
 };
@@ -204,7 +255,8 @@ export const runOpenAiMiraAdapter = async ({
     }
 
     const responseJson = await response.json();
-    const { modelOutput, parseError } = parseModelOutput(responseJson);
+    const { modelOutput, parseError, outputDetails } = parseModelOutput(responseJson);
+    const tokenUsage = usageFrom(responseJson);
 
     return {
       provider: "openai",
@@ -215,9 +267,16 @@ export const runOpenAiMiraAdapter = async ({
       metadata: {
         latencyMs,
         httpStatus: response.status,
-        tokenUsage: usageFrom(responseJson),
+        tokenUsage,
         providerStatus: parseError ? "malformed" : "ok",
         fallbackReason: parseError,
+        providerUsageInputTokens: tokenUsage.inputTokens,
+        providerUsageOutputTokens: tokenUsage.outputTokens,
+        providerUsageReasoningTokens: tokenUsage.reasoningTokens,
+        ...outputDetails,
+        providerRequestId:
+          headerValue(response.headers, "x-request-id") ||
+          headerValue(response.headers, "openai-request-id"),
         messageLength: typeof message === "string" ? message.length : 0,
         conversationId: typeof conversationId === "string" ? conversationId : "",
         requestContext: {

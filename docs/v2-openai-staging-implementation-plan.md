@@ -70,11 +70,13 @@ Current staging flow:
 5. If high-risk deterministic handoff is required, skip the model call.
 6. Build prompt payload through `miraPromptContract.js`.
 7. Call the OpenAI Responses API adapter with timeout.
-8. Parse expected model output.
+8. Parse expected model output from top-level `output_text` when present or nested `response.output[]` message content parts where `type: "output_text"`.
 9. Validate model output through `miraOutputValidator.js`.
 10. If valid, format the final response into the existing endpoint schema.
 11. If invalid, timed out, malformed, or unsafe, fall back to `local_harness_mock`.
 12. Return the same endpoint response schema used today.
+
+The adapter treats `response.status: "incomplete"` and refusal content parts as fallback conditions rather than normal answer text. Missing-output diagnostics are limited to safe structural metadata such as provider response status, incomplete reason, output item types, content part types, refusal presence, provider request id, and token counts. Raw prompts, raw provider bodies, refusal text, and answer text must not be logged.
 
 The UI should not need to change when staging LLM mode is enabled or rolled back.
 
