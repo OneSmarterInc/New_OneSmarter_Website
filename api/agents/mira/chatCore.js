@@ -113,6 +113,12 @@ const disclaimerFor = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
     return "Do not submit PHI, patient information, confidential documents, or private operational details through the public agent.";
   }
+  if (result.mode === "staging_llm" && result.fallbackUsed === false) {
+    return "This response is grounded in approved public OneSmarter content.";
+  }
+  if (result.mode === "local_harness_mock" && result.fallbackUsed === true) {
+    return "This is a local harness response grounded in approved public OneSmarter content; business-specific questions should go to care@onesmarter.com.";
+  }
   if (result.riskFlags.length || result.handoffNeeded) {
     return "This is a local harness response grounded in approved public OneSmarter content; business-specific questions should go to care@onesmarter.com.";
   }

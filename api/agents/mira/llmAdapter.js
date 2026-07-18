@@ -77,6 +77,30 @@ const hasApprovedContext = (localResult) =>
   localResult.matchedEntries.length > 0 &&
   localResult.confidence !== "low";
 
+const normalizeModelHandoff = (modelOutput, localResult) => {
+  if (localResult.handoffNeeded || hasHardStopRisk(localResult.riskFlags)) {
+    return {
+      handoffNeeded: true,
+      handoffReason: modelOutput.handoffReason || localResult.handoffReason || "handoff_required",
+    };
+  }
+
+  if (
+    modelOutput.groundingStatus === "insufficient_context" ||
+    modelOutput.groundingStatus === "refused"
+  ) {
+    return {
+      handoffNeeded: modelOutput.handoffNeeded,
+      handoffReason: modelOutput.handoffReason || "",
+    };
+  }
+
+  return {
+    handoffNeeded: false,
+    handoffReason: "",
+  };
+};
+
 export const runMiraResponseAdapter = async ({
   message,
   conversationId,
@@ -152,12 +176,13 @@ export const runMiraResponseAdapter = async ({
     }
 
     const modelOutput = validation.correctedOutput;
+    const normalizedHandoff = normalizeModelHandoff(modelOutput, localResult);
     return {
       ...localResult,
       mode: STAGING_LLM_MODE,
       answerSeed: modelOutput.answer,
-      handoffNeeded: modelOutput.handoffNeeded,
-      handoffReason: modelOutput.handoffReason || "",
+      handoffNeeded: normalizedHandoff.handoffNeeded,
+      handoffReason: normalizedHandoff.handoffReason,
       suggestedFollowUps: modelOutput.suggestedFollowUps,
       modelProvider: "openai",
       modelName: config.model,

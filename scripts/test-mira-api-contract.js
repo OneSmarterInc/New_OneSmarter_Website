@@ -370,6 +370,14 @@ const validModelOutput = {
   outputSafetyStatus: "passed",
 };
 
+const optionalContactModelOutput = {
+  ...validModelOutput,
+  answer:
+    "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance readiness support. For pricing, procurement, or project scoping questions, email care@onesmarter.com.",
+  handoffNeeded: true,
+  handoffReason: "optional_business_follow_up",
+};
+
 resetMiraRateLimitForTests();
 
 await withEnv({ MIRA_LLM_MODE: undefined }, async () => {
@@ -533,7 +541,28 @@ const modeCases = [
     expectedGroundingStatus: "grounded",
     expectedOutputSafetyStatus: "passed",
     expectedAnswerIncludes: "OneSmarter builds secure platforms",
-    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+    expectedDisclaimerIncludes: "This response is grounded in approved public OneSmarter content.",
+    forbiddenResponseTexts: ["local harness response", "secret-value-that-must-not-be-exposed"],
+  },
+  {
+    id: "mode-staging-openai-general-overview-optional-contact-is-not-handoff",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    fetchImpl: openAiNestedSuccessFetch(optionalContactModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedModelProvider: "openai",
+    expectedFallbackUsed: false,
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedHandoffReasonEmpty: true,
+    expectedDisclaimerIncludes: "This response is grounded in approved public OneSmarter content.",
+    forbiddenResponseTexts: ["local harness response", "optional_business_follow_up"],
   },
   {
     id: "mode-staging-openai-nested-valid-response",
@@ -589,6 +618,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedFallbackUsed: true,
     expectedFallbackReasonIncludes: "provider_incomplete_max_output_tokens",
+    expectedDisclaimerIncludes: "local harness response",
     expectedProviderResponseStatus: "incomplete",
     expectedProviderIncompleteReason: "max_output_tokens",
     expectedProviderOutputItemTypes: ["reasoning"],
@@ -615,6 +645,24 @@ const modeCases = [
     expectedProviderContentPartTypes: ["refusal"],
     expectedProviderHasRefusal: true,
     forbiddenResponseText: "Refusal text must not be exposed.",
+  },
+  {
+    id: "mode-staging-openai-business-specific-skips-provider-and-hands-off",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Can you review pricing and procurement terms for my company?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "pre_call_safety_gate",
+    expectedFetchCalls: 0,
+    expectedDisclaimerIncludes: "local harness response",
+    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
   },
   {
     id: "mode-staging-openai-no-message-fallback",
@@ -920,6 +968,9 @@ for (const modeCase of modeCases) {
   if (result.body.handoffNeeded !== modeCase.expectedHandoff) {
     fail(`${modeCase.id}: expected handoffNeeded=${modeCase.expectedHandoff}.`);
   }
+  if (modeCase.expectedHandoffReasonEmpty && result.body.handoffReason) {
+    fail(`${modeCase.id}: expected empty handoffReason.`);
+  }
   if (!result.body.answer || !result.body.answerSeed || !result.body.privacyReminder) {
     fail(`${modeCase.id}: expected stable success response fields.`);
   }
@@ -1037,10 +1088,21 @@ for (const modeCase of modeCases) {
     fail(`${modeCase.id}: answer missing ${modeCase.expectedAnswerIncludes}.`);
   }
   if (
+    modeCase.expectedDisclaimerIncludes &&
+    !contains(result.body.disclaimer || "", modeCase.expectedDisclaimerIncludes)
+  ) {
+    fail(`${modeCase.id}: disclaimer missing ${modeCase.expectedDisclaimerIncludes}.`);
+  }
+  if (
     modeCase.forbiddenResponseText &&
     JSON.stringify(result.body).includes(modeCase.forbiddenResponseText)
   ) {
     fail(`${modeCase.id}: response exposed forbidden secret text.`);
+  }
+  for (const forbiddenText of modeCase.forbiddenResponseTexts || []) {
+    if (JSON.stringify(result.body).includes(forbiddenText)) {
+      fail(`${modeCase.id}: response exposed forbidden text ${forbiddenText}.`);
+    }
   }
   if (
     typeof modeCase.expectedFetchCalls === "number" &&
