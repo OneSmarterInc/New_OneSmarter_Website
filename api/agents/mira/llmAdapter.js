@@ -72,10 +72,22 @@ const withFallbackMetadata = (localResult, fallbackReason, providerResult = {}) 
 const hasHardStopRisk = (riskFlags = []) =>
   riskFlags.some((riskFlag) => HARD_STOP_RISK_FLAGS.has(riskFlag));
 
+const hasClaimBoundaryRisk = (riskFlags = []) =>
+  riskFlags.includes("hipaa_claim_boundary") || riskFlags.includes("soc2_claim_boundary");
+
 const hasApprovedContext = (localResult) =>
   Array.isArray(localResult?.matchedEntries) &&
   localResult.matchedEntries.length > 0 &&
   localResult.confidence !== "low";
+
+const withClaimBoundaryMetadata = (localResult) => ({
+  ...localResult,
+  mode: LOCAL_HARNESS_MODE,
+  handoffNeeded: false,
+  handoffReason: "",
+  fallbackUsed: true,
+  fallbackReason: "pre_call_claim_boundary",
+});
 
 const normalizeModelHandoff = (modelOutput, localResult) => {
   if (localResult.handoffNeeded || hasHardStopRisk(localResult.riskFlags)) {
@@ -121,6 +133,10 @@ export const runMiraResponseAdapter = async ({
     config?.mode === STAGING_LLM_MODE &&
     config?.provider === "openai"
   ) {
+    if (hasClaimBoundaryRisk(localResult.riskFlags)) {
+      return withClaimBoundaryMetadata(localResult);
+    }
+
     if (!config.providerConfigComplete) {
       return withFallbackMetadata(localResult, "missing_provider_config");
     }
