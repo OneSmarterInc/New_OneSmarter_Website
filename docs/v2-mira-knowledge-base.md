@@ -191,12 +191,24 @@ The engine exports:
 
 The engine works by:
 
-- Normalizing the visitor question.
+- Preserving the original visitor question for display and response context.
+- Applying deterministic typo and alias normalization internally for approved company, service, compliance, healthcare, legal, medical, and prompt-injection terms.
+- Running safety checks against both the original text and the normalized text so misspellings do not bypass PHI, legal, compliance, or prompt-injection rules.
 - Tokenizing the question and approved KB entries.
 - Applying simple topic expansion for healthcare, platforms, contact, telecom, SOC 2, HIPAA, legal/privacy, and AI topics.
 - Scoring KB entries using title, category, route, related questions, approved summaries, source facts, and allowed claims.
 - Detecting risk flags for claim-boundary questions, legal or medical advice, PHI or confidential data, business-specific reviews, prompt injection, and out-of-scope requests.
 - Returning a structured answer seed with matched entries, confidence, risk flags, handoff state, handoff reason, and suggested follow-up prompts.
+
+The deterministic normalizer lives in `src/data/agentKnowledge/miraIntentNormalizer.js`. It uses explicit aliases and bounded known-vocabulary replacements only; it does not globally autocorrect arbitrary text. Examples include OneSmarter aliases, platform/service typos, HIPAA/SOC 2 wording variants, PHI/claims wording, legal/medical typos, and prompt-injection typos.
+
+The normalizer also exposes a future seam:
+
+`normalizeMiraIntent({ originalMessage, normalizedMessage, retrievalConfidence, riskFlags })`
+
+Current method: `deterministic`.
+
+A future method may be `staging_llm_normalizer`, but only for low-confidence questions that appear OneSmarter-related and are not safety-rule, PHI/confidential, legal, medical, compliance-guarantee, prompt-injection, or clearly out-of-scope cases. No second LLM call exists yet.
 
 Run the local engine tests with:
 
@@ -213,6 +225,7 @@ The local test script uses `miraTestQuestions.js` and checks:
 - `answerSeed` is non-empty.
 - `answerSeed` avoids unsafe prohibited phrases.
 - Required fixture themes appear where expected.
+- Typo-equivalence cases preserve the original text internally while matching the correctly spelled intent, risk flags, handoff behavior, confidence band, and approved source coverage.
 
 The local engine does not yet:
 

@@ -212,6 +212,8 @@ Pre-call gates should run before any model request:
 - Empty message rejection.
 - Too-long message rejection.
 - Rate limit.
+- Deterministic typo and alias normalization for approved OneSmarter, service, compliance, healthcare, legal, medical, and prompt-injection vocabulary.
+- Safety detection against both the original user text and the normalized internal text.
 - PHI/confidential detection.
 - Legal advice detection.
 - Medical advice detection.
@@ -220,6 +222,8 @@ Pre-call gates should run before any model request:
 - Prompt injection detection.
 - Approved KB retrieval.
 - Retrieval confidence check.
+
+The original user text must remain the visible chat text. The normalized or interpreted query is internal and should not be exposed in the public response schema.
 
 If high-risk or no approved context:
 
@@ -235,6 +239,8 @@ Examples that should skip the LLM call:
 - User asks for guaranteed compliance.
 - User tries to override system instructions.
 - Retrieval returns no approved OneSmarter context.
+
+Future selective intent normalization may be considered only after the deterministic layer returns low confidence for a question that still appears OneSmarter-related. That future normalizer must be feature-gated, must not run for safety-rule refusals, PHI/confidential submissions, legal/medical advice, compliance guarantees, prompt injection, or clear out-of-scope questions, and must preserve the existing endpoint schema. No second LLM call exists in the current implementation.
 
 ## Safety Gates After LLM Call
 

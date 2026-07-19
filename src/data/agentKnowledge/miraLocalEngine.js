@@ -1,5 +1,9 @@
 import { onesmarterPublicKnowledgeBase } from "./onesmarterPublicKb.js";
 import { miraClaimRules } from "./miraClaimRules.js";
+import {
+  normalizeMiraIntent,
+  normalizeMiraMessageText,
+} from "./miraIntentNormalizer.js";
 
 const STOP_WORDS = new Set([
   "a",
@@ -67,6 +71,10 @@ const TOPIC_EXPANSIONS = [
     terms: ["ai", "agent", "agentic", "mira"],
     add: ["ai", "agentic", "mira", "workflow", "automation"],
   },
+  {
+    terms: ["as400", "ibm"],
+    add: ["as400", "ibm", "enterprise", "software", "legacy", "technology"],
+  },
 ];
 
 const RISK_RULES = [
@@ -110,23 +118,8 @@ const RISK_RULES = [
 
 const unique = (items) => [...new Set(items)];
 
-const normalizeOneSmarterAliases = (text) =>
-  text
-    .replace(/\bone\s*[-\s]\s*smarter\s+inc\b/g, "onesmarter")
-    .replace(/\bonesmarter\s+inc\b/g, "onesmarter")
-    .replace(/\bone\s*[-\s]\s*smarter\b/g, "onesmarter")
-    .replace(/\b1smarter\b/g, "onesmarter")
-    .replace(/\bonsmarter\b/g, "onesmarter");
-
 export const normalizeQuestion = (question = "") =>
-  normalizeOneSmarterAliases(
-    question
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9\s/.-]/g, " ")
-    .replace(/\s+/g, " ")
-      .trim(),
-  );
+  normalizeMiraMessageText(question);
 
 const tokenize = (text = "") =>
   unique(
@@ -159,10 +152,15 @@ const entrySearchText = (entry) =>
 
 export const detectRiskFlags = (question, claimRules = miraClaimRules) => {
   const flags = new Set();
-  const normalized = normalizeQuestion(question);
+  const normalizedForms = unique([
+    String(question).toLowerCase(),
+    normalizeQuestion(question),
+  ]);
 
-  for (const rule of RISK_RULES) {
-    if (rule.pattern.test(normalized)) flags.add(rule.flag);
+  for (const normalized of normalizedForms) {
+    for (const rule of RISK_RULES) {
+      if (rule.pattern.test(normalized)) flags.add(rule.flag);
+    }
   }
 
   for (const phrase of claimRules.prohibitedPhrases || []) {
@@ -170,10 +168,12 @@ export const detectRiskFlags = (question, claimRules = miraClaimRules) => {
       `\\b${phrase.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+")}\\b`,
       "i",
     );
-    if (phrasePattern.test(normalized)) {
-      if (phrase.toLowerCase().includes("hipaa")) flags.add("hipaa_claim_boundary");
-      if (phrase.toLowerCase().includes("soc 2")) flags.add("soc2_claim_boundary");
-      if (phrase.toLowerCase().includes("compliance")) flags.add("compliance_guarantee");
+    for (const normalized of normalizedForms) {
+      if (phrasePattern.test(normalized)) {
+        if (phrase.toLowerCase().includes("hipaa")) flags.add("hipaa_claim_boundary");
+        if (phrase.toLowerCase().includes("soc 2")) flags.add("soc2_claim_boundary");
+        if (phrase.toLowerCase().includes("compliance")) flags.add("compliance_guarantee");
+      }
     }
   }
 
@@ -252,6 +252,10 @@ export const scoreKbEntry = (question, entry) => {
     if (entry.id === "soc2-attested") score += 8;
   }
 
+  if (/\bas400\b|\bibm\s*i\b/.test(normalized)) {
+    if (entry.id === "technology-solutions-overview") score += 8;
+  }
+
   return {
     entry,
     score,
@@ -274,18 +278,31 @@ export const retrieveMiraContext = (
   } = {},
 ) => {
   const riskFlags = detectRiskFlags(question, claimRules);
+  const deterministicIntent = normalizeMiraIntent({
+    originalMessage: question,
+    riskFlags,
+  });
+  const retrievalQuestion = deterministicIntent.interpretedQuery;
   const scored = knowledgeBase
-    .map((entry) => scoreKbEntry(question, entry))
+    .map((entry) => scoreKbEntry(retrievalQuestion, entry))
     .filter((result) => result.score >= 2)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
   const topScore = scored[0]?.score || 0;
+  const confidence = confidenceFromScore(topScore);
+  const intent = normalizeMiraIntent({
+    originalMessage: question,
+    normalizedMessage: retrievalQuestion,
+    retrievalConfidence: confidence,
+    riskFlags,
+  });
   return {
     question,
-    normalizedQuestion: normalizeQuestion(question),
+    normalizedQuestion: retrievalQuestion,
+    intent,
     riskFlags,
-    confidence: confidenceFromScore(topScore),
+    confidence,
     matchedEntries: scored.map(({ entry, score, matchedTerms }) => ({
       id: entry.id,
       route: entry.route,
@@ -358,6 +375,7 @@ export const buildSafeAnswerSeed = (
     );
 
   const refusalCategory = riskFlags.length ? refusalForFlags(riskFlags, claimRules) : "";
+  const needsClarification = Boolean(retrievalResult.intent?.needsClarification);
   const primary = matchedEntries[0];
   const secondary = matchedEntries.slice(1, 3);
 
@@ -367,6 +385,10 @@ export const buildSafeAnswerSeed = (
   if (refusalCategory) {
     answerSeed = responseForCategory(refusalCategory, claimRules);
     handoffReason = refusalCategory === "unknown_or_not_grounded" ? "" : refusalCategory;
+  } else if (needsClarification) {
+    answerSeed =
+      "I may not have understood that correctly. Are you asking about OneSmarter's platforms, healthcare services, compliance services, or something else?";
+    handoffReason = "";
   } else if (primary) {
     const facts = (primary.sourceFacts || []).slice(0, 2).join(" ");
     const relatedText = secondary.length
@@ -386,6 +408,7 @@ export const buildSafeAnswerSeed = (
   return {
     question,
     normalizedQuestion: retrievalResult.normalizedQuestion,
+    intent: retrievalResult.intent,
     riskFlags,
     confidence,
     matchedEntries,
