@@ -175,7 +175,7 @@ const formatMiraResponse = (response) => {
   if (!response?.answer) {
     return {
       mainSentences: [
-        "Choose a sample question to preview Mira's grounded mock endpoint response.",
+        "Choose a sample question to preview Mira's staged, grounded response.",
       ],
       relatedTopics: [],
       handoffNote: "",
@@ -514,22 +514,22 @@ const MiraConversationPanel = () => {
             Guide interaction
           </p>
           <h2 className="text-2xl font-bold md:text-4xl">
-            Mock endpoint preview
+            Staging AI preview
           </h2>
           <p className="mt-4 leading-7 text-zinc-300">
             Mira can answer sample questions or a short typed question using
             approved OneSmarter content. This preview is grounded, controlled,
-            and does not call a model yet.
+            and protected by deterministic safety fallback.
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-zinc-300">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
-              Mock endpoint preview
+              Staging AI preview
             </span>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
-              Grounded local harness
+              Grounded in approved content
             </span>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
-              No model call yet
+              Safety fallback enabled
             </span>
           </div>
           <div className="mt-7 grid gap-3">
@@ -593,11 +593,11 @@ const MiraConversationPanel = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Mira Vale</h3>
-                <p className="text-sm text-zinc-400">local_harness_mock</p>
+                <p className="text-sm text-zinc-400">staged grounded response path</p>
               </div>
             </div>
             <span className="rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200">
-              Mock endpoint
+              Staging preview
             </span>
           </div>
 
@@ -693,8 +693,10 @@ const MiraConversationPanel = () => {
           </div>
 
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
-            Sample buttons and typed questions call the mock endpoint only. No
-            uploads, persistent memory, or model call are enabled.
+            Sample buttons and typed questions use Mira's staged, grounded
+            response path. Sensitive or out-of-scope questions may be handled by
+            deterministic safety rules. No uploads or persistent memory are
+            enabled.
           </p>
         </div>
       </div>
