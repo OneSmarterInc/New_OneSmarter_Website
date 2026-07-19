@@ -10,6 +10,7 @@ const HANDOFF_REQUIRED_FLAGS = new Set([
   "compliance_guarantee",
   "business_specific_review",
 ]);
+const MAX_MODEL_ANSWER_CHARS = 1400;
 
 const PROHIBITED_PATTERNS = [
   { label: "HIPAA Certified", pattern: /\bHIPAA\s+Certified\b/i },
@@ -22,6 +23,28 @@ const PROHIBITED_PATTERNS = [
 
 const PHI_INVITATION_PATTERN =
   /\b(upload|paste|send|share|provide)\b.*\b(PHI|patient|claim number|claims data|confidential|credentials|private operational)\b/i;
+const RAW_HTML_PATTERN = /<\/?[a-z][\s\S]*>/i;
+const UNSUPPORTED_EXAMPLE_PATTERNS = [
+  {
+    label: "unsupported_baa_commitment",
+    pattern:
+      /\b(we|onesmarter|our platform|mira)\b[^.]{0,80}\b(provide|execute|sign|manage|issue|include|offer)\b[^.]{0,80}\bBAA(s)?\b/i,
+  },
+  {
+    label: "unsupported_integration",
+    pattern:
+      /\b((integrated|integration|syncs?|connects?|connected)\b[^.]{0,100}\b(secure ticketing|case management|bill audit|bill pay|claims processing)|(secure ticketing|case management|bill audit|bill pay|claims processing)\b[^.]{0,100}\b(integrated|integration|syncs?|connects?|connected))\b/i,
+  },
+  {
+    label: "unsupported_clinical_workflow",
+    pattern: /\b(clinical workflow|clinical workflows|patient care workflow|treatment workflow)\b/i,
+  },
+  {
+    label: "unsupported_customer_outcome",
+    pattern:
+      /\b(reduce costs by|saves? \d+|improves? outcomes?|guarantees? savings|guaranteed savings)\b/i,
+  },
+];
 
 const isSafeCorrectionContext = (answer, label) => {
   const hasCorrectionLanguage =
@@ -120,9 +143,23 @@ export const validateMiraModelOutput = (
   }
 
   const answer = modelOutput.answer || "";
+  if (answer.length > MAX_MODEL_ANSWER_CHARS) {
+    violations.push("answer_too_long");
+  }
+
+  if (RAW_HTML_PATTERN.test(answer)) {
+    violations.push("raw_html_not_allowed");
+  }
+
   for (const { label, pattern } of PROHIBITED_PATTERNS) {
     if (pattern.test(answer) && !isSafeCorrectionContext(answer, label)) {
       violations.push(`prohibited_phrase:${label}`);
+    }
+  }
+
+  for (const { label, pattern } of UNSUPPORTED_EXAMPLE_PATTERNS) {
+    if (pattern.test(answer)) {
+      violations.push(label);
     }
   }
 

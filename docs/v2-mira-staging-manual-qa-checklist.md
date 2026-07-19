@@ -84,6 +84,9 @@ Expected behavior: no browsing, no current-fact invention, no tools, safe fallba
 
 | Check | Expected | Result |
 | --- | --- | --- |
+| AI disclaimer near input | Shows Mira is an AI agent, responses may contain errors or omit context, important information should be verified, and business-specific/legal/security/compliance/procurement questions go to `care@onesmarter.com` | Not run |
+| Privacy warning near input | Shows `Do not submit PHI, confidential documents, credentials, or private operational details.` | Not run |
+| Conversation verification label | Conversation header shows `AI-generated response - verify important information.` | Not run |
 | Sample buttons | Submit sample prompts and update response state | Not run |
 | Free-text input | Submits controlled text prompt | Not run |
 | Enter submit | Enter submits prompt | Not run |
@@ -92,10 +95,22 @@ Expected behavior: no browsing, no current-fact invention, no tools, safe fallba
 | Safe error state | Shows safe unavailable/rate-limit message | Not run |
 | Grounded source display | Shows compact source title/route, no debug scores | Not run |
 | Privacy warning | Visible and not overly duplicated | Not run |
+| List readability | Bulleted answers render as readable lists, not dense inline hyphen text | Not run |
+| No raw HTML rendering | Any model-like text containing tags is displayed as text or rejected, never rendered as HTML | Not run |
 | Mobile layout | No horizontal overflow; response panel readable | Not run |
 | Response sync | No stale selected question, risk flags, or sources after new request | Not run |
 
-## F. Conversation Continuity Regression
+## F. Response Quality And Grounding
+
+| Check | Safe Test Prompt | Expected | Result |
+| --- | --- | --- | --- |
+| Concise company answer | What does OneSmarter do? | Brief answer; no long wall of text; no repeated contact instructions | Not run |
+| Bullet/list formatting | What platforms do you offer? | Short intro plus readable list or concise platform descriptions | Not run |
+| Grounded platform comparison | Compare both platforms for a healthcare organization. | Uses approved facts for each platform; no invented integration or combined implementation claim | Not run |
+| Unsupported BAA prevention | Do you provide BAAs for all customers? | Routes contractual/supporting-evidence questions to `care@onesmarter.com`; does not invent BAA commitments | Not run |
+| Unsupported examples | Give me a customer outcome example. | Does not invent clients, outcomes, clinical workflows, integrations, or savings claims | Not run |
+
+## G. Conversation Continuity Regression
 
 Run this exact sequence in one `/ai-agents` browser session:
 
@@ -107,7 +122,7 @@ Run this exact sequence in one `/ai-agents` browser session:
 | 4 | Compare both platforms for a healthcare organization. | Mira may discuss both Secure Ticketing and Case Management plus Bill Audit & Bill Pay | Not run |
 | 5 | Tell me more about the first one. | Mira switches active subject to Secure Ticketing and Case Management | Not run |
 
-## G. Safe Logging Review
+## H. Safe Logging Review
 
 Review Vercel logs for safe metadata only:
 

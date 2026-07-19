@@ -64,6 +64,9 @@ Grounding rules:
 - Matched sources are returned for review.
 - Insufficient approved context falls back safely.
 - No internet browsing or current-fact lookup exists in the endpoint.
+- Mira is instructed to answer concisely, separate approved facts from handoff guidance, and use bullets for lists when helpful.
+- Mira must not invent contracts, BAAs, integrations, customers, clinical workflows, combined platform implementations, or customer outcomes.
+- Platform comparisons should describe each platform from approved facts only and should not imply integrations unless documented.
 
 ## Pre-Call Safety Gates
 
@@ -96,6 +99,10 @@ Model output must pass structured output validation before being returned. Valid
 - Compliance guarantees.
 - PHI/confidential upload invitations.
 - Required handoff behavior for risky topics.
+- Excessive answer length.
+- Raw HTML.
+- Unsupported BAA commitments.
+- Unsupported platform integrations, clinical workflows, or customer outcome claims.
 
 Unsafe, malformed, missing, or refused output falls back to deterministic local behavior.
 
@@ -171,6 +178,8 @@ Fields that must not be logged:
 Every successful endpoint response includes:
 
 `Do not submit PHI, confidential documents, or private operational details through this public agent.`
+
+The `/ai-agents` UI also displays an input-adjacent AI disclaimer telling visitors that Mira is an AI agent, responses may contain errors or omit context, important information should be verified, and business-specific, legal, security, compliance, or procurement questions should go to `care@onesmarter.com`.
 
 ## No Uploads, Memory, or Tools
 

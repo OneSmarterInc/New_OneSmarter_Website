@@ -1,4 +1,5 @@
 import process from "node:process";
+import { readFileSync } from "node:fs";
 import {
   buildMiraContextBlock,
   buildMiraPromptPayload,
@@ -13,6 +14,7 @@ import {
 } from "../src/data/agentKnowledge/miraLocalEngine.js";
 
 const failures = [];
+const aiAgentsPageSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 
 const fail = (message) => failures.push(message);
 
@@ -282,6 +284,31 @@ if (!contains(companyPrompt.system, "Do not browse the web")) {
   fail("prompt: missing no-browsing instruction.");
 }
 
+for (const expectedGuidance of [
+  "Keep ordinary visitor-facing answers concise",
+  "Use bullets for lists",
+  "Do not use raw HTML",
+  "Do not invent examples, customers, contracts, BAAs, integrations",
+  "When comparing platforms, describe each platform only from retrieved approved facts",
+]) {
+  if (!contains(companyPrompt.system, expectedGuidance)) {
+    fail(`prompt: missing response-quality guidance: ${expectedGuidance}.`);
+  }
+}
+
+for (const expectedUiText of [
+  "Mira is an AI agent. Responses may contain errors or omit important",
+  "Do not submit PHI, confidential documents, credentials, or private",
+  "AI-generated response - verify important information.",
+  "Mira may make mistakes. Responses are grounded in approved",
+  "formatMiraAnswerBlocks",
+  "list-disc",
+]) {
+  if (!contains(aiAgentsPageSource, expectedUiText)) {
+    fail(`ui-source: missing expected Mira disclaimer/formatting text: ${expectedUiText}.`);
+  }
+}
+
 for (const phrase of [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
@@ -512,6 +539,63 @@ validateCase({
 });
 
 validateCase({
+  id: "overlong-output-fails",
+  output: {
+    answer: "OneSmarter builds secure platforms. ".repeat(60),
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["answer_too_long"],
+});
+
+validateCase({
+  id: "raw-html-output-fails",
+  output: {
+    answer: "<strong>OneSmarter</strong> builds secure platforms.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["raw_html_not_allowed"],
+});
+
+validateCase({
+  id: "unsupported-baa-commitment-fails",
+  output: {
+    answer: "OneSmarter can provide BAAs for every healthcare workflow.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["unsupported_baa_commitment"],
+});
+
+validateCase({
+  id: "unsupported-platform-integration-fails",
+  output: {
+    answer:
+      "Secure Ticketing and Bill Audit are integrated so healthcare teams can automate cross-platform workflows.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["unsupported_integration"],
+});
+
+validateCase({
   id: "insufficient-context-must-handoff",
   output: {
     answer: "I do not have enough context.",
@@ -536,4 +620,4 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks and 9 mocked model output cases.");
+console.log("Ran prompt construction checks and 13 mocked model output cases.");

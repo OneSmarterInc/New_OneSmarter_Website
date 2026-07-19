@@ -203,6 +203,75 @@ const splitMiraParagraphs = (text) =>
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 
+const formatMiraAnswerBlocks = (text) => {
+  const normalized = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+-\s+(?=[A-Z0-9])/g, "\n- ");
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const blocks = [];
+  let pendingBullets = [];
+
+  const flushBullets = () => {
+    if (pendingBullets.length) {
+      blocks.push({ type: "list", items: pendingBullets });
+      pendingBullets = [];
+    }
+  };
+
+  for (const line of lines) {
+    const bulletMatch = line.match(/^[-*•]\s+(.+)$/);
+    if (bulletMatch) {
+      pendingBullets.push(bulletMatch[1].trim());
+      continue;
+    }
+
+    flushBullets();
+
+    if (/^[A-Z][A-Za-z0-9 &/,-]{2,48}:$/.test(line)) {
+      blocks.push({ type: "heading", text: line.replace(/:$/, "") });
+      continue;
+    }
+
+    const paragraphs = splitMiraParagraphs(line);
+    if (paragraphs.length > 1 && line.length > 220) {
+      blocks.push(...paragraphs.map((paragraph) => ({ type: "paragraph", text: paragraph })));
+    } else {
+      blocks.push({ type: "paragraph", text: line });
+    }
+  }
+
+  flushBullets();
+  return blocks.length ? blocks : [{ type: "paragraph", text }];
+};
+
+const MiraAnswerContent = ({ content }) => (
+  <div className="grid gap-3">
+    {formatMiraAnswerBlocks(content).map((block, index) => {
+      const key = `${block.type}-${index}`;
+      if (block.type === "heading") {
+        return (
+          <p key={key} className="text-xs font-semibold uppercase tracking-wide text-red-200">
+            {block.text}
+          </p>
+        );
+      }
+      if (block.type === "list") {
+        return (
+          <ul key={key} className="ml-4 list-disc space-y-1">
+            {block.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        );
+      }
+      return <p key={key}>{block.text}</p>;
+    })}
+  </div>
+);
+
 const formatMiraResponse = (response) => {
   if (!response?.answer) {
     return {
@@ -624,8 +693,15 @@ const MiraConversationPanel = () => {
             <label htmlFor="mira-question" className="text-sm font-semibold text-white">
               Ask Mira a question
             </label>
+            <p id="mira-ai-disclaimer" className="mt-2 text-xs leading-5 text-zinc-300">
+              Mira is an AI agent. Responses may contain errors or omit important
+              context. Verify important information and contact care@onesmarter.com
+              for business-specific, legal, security, compliance, or procurement
+              questions.
+            </p>
             <p id="mira-question-help" className="mt-2 text-xs leading-5 text-zinc-400">
-              Do not submit PHI, confidential documents, or private operational details.
+              Do not submit PHI, confidential documents, credentials, or private
+              operational details.
             </p>
             <textarea
               id="mira-question"
@@ -634,7 +710,7 @@ const MiraConversationPanel = () => {
               onKeyDown={handleCustomQuestionKeyDown}
               maxLength={MIRA_INPUT_LIMIT}
               rows={4}
-              aria-describedby="mira-question-help mira-question-count"
+              aria-describedby="mira-ai-disclaimer mira-question-help mira-question-count"
               placeholder="Example: What does OneSmarter offer for healthcare teams?"
               className="mt-3 min-h-28 w-full resize-y rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-red-400 focus:ring-2 focus:ring-red-500/30"
               disabled={isLoading}
@@ -663,6 +739,9 @@ const MiraConversationPanel = () => {
               <div>
                 <h3 className="font-semibold text-white">Mira Vale</h3>
                 <p className="text-sm text-zinc-400">staged grounded response path</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  AI-generated response - verify important information.
+                </p>
               </div>
             </div>
             <span className="rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200">
@@ -704,11 +783,7 @@ const MiraConversationPanel = () => {
                 >
                   {turn.role === "user" ? "You" : "Mira"}
                 </p>
-                <div className="grid gap-3">
-                  {splitMiraParagraphs(turn.content).map((sentence) => (
-                    <p key={sentence}>{sentence}</p>
-                  ))}
-                </div>
+                <MiraAnswerContent content={turn.content} />
               </div>
             ))}
 
@@ -793,11 +868,11 @@ const MiraConversationPanel = () => {
           </div>
 
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
-            Sample buttons and typed questions use Mira's staged, grounded
-            response path. Sensitive or out-of-scope questions may be handled by
-            deterministic safety rules. Conversation context is used only during
-            this browser session and is not intended for PHI, confidential
-            documents, or private operational details. No uploads or persistent
+            Mira may make mistakes. Responses are grounded in approved
+            OneSmarter content, but important information should be independently
+            verified. Route business-specific, legal, security, compliance, or
+            procurement matters to care@onesmarter.com. Conversation context is
+            used only during this browser session. No uploads or persistent
             memory are enabled.
           </p>
         </div>

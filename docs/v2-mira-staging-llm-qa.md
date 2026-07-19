@@ -104,6 +104,22 @@ Grounding expectations:
 - Insufficient context falls back safely instead of browsing.
 - Current/fresh web facts are not invented.
 - No provider tools, browsing, file search, or external actions are enabled.
+- Visitor-facing answers should be concise and readable.
+- Bullet/list answers should render as actual lists in the UI.
+- Platform comparisons should stay within approved facts for each platform.
+- The model should not invent BAAs, contracts, integrations, customers, clinical workflows, customer outcomes, savings claims, or combined platform implementation scenarios.
+- Platform-level security, procurement, contractual, or supporting-evidence questions should route to `care@onesmarter.com`.
+
+## UI Transparency Review
+
+The `/ai-agents` UI should visibly show:
+
+- Mira is an AI agent.
+- Responses may contain errors or omit important context.
+- Important information should be verified.
+- Business-specific, legal, security, compliance, or procurement questions should go to `care@onesmarter.com`.
+- The input warning not to submit PHI, confidential documents, credentials, or private operational details.
+- The conversation header label: `AI-generated response - verify important information.`
 
 ## Prompt Injection Review
 
