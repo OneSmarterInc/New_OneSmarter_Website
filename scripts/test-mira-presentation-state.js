@@ -22,6 +22,60 @@ const baseResponse = {
 
 const cases = [
   {
+    id: "direct-null-input",
+    input: null,
+    expectedPosture: "welcoming",
+    expectedExpression: "welcoming",
+    expectedHighSignals: ["welcoming", "helpful"],
+    expectedSummary: "Mira is ready to help.",
+  },
+  {
+    id: "direct-undefined-input",
+    input: undefined,
+    expectedPosture: "welcoming",
+    expectedExpression: "welcoming",
+    expectedHighSignals: ["welcoming", "helpful"],
+    expectedSummary: "Mira is ready to help.",
+  },
+  {
+    id: "empty-object-input",
+    input: {},
+    expectedPosture: "welcoming",
+    expectedExpression: "welcoming",
+    expectedHighSignals: ["welcoming", "helpful"],
+    expectedSummary: "Mira is ready to help.",
+  },
+  {
+    id: "initial-no-response-state",
+    input: { response: null },
+    expectedPosture: "welcoming",
+    expectedExpression: "welcoming",
+    expectedHighSignals: ["welcoming", "helpful"],
+    expectedSummary: "Mira is ready to help.",
+  },
+  {
+    id: "empty-response-object-state",
+    input: { response: {} },
+    expectedPosture: "welcoming",
+    expectedExpression: "welcoming",
+    expectedHighSignals: ["welcoming", "helpful"],
+    expectedSummary: "Mira is ready to help.",
+  },
+  {
+    id: "loading-no-response",
+    input: { response: null, isLoading: true },
+    expectedPosture: "thoughtful",
+    expectedExpression: "pondering",
+    expectedHighSignals: ["thoughtful"],
+  },
+  {
+    id: "error-no-response",
+    input: { response: null, hasError: true },
+    expectedPosture: "concerned",
+    expectedExpression: "unavailable",
+    expectedHighSignals: ["concerned", "careful"],
+  },
+  {
     id: "normal-grounded",
     input: { response: baseResponse },
     expectedPosture: "helpful",
@@ -142,6 +196,10 @@ for (const testCase of cases) {
 
   if (!first.summary || typeof first.summary !== "string") {
     fail(`${testCase.id}: missing accessible summary.`);
+  }
+
+  if (testCase.expectedSummary && first.summary !== testCase.expectedSummary) {
+    fail(`${testCase.id}: expected summary ${testCase.expectedSummary}, got ${first.summary}.`);
   }
 
   const signalKeys = Object.keys(first.moodSignals || {});

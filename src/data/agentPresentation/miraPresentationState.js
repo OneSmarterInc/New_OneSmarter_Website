@@ -38,14 +38,37 @@ const createState = ({ posture, expression, moodSignals, summary }) => ({
   summary,
 });
 
-const riskFlagsFor = (response = {}) =>
-  Array.isArray(response.riskFlags) ? response.riskFlags : [];
+const initialState = () =>
+  createState({
+    posture: "welcoming",
+    expression: "welcoming",
+    summary: "Mira is ready to help.",
+    moodSignals: {
+      welcoming: 70,
+      curious: 40,
+      helpful: 65,
+      thoughtful: 30,
+      careful: 25,
+      concerned: 10,
+      confident: 50,
+    },
+  });
 
-export const deriveMiraPresentationState = ({
-  response = null,
-  isLoading = false,
-  hasError = false,
-} = {}) => {
+const normalizeInput = (input) =>
+  input && typeof input === "object" && !Array.isArray(input) ? input : {};
+
+const safeResponseFor = (response) =>
+  response && typeof response === "object" && !Array.isArray(response) ? response : {};
+
+const riskFlagsFor = (response) => {
+  const safeResponse = safeResponseFor(response);
+  return Array.isArray(safeResponse.riskFlags) ? safeResponse.riskFlags : [];
+};
+
+export const deriveMiraPresentationState = (input = {}) => {
+  const { response = null, isLoading = false, hasError = false } = normalizeInput(input);
+  const safeResponse = safeResponseFor(response);
+
   if (isLoading) {
     return createState({
       posture: "thoughtful",
@@ -81,6 +104,10 @@ export const deriveMiraPresentationState = ({
   }
 
   const riskFlags = riskFlagsFor(response);
+
+  if (!response || Object.keys(safeResponse).length === 0) {
+    return initialState();
+  }
 
   if (riskFlags.includes("phi_or_confidential_data")) {
     return createState({
@@ -188,10 +215,10 @@ export const deriveMiraPresentationState = ({
   }
 
   if (
-    response?.mode === "staging_llm" &&
-    response?.fallbackUsed === false &&
-    response?.groundingStatus === "grounded" &&
-    response?.outputSafetyStatus === "passed"
+    safeResponse.mode === "staging_llm" &&
+    safeResponse.fallbackUsed === false &&
+    safeResponse.groundingStatus === "grounded" &&
+    safeResponse.outputSafetyStatus === "passed"
   ) {
     return createState({
       posture: "helpful",
@@ -209,7 +236,7 @@ export const deriveMiraPresentationState = ({
     });
   }
 
-  if (response?.confidence === "high") {
+  if (safeResponse.confidence === "high") {
     return createState({
       posture: "confident",
       expression: "welcoming",
