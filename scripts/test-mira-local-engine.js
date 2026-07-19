@@ -44,6 +44,22 @@ const typoEquivalenceCases = [
   ],
 ];
 
+const phiTopicOnlyCases = [
+  "What does PHI-sensitive mean?",
+  "How would this help a healthcare organization?",
+  "Do you support HIPAA-regulated workflows?",
+  "How does claims processing work?",
+  "Can healthcare organizations use Bill Audit & Bill Pay?",
+];
+
+const phiSubmissionCases = [
+  "Can I upload a claims file?",
+  "Can I paste patient information?",
+  "Can you review this confidential document?",
+  "Can I send you PHI?",
+  "Please process these private operational records.",
+];
+
 const fail = (message) => failures.push(message);
 
 const contains = (text, value) =>
@@ -187,6 +203,32 @@ for (const [typoQuestion, canonicalQuestion] of typoEquivalenceCases) {
   }
 }
 
+for (const question of phiTopicOnlyCases) {
+  const result = runMiraLocalHarness(question, {
+    claimRules: miraClaimRules,
+    limit: 4,
+  });
+
+  if (result.riskFlags.includes("phi_or_confidential_data")) {
+    fail(`${question}: topic-only question should not trigger phi_or_confidential_data.`);
+  }
+}
+
+for (const question of phiSubmissionCases) {
+  const result = runMiraLocalHarness(question, {
+    claimRules: miraClaimRules,
+    limit: 4,
+  });
+
+  if (!result.riskFlags.includes("phi_or_confidential_data")) {
+    fail(`${question}: sensitive-data submission should trigger phi_or_confidential_data.`);
+  }
+
+  if (!result.handoffNeeded) {
+    fail(`${question}: sensitive-data submission should require handoff.`);
+  }
+}
+
 if (failures.length) {
   console.error("Mira local engine tests failed:");
   for (const failure of failures) {
@@ -198,3 +240,5 @@ if (failures.length) {
 console.log("Mira local engine tests passed.");
 console.log(`Ran ${miraTestQuestions.length} Mira fixtures.`);
 console.log(`Ran ${typoEquivalenceCases.length} typo equivalence cases.`);
+console.log(`Ran ${phiTopicOnlyCases.length} PHI topic-only cases.`);
+console.log(`Ran ${phiSubmissionCases.length} PHI submission cases.`);

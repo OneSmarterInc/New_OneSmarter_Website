@@ -99,10 +99,6 @@ const RISK_RULES = [
     pattern: /\b(medical advice|diagnosis|treatment|patient treatment|clinical advice)\b/i,
   },
   {
-    flag: "phi_or_confidential_data",
-    pattern: /\b(phi|patient|claim number|claims data|upload|paste|confidential|private document|vendor contract)\b/i,
-  },
-  {
     flag: "business_specific_review",
     pattern: /\b(security questionnaire|soc report|evidence|baa|procurement|contract|pricing|implementation|business-specific|vendor review|audit review)\b/i,
   },
@@ -117,6 +113,14 @@ const RISK_RULES = [
 ];
 
 const unique = (items) => [...new Set(items)];
+
+const SENSITIVE_SUBMISSION_INTENT_PATTERN =
+  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit)\b/i;
+const SENSITIVE_DATA_PATTERN =
+  /\b(phi|patient information|patient records?|patient data|claims?\s+(file|data|info|information|record|records|number)|claim number|confidential\s+(document|client document|file|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
+
+const hasSensitiveDataSubmissionIntent = (text = "") =>
+  SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
 
 export const normalizeQuestion = (question = "") =>
   normalizeMiraMessageText(question);
@@ -160,6 +164,10 @@ export const detectRiskFlags = (question, claimRules = miraClaimRules) => {
   for (const normalized of normalizedForms) {
     for (const rule of RISK_RULES) {
       if (rule.pattern.test(normalized)) flags.add(rule.flag);
+    }
+
+    if (hasSensitiveDataSubmissionIntent(normalized)) {
+      flags.add("phi_or_confidential_data");
     }
   }
 
@@ -246,6 +254,12 @@ export const scoreKbEntry = (question, entry) => {
 
   if (/\bhipaa\b/.test(normalized)) {
     if (entry.id === "hipaa-security-rule-assessment") score += 8;
+  }
+
+  if (/\bphi\b|\bphi[-\s]sensitive\b/.test(normalized)) {
+    if (entry.id === "secure-ticketing-case-management") score += 8;
+    if (entry.id === "hipaa-security-rule-assessment") score += 8;
+    if (entry.id === "trust-center-overview") score += 4;
   }
 
   if (/\bsoc\s*2\b|\bsoc2\b/.test(normalized)) {

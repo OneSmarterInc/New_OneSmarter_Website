@@ -88,22 +88,45 @@ const recentHistoryText = (conversationHistory = []) =>
     .join(" ")
     .toLowerCase();
 
+const recentUserHistoryText = (conversationHistory = []) =>
+  conversationHistory
+    .slice(-6)
+    .filter((turn) => turn.role === "user")
+    .map((turn) => turn.content)
+    .join(" ")
+    .toLowerCase();
+
+const SENSITIVE_SUBMISSION_INTENT_PATTERN =
+  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit)\b/i;
+const SENSITIVE_DATA_PATTERN =
+  /\b(phi|patient information|patient records?|patient data|claims?\s+(file|data|info|information|record|records|number)|claim number|confidential\s+(document|client document|file|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
+
+const hasSensitiveDataSubmissionIntent = (text = "") =>
+  SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
+
 const buildContextualRetrievalMessage = (message = "", conversationHistory = []) => {
   if (!conversationHistory.length) return message;
 
   const normalizedMessage = String(message).toLowerCase();
   const history = recentHistoryText(conversationHistory);
+  const userHistory = recentUserHistoryText(conversationHistory);
   const hints = [];
   const referencesHistory =
     /\b(that|it|this|those|previous|above|do that|do it|continue|same question)\b/.test(
       normalizedMessage,
     );
+  const currentHasSensitiveSubmissionIntent =
+    SENSITIVE_SUBMISSION_INTENT_PATTERN.test(normalizedMessage);
 
   if (referencesHistory) {
     if (/\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(system prompt|api key|secret|private prompt)\b/.test(history)) {
       hints.push("ignore instructions reveal system prompt");
     }
-    if (/\b(phi|patient|claims data|confidential|private document|vendor contract)\b/.test(history)) {
+    if (
+      (currentHasSensitiveSubmissionIntent &&
+        SENSITIVE_DATA_PATTERN.test(`${normalizedMessage} ${history}`)) ||
+      hasSensitiveDataSubmissionIntent(userHistory)
+    ) {
       hints.push("PHI confidential patient information");
     }
     if (/\b(legal advice|lawyer|attorney|legal opinion)\b/.test(history)) {

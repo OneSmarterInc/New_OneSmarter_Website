@@ -682,6 +682,134 @@ const modeCases = [
     expectedFetchCalls: 1,
   },
   {
+    id: "mode-staging-openai-bill-audit-healthcare-followup-no-phi",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "How would that help a healthcare organization?",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content:
+          "OneSmarter presents Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+      },
+      { role: "user", content: "Tell me more about the second one." },
+      {
+        role: "assistant",
+        content:
+          "Bill Audit & Bill Pay helps organizations review vendor bills, identify discrepancies, coordinate approvals, and support payment workflows.",
+      },
+    ],
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "For a healthcare organization, Bill Audit & Bill Pay may help review vendor bills, compare recurring expenses, track discrepancies, coordinate approvals, and improve operational visibility.",
+      suggestedFollowUps: ["What telecom expense capabilities are included?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["bill-audit-bill-pay"],
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedAnswerIncludes: "Bill Audit & Bill Pay",
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-phi-sensitive-topic-only-no-phi-risk",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "What does PHI-sensitive mean?",
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-healthcare-topic-only-no-phi-risk",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "How does this support healthcare organizations?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content:
+          "Secure Ticketing and Case Management is built for HIPAA-regulated workflows and PHI-sensitive operations.",
+      },
+    ],
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-hipaa-workflows-topic-only-no-phi-risk",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Do you support HIPAA-regulated workflows?",
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-claims-processing-topic-only-no-phi-risk",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "How does claims processing work?",
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
     id: "mode-staging-openai-followup-contact-uses-history",
     env: {
       MIRA_LLM_MODE: "staging_llm",
@@ -734,6 +862,57 @@ const modeCases = [
           "OneSmarter presents Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
       },
     ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "pre_call_safety_gate",
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "mode-staging-openai-upload-claims-file-skips-provider",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Can I upload a claims file?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "pre_call_safety_gate",
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "mode-staging-openai-paste-patient-information-skips-provider",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Can I paste patient information?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "pre_call_safety_gate",
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "mode-staging-openai-review-confidential-document-skips-provider",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Review this confidential client document.",
     expectedMode: "local_harness_mock",
     expectedHandoff: true,
     expectedStatus: 200,
@@ -1694,6 +1873,11 @@ for (const modeCase of modeCases) {
   for (const flag of modeCase.expectedRiskFlags || []) {
     if (!result.body.riskFlags?.includes(flag)) {
       fail(`${modeCase.id}: missing expected risk flag ${flag}.`);
+    }
+  }
+  for (const flag of modeCase.forbiddenRiskFlags || []) {
+    if (result.body.riskFlags?.includes(flag)) {
+      fail(`${modeCase.id}: unexpected risk flag ${flag}.`);
     }
   }
   for (const sourceId of modeCase.expectedSourceIds || []) {

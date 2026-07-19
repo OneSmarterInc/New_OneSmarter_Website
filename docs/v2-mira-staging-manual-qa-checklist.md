@@ -95,7 +95,17 @@ Expected behavior: no browsing, no current-fact invention, no tools, safe fallba
 | Mobile layout | No horizontal overflow; response panel readable | Not run |
 | Response sync | No stale selected question, risk flags, or sources after new request | Not run |
 
-## F. Safe Logging Review
+## F. Conversation Continuity Regression
+
+Run this exact sequence in one `/ai-agents` browser session:
+
+| Step | Prompt | Expected | Result |
+| --- | --- | --- | --- |
+| 1 | What platforms do you offer? | Mira describes Secure Ticketing and Case Management plus Bill Audit & Bill Pay | Not run |
+| 2 | Tell me more about the second one. | Mira keeps Bill Audit & Bill Pay as the active topic | Not run |
+| 3 | How would that help a healthcare organization? | Mira gives a grounded healthcare-oriented Bill Audit & Bill Pay explanation; no `phi_or_confidential_data` risk flag; no PHI/confidential-data warning | Not run |
+
+## G. Safe Logging Review
 
 Review Vercel logs for safe metadata only:
 
