@@ -1,4 +1,8 @@
 import React, { useRef, useState } from "react";
+import {
+  MIRA_MOOD_SIGNAL_KEYS,
+  deriveMiraPresentationState,
+} from "../data/agentPresentation/miraPresentationState.js";
 
 const agents = [
   {
@@ -212,6 +216,115 @@ const formatMiraResponse = (response) => {
   };
 };
 
+const moodSignalLabels = {
+  welcoming: "Welcoming",
+  curious: "Curious",
+  helpful: "Helpful",
+  thoughtful: "Thoughtful",
+  careful: "Careful",
+  concerned: "Concerned",
+  confident: "Confident",
+};
+
+const expressionLabels = {
+  welcoming: "Welcoming",
+  neutral: "Neutral",
+  pondering: "Pondering",
+  careful: "Careful",
+  concerned: "Concerned",
+  serious: "Serious",
+  unavailable: "Unavailable",
+};
+
+const signalLevelLabel = (value) => {
+  if (value >= 75) return "High";
+  if (value >= 40) return "Medium";
+  return "Low";
+};
+
+const expressionMarkerClasses = {
+  welcoming: "border-emerald-300 bg-emerald-400/15 text-emerald-100",
+  neutral: "border-zinc-300/40 bg-zinc-700/25 text-zinc-100",
+  pondering: "border-sky-300/50 bg-sky-500/15 text-sky-100",
+  careful: "border-amber-300/50 bg-amber-500/15 text-amber-100",
+  concerned: "border-red-300/50 bg-red-500/15 text-red-100",
+  serious: "border-white/30 bg-zinc-900 text-zinc-100",
+  unavailable: "border-zinc-500/50 bg-zinc-800/60 text-zinc-300",
+};
+
+const expressionGlyphs = {
+  welcoming: ":)",
+  neutral: "--",
+  pondering: "?",
+  careful: "!",
+  concerned: ":|",
+  serious: "||",
+  unavailable: "...",
+};
+
+const MiraMoodSignalPanel = ({ presentationState }) => (
+  <aside
+    className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-xs text-zinc-300"
+    aria-label="Mira conversation posture"
+  >
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold text-white">Conversation posture</p>
+        <p className="mt-2 max-w-xl leading-5 text-zinc-400">
+          Mira adjusts her communication posture based on the question,
+          confidence, safety signals, and whether human follow-up is appropriate.
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-lg border font-bold ${expressionMarkerClasses[presentationState.expression]}`}
+          aria-hidden="true"
+        >
+          {expressionGlyphs[presentationState.expression]}
+        </div>
+        <div>
+          <p className="font-semibold capitalize text-white">
+            {presentationState.posture}
+          </p>
+          <p className="mt-1 text-zinc-500">
+            {expressionLabels[presentationState.expression]} expression
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p className="sr-only">{presentationState.summary}</p>
+    <p className="mt-4 rounded border border-white/10 bg-black/20 px-3 py-2 leading-5 text-zinc-300">
+      {presentationState.summary}
+    </p>
+
+    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      {MIRA_MOOD_SIGNAL_KEYS.map((key) => {
+        const value = presentationState.moodSignals[key];
+        return (
+          <div key={key}>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="font-semibold text-zinc-200">
+                {moodSignalLabels[key]}
+              </span>
+              <span className="text-zinc-500">{signalLevelLabel(value)}</span>
+            </div>
+            <div className="h-2 rounded-full bg-zinc-800" aria-hidden="true">
+              <div
+                className="h-2 rounded-full bg-red-500"
+                style={{ width: `${value}%` }}
+              />
+            </div>
+            <span className="sr-only">
+              {moodSignalLabels[key]} signal is {signalLevelLabel(value)}.
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  </aside>
+);
+
 const AgentNetwork = () => (
   <div className="relative min-h-[340px] overflow-hidden rounded-lg border border-white/10 bg-black/45 p-4 shadow-2xl shadow-black/40 sm:min-h-[360px] sm:p-6">
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.20),transparent_52%)]" />
@@ -313,6 +426,11 @@ const MiraConversationPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const formattedResponse = formatMiraResponse(miraResponse);
+  const presentationState = deriveMiraPresentationState({
+    response: miraResponse,
+    isLoading,
+    hasError: Boolean(errorMessage),
+  });
   const responseText = formattedResponse.mainSentences.join(" ").toLowerCase();
   const showPrivacyReminder =
     miraResponse?.privacyReminder && !responseText.includes("do not submit");
@@ -569,6 +687,10 @@ const MiraConversationPanel = () => {
               )}
             </div>
           )}
+
+          <div className="mt-6">
+            <MiraMoodSignalPanel presentationState={presentationState} />
+          </div>
 
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
             Sample buttons and typed questions call the mock endpoint only. No

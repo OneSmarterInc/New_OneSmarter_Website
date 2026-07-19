@@ -187,7 +187,7 @@ Sample exchange:
 
 ## Agent Mood Signal and Expression States
 
-A future side-panel or side-of-screen indicator may show the agent's current conversation posture. This should be a controlled presentation layer, not an open-ended emotional simulation.
+The `/ai-agents` page now includes a compact deterministic Mood Signal panel for Mira's conversation posture. This is a controlled presentation layer, not an open-ended emotional simulation or psychological assessment.
 
 Example posture dimensions:
 
@@ -199,7 +199,7 @@ Example posture dimensions:
 - Concerned
 - Confident
 
-The state may be derived from question type, risk flags, handoff status, confidence, and conversation context. These states should be enumerated and reviewed before any UI, avatar, voice, or model integration uses them.
+The state is derived in the frontend from existing endpoint metadata such as risk flags, handoff status, confidence, grounding status, fallback status, and loading/error state. No model-generated arbitrary emotions are accepted.
 
 Example mappings:
 
@@ -215,9 +215,9 @@ Future implementation path:
 
 | Phase | Scope |
 | --- | --- |
-| Mood P1 | Static mood-signal concept in `/ai-agents`. |
-| Mood P2 | Derive mood state from current mock endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
-| Mood P3 | Add a simple expression-state visual without video or avatar implementation. |
+| Mood P1 | Implemented: deterministic mood-signal panel in `/ai-agents`. |
+| Mood P2 | Implemented: derives mood state from endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
+| Mood P3 | Implemented in lightweight form: simple expression-state visual without video or avatar implementation. |
 | Mood P4 | Connect expression state to a future voice/avatar layer. |
 | Mood P5 | Allow a real LLM to propose `presentationState`, but only through strict allowed-value validation. |
 

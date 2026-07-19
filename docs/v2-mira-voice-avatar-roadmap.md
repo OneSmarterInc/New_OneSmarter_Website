@@ -140,7 +140,9 @@ Guidelines:
 
 ### Mood Signal and Expression State Layer
 
-A future mood/tone meter may sit beside the agent or conversation panel to show the current controlled presentation state. It could use simple colored scales, bars, or labeled chips for states such as welcoming, curious, helpful, thoughtful, careful, concerned, and confident.
+The `/ai-agents` page now includes a deterministic Mood Signal panel beside the Mira conversation experience. It shows the current controlled presentation state using labeled bars for welcoming, curious, helpful, thoughtful, careful, concerned, and confident.
+
+The current implementation is frontend-only and derives state from existing response metadata. It does not ask a model to invent emotions, does not add animation, and does not introduce voice, video, microphone, or avatar behavior.
 
 Possible expression states:
 
@@ -164,9 +166,9 @@ Future implementation path:
 
 | Phase | Scope |
 | --- | --- |
-| Mood P1 | Static mood-signal concept in `/ai-agents`. |
-| Mood P2 | Derive mood state from mock endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
-| Mood P3 | Add simple expression-state visuals without video/avatar implementation. |
+| Mood P1 | Implemented: deterministic mood-signal panel in `/ai-agents`. |
+| Mood P2 | Implemented: derive mood state from endpoint metadata such as `riskFlags`, `confidence`, and `handoffNeeded`. |
+| Mood P3 | Implemented in lightweight form: simple expression-state visual without video/avatar implementation. |
 | Mood P4 | Connect expression state to future voice/avatar behavior. |
 | Mood P5 | Allow real LLM output to propose a `presentationState` only after strict allowed-value validation. |
 

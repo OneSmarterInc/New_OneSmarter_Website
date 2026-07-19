@@ -11,7 +11,8 @@
     "validate:mira-kb": "node scripts/validate-mira-kb.js",
     "test:mira-local": "node scripts/test-mira-local-engine.js",
     "test:mira-api": "node scripts/test-mira-api-contract.js",
-    "test:mira-prompt": "node scripts/test-mira-prompt-contract.js"
+    "test:mira-prompt": "node scripts/test-mira-prompt-contract.js",
+    "test:mira-presentation": "node scripts/test-mira-presentation-state.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
