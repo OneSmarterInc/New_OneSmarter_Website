@@ -29,6 +29,7 @@ Mira currently runs in `local_harness_mock` mode with:
 - Sample question buttons.
 - Controlled free-text input.
 - Enter-to-submit.
+- Visible session-only conversation thread.
 - `POST /api/agents/mira/chat`.
 - Approved public KB.
 - KB validator.
@@ -42,6 +43,8 @@ Mira currently runs in `local_harness_mock` mode with:
 - A runtime config helper and LLM adapter interface that currently support only `mock`, `off`, and fallback-to-mock placeholder behavior. No real provider adapter, SDK, API key, or external model call exists yet.
 - A prompt contract module and output validator for mocked model-response testing. These are not wired to a real provider yet.
 - A staging-only OpenAI Responses API adapter behind `MIRA_LLM_MODE=staging_llm` and `MIRA_LLM_PROVIDER=openai`. It uses server-side env vars only, makes no frontend call, and falls back to `local_harness_mock` on any safety, provider, parsing, timeout, or validation failure.
+
+Mira's current multi-turn context is session-only. The `/ai-agents` UI stores recent turns only in React state while the page is open and sends a capped `conversationHistory` field for follow-up interpretation. The server treats that history as untrusted reference text; approved KB retrieval remains the factual authority. No localStorage, sessionStorage, cookies, database storage, persistent memory, or server-side transcript store is used. Future persistent memory would require a separate privacy, legal, and security design.
 
 ## Recommended Architecture
 
@@ -92,6 +95,7 @@ Prompt components:
 - System instructions.
 - Mira persona instructions.
 - Retrieved approved source context.
+- Recent conversation block labeled `RECENT CONVERSATION FOR REFERENCE ONLY`.
 - Claim-boundary rules.
 - Handoff rules.
 - Refusal rules.

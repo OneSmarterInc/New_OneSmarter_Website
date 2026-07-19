@@ -872,8 +872,9 @@ const MiraConversationPanel = () => {
             OneSmarter content, but important information should be independently
             verified. Route business-specific, legal, security, compliance, or
             procurement matters to care@onesmarter.com. Conversation context is
-            used only during this browser session. No uploads or persistent
-            memory are enabled.
+            used only during this browser session and is not intended for PHI,
+            confidential documents, or private operational details. No uploads
+            or persistent memory are enabled.
           </p>
         </div>
       </div>
