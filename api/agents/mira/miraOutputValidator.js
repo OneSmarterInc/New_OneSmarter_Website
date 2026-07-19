@@ -52,6 +52,19 @@ const UNSUPPORTED_EXAMPLE_PATTERNS = [
   },
 ];
 
+export const normalizeMiraPublicAnswerText = (answer = "") =>
+  String(answer)
+    .replace(/\bSeparate facts and next steps\b/gi, "Important context")
+    .replace(/\bApproved facts?\s+vs\.?\s+next steps\b/gi, "Important note")
+    .replace(
+      /\bSupports payment workflows to support payment processing steps and records\.?/gi,
+      "Supports approval and payment workflows with a clear record of review and payment activity.",
+    )
+    .replace(
+      /\bpayment workflows to support payment processing steps and records\b/gi,
+      "approval and payment workflows with a clear record of review and payment activity",
+    );
+
 const isSafeCorrectionContext = (answer, label) => {
   const hasCorrectionLanguage =
     /\b(cannot|can't|do not|don't|should not|avoid|rather than|instead of|not describe|not use)\b/i.test(
@@ -148,7 +161,7 @@ export const validateMiraModelOutput = (
     violations.push("output_safety_status_invalid");
   }
 
-  const answer = modelOutput.answer || "";
+  const answer = normalizeMiraPublicAnswerText(modelOutput.answer || "");
   if (answer.length > MAX_MODEL_ANSWER_CHARS) {
     violations.push("answer_too_long");
   }
@@ -206,7 +219,7 @@ export const validateMiraModelOutput = (
     valid: true,
     violations: [],
     correctedOutput: {
-      answer: modelOutput.answer.trim(),
+      answer: answer.trim(),
       handoffNeeded: modelOutput.handoffNeeded,
       handoffReason: modelOutput.handoffReason || null,
       suggestedFollowUps: modelOutput.suggestedFollowUps,

@@ -648,6 +648,41 @@ const modeCases = [
     expectedFetchCalls: 1,
   },
   {
+    id: "mode-staging-openai-platform-copy-normalizes-public-response",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "What is Bill Audit & Bill Pay?",
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "Separate facts and next steps:\nBill Audit & Bill Pay supports payment workflows to support payment processing steps and records.",
+      suggestedFollowUps: ["Does it include telecom expense management?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["bill-audit-bill-pay"],
+    expectedAnswerIncludesAll: [
+      "Important context",
+      "Supports approval and payment workflows with a clear record of review and payment activity.",
+    ],
+    expectedAnswerExcludesAll: [
+      "Separate facts and next steps",
+      "Approved fact vs. next steps",
+      "payment workflows to support payment processing steps and records",
+    ],
+    expectedFetchCalls: 1,
+    forbiddenResponseText: "secret-value-that-must-not-be-exposed",
+  },
+  {
     id: "mode-staging-openai-followup-second-platform-uses-history",
     env: {
       MIRA_LLM_MODE: "staging_llm",

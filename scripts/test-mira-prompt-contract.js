@@ -388,6 +388,8 @@ const validateCase = ({
   localHarnessResult = companyHarness,
   expectedValid,
   expectedViolationIncludes = [],
+  expectedCorrectedIncludes = [],
+  expectedCorrectedExcludes = [],
 }) => {
   const result = validateMiraModelOutput(output, {
     message,
@@ -402,6 +404,18 @@ const validateCase = ({
   for (const expectedViolation of expectedViolationIncludes) {
     if (!result.violations.some((violation) => violation.includes(expectedViolation))) {
       fail(`${id}: missing violation including ${expectedViolation}.`);
+    }
+  }
+
+  for (const expectedText of expectedCorrectedIncludes) {
+    if (!contains(result.correctedOutput?.answer || "", expectedText)) {
+      fail(`${id}: corrected answer missing ${expectedText}.`);
+    }
+  }
+
+  for (const forbiddenText of expectedCorrectedExcludes) {
+    if (contains(result.correctedOutput?.answer || "", forbiddenText)) {
+      fail(`${id}: corrected answer should not include ${forbiddenText}.`);
     }
   }
 
@@ -430,6 +444,49 @@ validateCase({
     outputSafetyStatus: "passed",
   },
   expectedValid: true,
+});
+
+validateCase({
+  id: "internal-facts-next-steps-heading-normalizes",
+  output: {
+    answer:
+      "Separate facts and next steps:\nBill Audit & Bill Pay supports payment workflows to support payment processing steps and records.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: ["What does Bill Audit & Bill Pay support?"],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  message: "What is Bill Audit & Bill Pay?",
+  localHarnessResult: runMiraLocalHarness("What is Bill Audit & Bill Pay?"),
+  expectedValid: true,
+  expectedCorrectedIncludes: [
+    "Important context",
+    "Supports approval and payment workflows with a clear record of review and payment activity.",
+  ],
+  expectedCorrectedExcludes: [
+    "Separate facts and next steps",
+    "payment workflows to support payment processing steps and records",
+  ],
+});
+
+validateCase({
+  id: "approved-fact-next-steps-heading-normalizes",
+  output: {
+    answer:
+      "Approved fact vs. next steps:\nFor platform-level security, procurement, contractual, implementation, or supporting-evidence questions, contact care@onesmarter.com.",
+    handoffNeeded: true,
+    handoffReason: "business_specific_review",
+    suggestedFollowUps: ["How do I contact OneSmarter?"],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  message: "Can I get implementation evidence?",
+  riskFlags: ["business_specific_review"],
+  localHarnessResult: runMiraLocalHarness("Can I get implementation evidence?"),
+  expectedValid: true,
+  expectedCorrectedIncludes: ["Important note"],
+  expectedCorrectedExcludes: ["Approved fact vs. next steps"],
 });
 
 validateCase({
@@ -665,4 +722,4 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks and 16 mocked model output cases.");
+console.log("Ran prompt construction checks and 18 mocked model output cases.");
