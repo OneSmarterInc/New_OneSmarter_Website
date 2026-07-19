@@ -126,10 +126,12 @@ export const buildMiraUserPrompt = ({
   memoryTheme = "",
   empathyState = "",
   conversationHistory = [],
+  responseGuidance = "",
 } = {}) =>
   [
     `User message: ${message}`,
     buildMiraConversationHistoryBlock(conversationHistory),
+    responseGuidance ? `Response guidance: ${responseGuidance}` : "",
     `Persona posture: ${persona || "Mira Vale default guide posture"}`,
     `Memory theme: ${memoryTheme || "approved public website content"}`,
     `Empathy state: ${empathyState || "professional and calm"}`,
@@ -152,6 +154,7 @@ export const buildMiraPromptPayload = ({
     memoryTheme: requestContext.memoryTheme,
     empathyState: requestContext.empathyState,
     conversationHistory,
+    responseGuidance: requestContext.responseGuidance,
   }),
   riskFlags,
   expectedOutputSchema: MIRA_MODEL_OUTPUT_SCHEMA,

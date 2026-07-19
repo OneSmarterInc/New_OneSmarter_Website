@@ -596,6 +596,51 @@ validateCase({
 });
 
 validateCase({
+  id: "internal-related-topics-language-fails",
+  output: {
+    answer:
+      "Secure Ticketing and Case Management supports workflow tracking. Related approved topics: Bill Audit & Bill Pay.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["internal_related_topics"],
+});
+
+validateCase({
+  id: "internal-page-language-fails",
+  output: {
+    answer:
+      "The page uses supporting language such as built for HIPAA-regulated workflows.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["internal_page_language"],
+});
+
+validateCase({
+  id: "internal-route-language-fails",
+  output: {
+    answer:
+      "Route regulated-workflow, procurement, security-review, or implementation-specific questions to care@onesmarter.com.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: false,
+  expectedViolationIncludes: ["internal_route_guidance"],
+});
+
+validateCase({
   id: "insufficient-context-must-handoff",
   output: {
     answer: "I do not have enough context.",
@@ -620,4 +665,4 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks and 13 mocked model output cases.");
+console.log("Ran prompt construction checks and 16 mocked model output cases.");

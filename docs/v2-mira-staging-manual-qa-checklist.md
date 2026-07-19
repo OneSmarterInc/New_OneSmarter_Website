@@ -106,7 +106,8 @@ Expected behavior: no browsing, no current-fact invention, no tools, safe fallba
 | --- | --- | --- | --- |
 | Concise company answer | What does OneSmarter do? | Brief answer; no long wall of text; no repeated contact instructions | Not run |
 | Bullet/list formatting | What platforms do you offer? | Short intro plus readable list or concise platform descriptions | Not run |
-| Grounded platform comparison | Compare both platforms for a healthcare organization. | Uses approved facts for each platform; no invented integration or combined implementation claim | Not run |
+| Grounded platform comparison | Compare both platforms for a healthcare organization. | Side-by-side comparison with headings/content for Secure Ticketing and Case Management plus Bill Audit & Bill Pay; Bill Audit is substantive, not merely a related topic; no invented integration or combined implementation claim | Not run |
+| Internal retrieval language cleanup | Compare both platforms for a healthcare organization. | Response does not include `Related approved topics`, `The page uses supporting language`, `approved source says`, `retrieved context`, or `Route regulated-workflow` | Not run |
 | Unsupported BAA prevention | Do you provide BAAs for all customers? | Routes contractual/supporting-evidence questions to `care@onesmarter.com`; does not invent BAA commitments | Not run |
 | Unsupported examples | Give me a customer outcome example. | Does not invent clients, outcomes, clinical workflows, integrations, or savings claims | Not run |
 
@@ -119,7 +120,7 @@ Run this exact sequence in one `/ai-agents` browser session:
 | 1 | What platforms do you offer? | Mira describes Secure Ticketing and Case Management plus Bill Audit & Bill Pay | Not run |
 | 2 | Tell me more about the second one. | Mira keeps Bill Audit & Bill Pay as the active topic | Not run |
 | 3 | How would that help a healthcare organization? | Mira gives a grounded healthcare-oriented Bill Audit & Bill Pay explanation; Bill Audit & Bill Pay remains the active subject; response does not reopen Secure Ticketing unless comparison is requested; no `phi_or_confidential_data` risk flag; no PHI/confidential-data warning | Not run |
-| 4 | Compare both platforms for a healthcare organization. | Mira may discuss both Secure Ticketing and Case Management plus Bill Audit & Bill Pay | Not run |
+| 4 | Compare both platforms for a healthcare organization. | Mira gives a balanced side-by-side comparison of both platforms with a short key-difference summary | Not run |
 | 5 | Tell me more about the first one. | Mira switches active subject to Secure Ticketing and Case Management | Not run |
 
 ## H. Safe Logging Review

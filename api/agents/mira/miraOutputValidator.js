@@ -24,6 +24,12 @@ const PROHIBITED_PATTERNS = [
 const PHI_INVITATION_PATTERN =
   /\b(upload|paste|send|share|provide)\b.*\b(PHI|patient|claim number|claims data|confidential|credentials|private operational)\b/i;
 const RAW_HTML_PATTERN = /<\/?[a-z][\s\S]*>/i;
+const INTERNAL_RETRIEVAL_LANGUAGE_PATTERNS = [
+  { label: "internal_related_topics", pattern: /\bRelated approved topics\b/i },
+  { label: "internal_page_language", pattern: /\bThe page uses supporting language\b/i },
+  { label: "internal_source_reference", pattern: /\b(approved source says|retrieved context|source facts?|matched sources?)\b/i },
+  { label: "internal_route_guidance", pattern: /\bRoute regulated-workflow\b|\bRoute .*questions to care@onesmarter\.com\b/i },
+];
 const UNSUPPORTED_EXAMPLE_PATTERNS = [
   {
     label: "unsupported_baa_commitment",
@@ -149,6 +155,12 @@ export const validateMiraModelOutput = (
 
   if (RAW_HTML_PATTERN.test(answer)) {
     violations.push("raw_html_not_allowed");
+  }
+
+  for (const { label, pattern } of INTERNAL_RETRIEVAL_LANGUAGE_PATTERNS) {
+    if (pattern.test(answer)) {
+      violations.push(label);
+    }
   }
 
   for (const { label, pattern } of PROHIBITED_PATTERNS) {

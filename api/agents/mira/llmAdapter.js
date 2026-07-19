@@ -104,10 +104,13 @@ const SENSITIVE_DATA_PATTERN =
 const hasSensitiveDataSubmissionIntent = (text = "") =>
   SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
 
-const isBroadPlatformQuestion = (message = "") =>
-  /\b(both|compare|comparison|two platforms|both platforms|all platforms|platforms)\b/i.test(
+const isComparisonIntent = (message = "") =>
+  /\b(compare both platforms|compare the two|comparison|difference between the platforms|which platform is for what|side-by-side comparison|side by side comparison|both platforms)\b/i.test(
     message,
   );
+
+const isBroadPlatformQuestion = (message = "") =>
+  isComparisonIntent(message) || /\b(two platforms|all platforms|platforms)\b/i.test(message);
 
 const resolveActiveSubject = (message = "", conversationHistory = []) => {
   const normalizedMessage = String(message).toLowerCase();
@@ -156,6 +159,55 @@ const answerSeedForEntries = (matchedEntries = []) => {
   return `${primary.approvedSummary} ${facts}${relatedText} ${primary.handoffGuidance}`.trim();
 };
 
+const naturalHandoff =
+  "For platform-level security, procurement, contractual, implementation, or supporting-evidence questions, contact care@onesmarter.com.";
+
+const comparisonAnswerSeedFor = () =>
+  [
+    "Here is the practical difference between OneSmarter's two platform offerings for a healthcare organization.",
+    "",
+    "Secure Ticketing and Case Management:",
+    "- Built for HIPAA-regulated workflows and PHI-sensitive operations.",
+    "- Supports secure intake, role-based access, audit history, controlled communication, workflow tracking, and accountable issue resolution.",
+    "- Best fit when the need is case management, issue tracking, controlled communication, or workflow accountability.",
+    "",
+    "Bill Audit & Bill Pay:",
+    "- Helps organizations review vendor bills, analyze recurring expenses, identify discrepancies, coordinate approvals, and support payment workflows.",
+    "- Supports telecom expense management as a use case, including bill analysis, contract and rate comparison, historical usage review, and cost-control reporting.",
+    "- Best fit when the need is vendor-expense review, recurring bill analysis, discrepancy tracking, approvals, or payment workflow support.",
+    "",
+    "Key difference: Secure Ticketing and Case Management is centered on secure operational case workflows; Bill Audit & Bill Pay is centered on financial and vendor-expense workflows.",
+    naturalHandoff,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+const withPlatformComparisonContext = (localResult) => {
+  const secureEntry = localResult.matchedEntries.find(
+    (entry) => entry.id === "secure-ticketing-case-management",
+  );
+  const billEntry = localResult.matchedEntries.find((entry) => entry.id === "bill-audit-bill-pay");
+
+  if (!secureEntry || !billEntry) return localResult;
+
+  const matchedEntries = [
+    { ...secureEntry, score: Math.max(secureEntry.score, 45) },
+    { ...billEntry, score: Math.max(billEntry.score, 45) },
+  ];
+
+  return {
+    ...localResult,
+    confidence: "high",
+    matchedEntries,
+    answerSeed: comparisonAnswerSeedFor(),
+    suggestedFollowUps: [
+      "Tell me more about Secure Ticketing and Case Management.",
+      "Tell me more about Bill Audit & Bill Pay.",
+      "How should I contact OneSmarter?",
+    ],
+  };
+};
+
 const withActiveSubjectPriority = (localResult, activeSubject) => {
   if (!activeSubject) return localResult;
   const activeEntry = localResult.matchedEntries.find((entry) => entry.id === activeSubject);
@@ -182,9 +234,10 @@ const withActiveSubjectPriority = (localResult, activeSubject) => {
 };
 
 const buildContextualRetrievalMessage = (message = "", conversationHistory = []) => {
-  if (!conversationHistory.length) return message;
-
   const normalizedMessage = String(message).toLowerCase();
+  const comparisonIntent = isComparisonIntent(normalizedMessage);
+  if (!conversationHistory.length && !comparisonIntent) return message;
+
   const history = recentHistoryText(conversationHistory);
   const userHistory = recentUserHistoryText(conversationHistory);
   const hints = [];
@@ -195,6 +248,12 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
   const currentHasSensitiveSubmissionIntent =
     SENSITIVE_SUBMISSION_INTENT_PATTERN.test(normalizedMessage);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
+
+  if (comparisonIntent) {
+    hints.push(
+      "Secure Ticketing and Case Management Bill Audit & Bill Pay compare both platforms healthcare organization",
+    );
+  }
 
   if (referencesHistory) {
     if (/\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(system prompt|api key|secret|private prompt)\b/.test(history)) {
@@ -307,10 +366,13 @@ export const runMiraResponseAdapter = async ({
 
   const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
-  const localResult = withActiveSubjectPriority({
+  const initialLocalResult = {
     ...localHarness(retrievalMessage),
     question: message,
-  }, activeSubject);
+  };
+  const localResult = isComparisonIntent(message)
+    ? withPlatformComparisonContext(initialLocalResult)
+    : withActiveSubjectPriority(initialLocalResult, activeSubject);
 
   if (
     config?.mode === STAGING_LLM_MODE &&
@@ -340,6 +402,14 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
+      responseGuidance: isComparisonIntent(message)
+        ? [
+            "Return a concise side-by-side comparison with headings for Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+            "Give each platform 2-4 bullets from approved context.",
+            "Include a short key-difference summary.",
+            "Do not expose source-note wording such as related topics, route guidance, retrieved context, or page language.",
+          ].join(" ")
+        : "",
     };
     const promptPayload = buildMiraPromptPayload({
       message,

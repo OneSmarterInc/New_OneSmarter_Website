@@ -736,7 +736,16 @@ const modeCases = [
     fetchImpl: openAiNestedSuccessFetch({
       ...validModelOutput,
       answer:
-        "Secure Ticketing and Case Management supports accountable healthcare workflows, while Bill Audit & Bill Pay supports vendor bill review, recurring expense analysis, discrepancy tracking, and approval coordination.",
+        [
+          "For a healthcare organization, the two platforms address different operational needs.",
+          "Secure Ticketing and Case Management:",
+          "- Built for HIPAA-regulated workflows and PHI-sensitive operations.",
+          "- Supports role-based access, audit history, controlled communication, workflow tracking, and accountable issue resolution.",
+          "Bill Audit & Bill Pay:",
+          "- Supports vendor bill review, recurring expense analysis, discrepancy tracking, approval workflows, and payment workflows.",
+          "- Includes telecom expense management as a use case, including bill analysis, contract and rate comparison, historical usage review, and cost-control reporting.",
+          "Key difference: Secure Ticketing and Case Management is centered on secure operational case workflows; Bill Audit & Bill Pay is centered on financial and vendor-expense workflows.",
+        ].join("\n"),
       suggestedFollowUps: ["Which platform should I start with?"],
     }),
     expectedMode: "staging_llm",
@@ -747,7 +756,62 @@ const modeCases = [
     expectedGroundingStatus: "grounded",
     expectedOutputSafetyStatus: "passed",
     expectedSourceIds: ["secure-ticketing-case-management", "bill-audit-bill-pay"],
+    expectedPrimarySourceId: "secure-ticketing-case-management",
     forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+      "Key difference",
+      "telecom expense management as a use case",
+    ],
+    expectedAnswerExcludesAll: [
+      "Related approved topics",
+      "The page uses supporting language",
+      "approved source says",
+      "retrieved context",
+      "Route regulated-workflow",
+      "BAA",
+      "integrated",
+    ],
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-compare-the-two-uses-both-platforms",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Compare the two.",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content:
+          "OneSmarter presents Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+      },
+    ],
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "Secure Ticketing and Case Management focuses on secure case workflows, controlled communication, role-based access, workflow tracking, and audit history.\nBill Audit & Bill Pay focuses on vendor bill review, recurring expense analysis, discrepancy tracking, approval workflows, payment workflows, and telecom expense management as a use case.\nKey difference: one is for secure case management; the other is for financial and vendor-expense workflows.",
+      suggestedFollowUps: ["Which one should I ask about next?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["secure-ticketing-case-management", "bill-audit-bill-pay"],
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+      "Key difference",
+    ],
+    expectedAnswerExcludesAll: ["Related approved topics", "retrieved context", "BAA"],
     expectedFetchCalls: 1,
   },
   {
@@ -2084,6 +2148,11 @@ for (const modeCase of modeCases) {
   ) {
     fail(`${modeCase.id}: answer missing ${modeCase.expectedAnswerIncludes}.`);
   }
+  for (const expectedText of modeCase.expectedAnswerIncludesAll || []) {
+    if (!contains(result.body.answer || "", expectedText)) {
+      fail(`${modeCase.id}: answer missing ${expectedText}.`);
+    }
+  }
   if (
     modeCase.expectedDisclaimerIncludes &&
     !contains(result.body.disclaimer || "", modeCase.expectedDisclaimerIncludes)
@@ -2098,6 +2167,11 @@ for (const modeCase of modeCases) {
   }
   if (modeCase.expectedAnswerExcludes && contains(result.body.answer || "", modeCase.expectedAnswerExcludes)) {
     fail(`${modeCase.id}: answer should not include ${modeCase.expectedAnswerExcludes}.`);
+  }
+  for (const forbiddenText of modeCase.expectedAnswerExcludesAll || []) {
+    if (contains(result.body.answer || "", forbiddenText)) {
+      fail(`${modeCase.id}: answer should not include ${forbiddenText}.`);
+    }
   }
   if (
     modeCase.forbiddenResponseText &&
