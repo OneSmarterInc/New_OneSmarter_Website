@@ -104,6 +104,83 @@ const SENSITIVE_DATA_PATTERN =
 const hasSensitiveDataSubmissionIntent = (text = "") =>
   SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
 
+const isBroadPlatformQuestion = (message = "") =>
+  /\b(both|compare|comparison|two platforms|both platforms|all platforms|platforms)\b/i.test(
+    message,
+  );
+
+const resolveActiveSubject = (message = "", conversationHistory = []) => {
+  const normalizedMessage = String(message).toLowerCase();
+  const history = recentHistoryText(conversationHistory);
+
+  if (/\b(first one|first option|first platform)\b/.test(normalizedMessage)) {
+    return "secure-ticketing-case-management";
+  }
+  if (/\b(second one|second option|second platform|other platform)\b/.test(normalizedMessage)) {
+    return "bill-audit-bill-pay";
+  }
+  if (isBroadPlatformQuestion(normalizedMessage)) return "";
+  if (!/\b(that|it|this|those|previous|above|same one)\b/.test(normalizedMessage)) {
+    return "";
+  }
+
+  const recentTurns = conversationHistory.slice(-4).reverse();
+  for (const turn of recentTurns) {
+    const content = String(turn?.content || "").toLowerCase();
+    if (/\bbill audit\b|\bbill pay\b/.test(content)) {
+      return "bill-audit-bill-pay";
+    }
+    if (/\bsecure ticketing\b|\bcase management\b/.test(content)) {
+      return "secure-ticketing-case-management";
+    }
+  }
+
+  if (/\bbill audit\b|\bbill pay\b/.test(history)) return "bill-audit-bill-pay";
+  if (/\bsecure ticketing\b|\bcase management\b/.test(history)) {
+    return "secure-ticketing-case-management";
+  }
+  return "";
+};
+
+const answerSeedForEntries = (matchedEntries = []) => {
+  const primary = matchedEntries[0];
+  if (!primary) return "";
+  const facts = (primary.sourceFacts || []).slice(0, 2).join(" ");
+  const relatedText =
+    matchedEntries.length > 1
+      ? ` Related approved topics: ${matchedEntries
+          .slice(1, 3)
+          .map((entry) => entry.title)
+          .join(", ")}.`
+      : "";
+  return `${primary.approvedSummary} ${facts}${relatedText} ${primary.handoffGuidance}`.trim();
+};
+
+const withActiveSubjectPriority = (localResult, activeSubject) => {
+  if (!activeSubject) return localResult;
+  const activeEntry = localResult.matchedEntries.find((entry) => entry.id === activeSubject);
+  if (!activeEntry) return localResult;
+
+  const matchedEntries = [
+    { ...activeEntry, score: Math.max(activeEntry.score, 40) },
+    ...localResult.matchedEntries
+      .filter(
+        (entry) =>
+          entry.id !== activeSubject &&
+          !["secure-ticketing-case-management", "bill-audit-bill-pay"].includes(entry.id),
+      )
+      .slice(0, 1),
+  ];
+
+  return {
+    ...localResult,
+    confidence: "high",
+    matchedEntries,
+    answerSeed: answerSeedForEntries(matchedEntries) || localResult.answerSeed,
+    suggestedFollowUps: activeEntry.relatedQuestions?.slice(0, 3) || localResult.suggestedFollowUps,
+  };
+};
+
 const buildContextualRetrievalMessage = (message = "", conversationHistory = []) => {
   if (!conversationHistory.length) return message;
 
@@ -117,6 +194,7 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
     );
   const currentHasSensitiveSubmissionIntent =
     SENSITIVE_SUBMISSION_INTENT_PATTERN.test(normalizedMessage);
+  const activeSubject = resolveActiveSubject(message, conversationHistory);
 
   if (referencesHistory) {
     if (/\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(system prompt|api key|secret|private prompt)\b/.test(history)) {
@@ -153,7 +231,11 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
   }
 
   if (/\b(that|it|this|those)\b/.test(normalizedMessage)) {
-    if (/\bbill audit\b|\bbill pay\b|\bvendor bill\b|\btelecom\b/.test(history)) {
+    if (activeSubject === "bill-audit-bill-pay") {
+      hints.push("Bill Audit & Bill Pay Bill Audit & Bill Pay vendor bills recurring expenses approvals healthcare organization");
+    } else if (activeSubject === "secure-ticketing-case-management") {
+      hints.push("Secure Ticketing and Case Management Secure Ticketing and Case Management HIPAA regulated workflows case management healthcare organization");
+    } else if (/\bbill audit\b|\bbill pay\b|\bvendor bill\b|\btelecom\b/.test(history)) {
       hints.push("Bill Audit & Bill Pay telecom expense management vendor bills");
     } else if (/\bsecure ticketing\b|\bcase management\b|\bphi\b|\bhipaa\b/.test(history)) {
       hints.push("Secure Ticketing and Case Management HIPAA regulated workflows");
@@ -224,10 +306,11 @@ export const runMiraResponseAdapter = async ({
   }
 
   const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
-  const localResult = {
+  const activeSubject = resolveActiveSubject(message, conversationHistory);
+  const localResult = withActiveSubjectPriority({
     ...localHarness(retrievalMessage),
     question: message,
-  };
+  }, activeSubject);
 
   if (
     config?.mode === STAGING_LLM_MODE &&

@@ -103,7 +103,9 @@ Run this exact sequence in one `/ai-agents` browser session:
 | --- | --- | --- | --- |
 | 1 | What platforms do you offer? | Mira describes Secure Ticketing and Case Management plus Bill Audit & Bill Pay | Not run |
 | 2 | Tell me more about the second one. | Mira keeps Bill Audit & Bill Pay as the active topic | Not run |
-| 3 | How would that help a healthcare organization? | Mira gives a grounded healthcare-oriented Bill Audit & Bill Pay explanation; no `phi_or_confidential_data` risk flag; no PHI/confidential-data warning | Not run |
+| 3 | How would that help a healthcare organization? | Mira gives a grounded healthcare-oriented Bill Audit & Bill Pay explanation; Bill Audit & Bill Pay remains the active subject; response does not reopen Secure Ticketing unless comparison is requested; no `phi_or_confidential_data` risk flag; no PHI/confidential-data warning | Not run |
+| 4 | Compare both platforms for a healthcare organization. | Mira may discuss both Secure Ticketing and Case Management plus Bill Audit & Bill Pay | Not run |
+| 5 | Tell me more about the first one. | Mira switches active subject to Secure Ticketing and Case Management | Not run |
 
 ## G. Safe Logging Review
 

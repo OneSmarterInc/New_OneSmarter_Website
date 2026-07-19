@@ -718,8 +718,72 @@ const modeCases = [
     expectedGroundingStatus: "grounded",
     expectedOutputSafetyStatus: "passed",
     expectedSourceIds: ["bill-audit-bill-pay"],
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    forbiddenSourceIds: ["secure-ticketing-case-management"],
     forbiddenRiskFlags: ["phi_or_confidential_data"],
     expectedAnswerIncludes: "Bill Audit & Bill Pay",
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-compare-both-platforms-healthcare-allows-both",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Compare both platforms for a healthcare organization.",
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "Secure Ticketing and Case Management supports accountable healthcare workflows, while Bill Audit & Bill Pay supports vendor bill review, recurring expense analysis, discrepancy tracking, and approval coordination.",
+      suggestedFollowUps: ["Which platform should I start with?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["secure-ticketing-case-management", "bill-audit-bill-pay"],
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-followup-first-platform-uses-history",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Tell me more about the first one.",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content:
+          "OneSmarter presents Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+      },
+    ],
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "Secure Ticketing and Case Management supports HIPAA-regulated workflows, role-based access, audit history, controlled communication, workflow tracking, and accountable issue resolution.",
+      suggestedFollowUps: ["How does secure ticketing support healthcare workflows?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["secure-ticketing-case-management"],
+    expectedPrimarySourceId: "secure-ticketing-case-management",
+    forbiddenSourceIds: ["bill-audit-bill-pay"],
+    expectedAnswerIncludes: "Secure Ticketing and Case Management",
     expectedFetchCalls: 1,
   },
   {
@@ -1883,6 +1947,19 @@ for (const modeCase of modeCases) {
   for (const sourceId of modeCase.expectedSourceIds || []) {
     if (!result.body.matchedSources?.some((source) => source.id === sourceId)) {
       fail(`${modeCase.id}: missing matched source ${sourceId}.`);
+    }
+  }
+  if (
+    modeCase.expectedPrimarySourceId &&
+    result.body.matchedSources?.[0]?.id !== modeCase.expectedPrimarySourceId
+  ) {
+    fail(
+      `${modeCase.id}: expected primary source ${modeCase.expectedPrimarySourceId}, got ${result.body.matchedSources?.[0]?.id}.`,
+    );
+  }
+  for (const sourceId of modeCase.forbiddenSourceIds || []) {
+    if (result.body.matchedSources?.some((source) => source.id === sourceId)) {
+      fail(`${modeCase.id}: unexpected matched source ${sourceId}.`);
     }
   }
   if (modeCase.expectedMatchedSourcesEmpty && result.body.matchedSources?.length !== 0) {
