@@ -256,6 +256,20 @@ The endpoint runs in `local_harness_mock` mode. It calls `runMiraLocalHarness` a
 
 The `/ai-agents` Mira conversation panel now calls this mock endpoint when a visitor clicks one of the sample question buttons or submits a controlled typed question. The UI formats the endpoint response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, matched source titles/routes in a compact grounding area, and the endpoint privacy reminder.
 
+The panel now displays a visible session thread. Recent turns are held only in React state while the page is open and may be sent as optional `conversationHistory` to help interpret short follow-up questions such as "tell me more about the second one." This is session-only context, not persistent memory. It is not written to localStorage, sessionStorage, cookies, a database, or analytics.
+
+Server-side history limits:
+
+- Maximum 6 recent messages.
+- Roles must be `user` or `assistant`.
+- Content must be non-empty string text.
+- Maximum 700 characters per history message.
+- Maximum 2000 total history characters.
+- Unsupported fields are stripped.
+- Malformed or excessive history receives a JSON error response.
+
+Conversation history is included in the prompt contract only under `RECENT CONVERSATION FOR REFERENCE ONLY`. It may help interpret follow-up wording, but visitor-provided history is not approved evidence. Approved KB entries remain the only factual source authority.
+
 The typed question field is intentionally constrained:
 
 - 500-character client-side limit.

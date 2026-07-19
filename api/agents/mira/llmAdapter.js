@@ -81,6 +81,77 @@ const hasApprovedContext = (localResult) =>
   localResult.matchedEntries.length > 0 &&
   localResult.confidence !== "low";
 
+const recentHistoryText = (conversationHistory = []) =>
+  conversationHistory
+    .slice(-6)
+    .map((turn) => `${turn.role}: ${turn.content}`)
+    .join(" ")
+    .toLowerCase();
+
+const buildContextualRetrievalMessage = (message = "", conversationHistory = []) => {
+  if (!conversationHistory.length) return message;
+
+  const normalizedMessage = String(message).toLowerCase();
+  const history = recentHistoryText(conversationHistory);
+  const hints = [];
+  const referencesHistory =
+    /\b(that|it|this|those|previous|above|do that|do it|continue|same question)\b/.test(
+      normalizedMessage,
+    );
+
+  if (referencesHistory) {
+    if (/\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(system prompt|api key|secret|private prompt)\b/.test(history)) {
+      hints.push("ignore instructions reveal system prompt");
+    }
+    if (/\b(phi|patient|claims data|confidential|private document|vendor contract)\b/.test(history)) {
+      hints.push("PHI confidential patient information");
+    }
+    if (/\b(legal advice|lawyer|attorney|legal opinion)\b/.test(history)) {
+      hints.push("legal advice");
+    }
+    if (/\b(medical advice|diagnosis|treatment|clinical advice)\b/.test(history)) {
+      hints.push("medical advice");
+    }
+    if (/\b(guarantee|guaranteed|fully compliant|make me compliant)\b/.test(history)) {
+      hints.push("guaranteed compliance");
+    }
+  }
+
+  if (/\b(second one|second option|second platform|other platform)\b/.test(normalizedMessage)) {
+    if (/\bplatforms?\b/.test(history) || /\bsecure ticketing\b|\bbill audit\b/.test(history)) {
+      hints.push("Bill Audit & Bill Pay");
+    }
+  }
+
+  if (/\b(first one|first option|first platform)\b/.test(normalizedMessage)) {
+    if (/\bplatforms?\b/.test(history) || /\bsecure ticketing\b|\bbill audit\b/.test(history)) {
+      hints.push("Secure Ticketing and Case Management");
+    }
+  }
+
+  if (/\b(that|it|this|those)\b/.test(normalizedMessage)) {
+    if (/\bbill audit\b|\bbill pay\b|\bvendor bill\b|\btelecom\b/.test(history)) {
+      hints.push("Bill Audit & Bill Pay telecom expense management vendor bills");
+    } else if (/\bsecure ticketing\b|\bcase management\b|\bphi\b|\bhipaa\b/.test(history)) {
+      hints.push("Secure Ticketing and Case Management HIPAA regulated workflows");
+    } else if (/\bsoc\s*2\b|\bsoc2\b/.test(history)) {
+      hints.push("SOC 2 Type II Attested Trust Center");
+    } else if (/\bhipaa\b/.test(history)) {
+      hints.push("HIPAA Security Rule Compliance Assessment Completed Trust Center");
+    } else if (/\bai agentic\b|\bai agents?\b|\bmira\b/.test(history)) {
+      hints.push("AI Agentic Services Mira AI agents");
+    } else if (/\bclaims processing\b|\bhealthcare\b|\btpa\b/.test(history)) {
+      hints.push("Claims Processing Services healthcare TPA technology");
+    }
+  }
+
+  if (/\b(contact|email|reach|talk|follow up)\b/.test(normalizedMessage)) {
+    hints.push("Contact care@onesmarter.com");
+  }
+
+  return hints.length ? `${message} ${[...new Set(hints)].join(" ")}` : message;
+};
+
 const withClaimBoundaryMetadata = (localResult) => ({
   ...localResult,
   mode: LOCAL_HARNESS_MODE,
@@ -120,6 +191,7 @@ export const runMiraResponseAdapter = async ({
   persona,
   memoryTheme,
   empathyState,
+  conversationHistory = [],
   config,
   localHarness = runMiraLocalHarness,
   openAiAdapter = runOpenAiMiraAdapter,
@@ -128,7 +200,11 @@ export const runMiraResponseAdapter = async ({
     return unavailableResponse(message);
   }
 
-  const localResult = localHarness(message);
+  const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
+  const localResult = {
+    ...localHarness(retrievalMessage),
+    question: message,
+  };
 
   if (
     config?.mode === STAGING_LLM_MODE &&
@@ -164,6 +240,7 @@ export const runMiraResponseAdapter = async ({
       retrievalResult: localResult,
       riskFlags: localResult.riskFlags,
       requestContext,
+      conversationHistory,
     });
     const providerResult = await openAiAdapter({
       message,

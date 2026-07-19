@@ -57,6 +57,8 @@ This endpoint calls `runMiraLocalHarness` only. It does not call an LLM, use API
 
 The `/ai-agents` Mira conversation panel now calls this mock endpoint from its sample question buttons and a controlled free-text question field. The frontend formats Mira's deterministic response into a main answer, related topics, handoff note when needed, confidence badge, risk flags when present, compact matched source titles/routes, and the endpoint privacy reminder.
 
+The `/ai-agents` panel also keeps a short conversation thread in React state for the current browser session only. It sends up to the last six role/content turns as `conversationHistory` so short follow-up questions can be interpreted. This history is labeled as reference-only in the prompt contract and is not treated as approved factual context. It is not stored in localStorage, sessionStorage, cookies, a database, or persistent user memory.
+
 The free-text field is still mock-mode only:
 
 - Client-side input is capped at 500 characters.
@@ -112,7 +114,13 @@ For GPT-5-family Preview/staging calls, the adapter supports `MIRA_LLM_REASONING
   "conversationId": "optional string",
   "persona": "optional string",
   "memoryTheme": "optional string",
-  "empathyState": "optional string"
+  "empathyState": "optional string",
+  "conversationHistory": [
+    {
+      "role": "user | assistant",
+      "content": "string"
+    }
+  ]
 }
 ```
 
@@ -123,6 +131,11 @@ Validation rules:
 - `message` must be a string.
 - Empty messages are rejected.
 - Messages longer than 1000 characters are rejected.
+- `conversationHistory` is optional and backward compatible.
+- Conversation history entries may include only `role` and `content`; unsupported fields are ignored.
+- Conversation history is limited to 6 messages, 700 characters per message, and 2000 total characters.
+- Malformed or excessive history is rejected with a JSON error response.
+- Conversation history may help interpret follow-ups, but approved knowledge base entries remain the only factual authority.
 - Invalid JSON receives a JSON error response.
 
 ### Response Schema
@@ -178,6 +191,8 @@ Normalized error codes:
 - `missing_message`
 - `empty_message`
 - `message_too_long`
+- `invalid_conversation_history`
+- `conversation_history_too_long`
 - `rate_limited`
 - `internal_error`
 

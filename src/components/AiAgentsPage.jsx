@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   MIRA_MOOD_SIGNAL_KEYS,
   deriveMiraPresentationState,
@@ -146,8 +146,10 @@ const exchange = [
 ];
 
 const MIRA_INPUT_LIMIT = 500;
+const MIRA_HISTORY_LIMIT = 6;
+const MIRA_HISTORY_TOTAL_LIMIT = 2000;
 
-const askMiraMockEndpoint = async (message) => {
+const askMiraMockEndpoint = async (message, conversationHistory = []) => {
   const response = await fetch("/api/agents/mira/chat", {
     method: "POST",
     headers: {
@@ -155,6 +157,7 @@ const askMiraMockEndpoint = async (message) => {
     },
     body: JSON.stringify({
       message,
+      conversationHistory,
       persona: "Warm Guide",
       memoryTheme: "Public website content",
       empathyState: "Welcoming",
@@ -170,6 +173,35 @@ const askMiraMockEndpoint = async (message) => {
   }
   return data;
 };
+
+const buildMiraConversationHistory = (turns) => {
+  let totalChars = 0;
+  const recentTurns = turns
+    .filter(
+      (turn) =>
+        ["user", "assistant"].includes(turn.role) &&
+        typeof turn.content === "string" &&
+        turn.content.trim(),
+    )
+    .slice(-MIRA_HISTORY_LIMIT)
+    .reverse();
+  const history = [];
+
+  for (const turn of recentTurns) {
+    const content = turn.content.trim().slice(0, 700);
+    if (totalChars + content.length > MIRA_HISTORY_TOTAL_LIMIT) continue;
+    totalChars += content.length;
+    history.push({ role: turn.role, content });
+  }
+
+  return history.reverse();
+};
+
+const splitMiraParagraphs = (text) =>
+  String(text || "")
+    .split(/(?<=\.)\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
 
 const formatMiraResponse = (response) => {
   if (!response?.answer) {
@@ -204,10 +236,7 @@ const formatMiraResponse = (response) => {
     handoffNote = "For business inquiries or review, email care@onesmarter.com.";
   }
 
-  const mainSentences = answer
-    .split(/(?<=\.)\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
+  const mainSentences = splitMiraParagraphs(answer);
 
   return {
     mainSentences: mainSentences.length ? mainSentences : [response.answer],
@@ -418,8 +447,9 @@ const AgentCard = ({ agent }) => (
 
 const MiraConversationPanel = () => {
   const latestRequestId = useRef(0);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [activeQuestion, setActiveQuestion] = useState(conversationExamples[0].question);
+  const threadEndRef = useRef(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [conversationTurns, setConversationTurns] = useState([]);
   const [customQuestion, setCustomQuestion] = useState("");
   const [inputWarning, setInputWarning] = useState("");
   const [miraResponse, setMiraResponse] = useState(null);
@@ -435,26 +465,55 @@ const MiraConversationPanel = () => {
   const showPrivacyReminder =
     miraResponse?.privacyReminder && !responseText.includes("do not submit");
 
+  useEffect(() => {
+    threadEndRef.current?.scrollIntoView({ block: "nearest" });
+  }, [conversationTurns, isLoading, errorMessage]);
+
   const requestMiraAnswer = async (message) => {
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
+    const history = buildMiraConversationHistory(conversationTurns);
+    const userTurn = {
+      id: `user-${requestId}`,
+      role: "user",
+      content: message,
+    };
     setIsLoading(true);
     setErrorMessage("");
     setInputWarning("");
     setMiraResponse(null);
+    setConversationTurns((turns) => [...turns, userTurn]);
 
     try {
-      const response = await askMiraMockEndpoint(message);
+      const response = await askMiraMockEndpoint(message, history);
       if (requestId !== latestRequestId.current) return;
       setMiraResponse(response);
+      setConversationTurns((turns) => [
+        ...turns,
+        {
+          id: `mira-${requestId}`,
+          role: "assistant",
+          content: response.answer,
+          response,
+        },
+      ]);
     } catch (error) {
       if (requestId !== latestRequestId.current) return;
-      setMiraResponse(null);
-      setErrorMessage(
+      const fallbackMessage =
         error.status === 429
           ? "Mira is receiving too many requests right now. Please try again shortly or email care@onesmarter.com."
-          : "Mira is not available right now. For business inquiries, email care@onesmarter.com.",
-      );
+          : "Mira is not available right now. For business inquiries, email care@onesmarter.com.";
+      setMiraResponse(null);
+      setErrorMessage(fallbackMessage);
+      setConversationTurns((turns) => [
+        ...turns,
+        {
+          id: `mira-error-${requestId}`,
+          role: "assistant",
+          content: fallbackMessage,
+          error: true,
+        },
+      ]);
     } finally {
       if (requestId === latestRequestId.current) {
         setIsLoading(false);
@@ -464,7 +523,6 @@ const MiraConversationPanel = () => {
 
   const handleQuestionClick = async (example, index) => {
     setSelectedIndex(index);
-    setActiveQuestion(example.question);
     await requestMiraAnswer(example.question);
   };
 
@@ -493,8 +551,8 @@ const MiraConversationPanel = () => {
     }
 
     setSelectedIndex(null);
-    setActiveQuestion(trimmedQuestion);
     await requestMiraAnswer(trimmedQuestion);
+    setCustomQuestion("");
   };
 
   const handleCustomQuestionKeyDown = (event) => {
@@ -502,6 +560,17 @@ const MiraConversationPanel = () => {
       event.preventDefault();
       event.currentTarget.form?.requestSubmit();
     }
+  };
+
+  const handleStartNewConversation = () => {
+    latestRequestId.current += 1;
+    setSelectedIndex(null);
+    setConversationTurns([]);
+    setMiraResponse(null);
+    setIsLoading(false);
+    setErrorMessage("");
+    setInputWarning("");
+    setCustomQuestion("");
   };
 
   const isSubmitDisabled = isLoading || !customQuestion.trim();
@@ -599,29 +668,60 @@ const MiraConversationPanel = () => {
             <span className="rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200">
               Staging preview
             </span>
+            <button
+              type="button"
+              onClick={handleStartNewConversation}
+              disabled={isLoading || conversationTurns.length === 0}
+              className="rounded-md border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300 transition hover:border-red-500/50 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:text-zinc-600"
+            >
+              Start new conversation
+            </button>
           </div>
 
-          <div className="mt-6 grid gap-5">
-            <div className="ml-auto max-w-[86%] rounded-2xl rounded-tr-sm bg-white px-5 py-4 text-sm leading-6 text-zinc-950">
-              {activeQuestion}
-            </div>
-            <div
-              className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200"
-              aria-live="polite"
-            >
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
-                Mira
-              </p>
-              {isLoading && "Checking the approved OneSmarter knowledge base..."}
-              {!isLoading && errorMessage && errorMessage}
-              {!isLoading && !errorMessage && (
+          <div className="mt-6 grid max-h-[34rem] gap-5 overflow-y-auto pr-1" aria-live="polite">
+            {conversationTurns.length === 0 && (
+              <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
+                  Mira
+                </p>
+                Choose a sample question or type a short question to start.
+              </div>
+            )}
+
+            {conversationTurns.map((turn) => (
+              <div
+                key={turn.id}
+                className={`max-w-[92%] rounded-2xl px-5 py-4 text-sm leading-6 ${
+                  turn.role === "user"
+                    ? "ml-auto rounded-tr-sm bg-white text-zinc-950"
+                    : "rounded-tl-sm border border-white/10 bg-zinc-900 text-zinc-200"
+                }`}
+              >
+                <p
+                  className={`mb-2 text-xs font-semibold uppercase tracking-wide ${
+                    turn.role === "user" ? "text-zinc-500" : "text-red-300"
+                  }`}
+                >
+                  {turn.role === "user" ? "You" : "Mira"}
+                </p>
                 <div className="grid gap-3">
-                  {formattedResponse.mainSentences.map((sentence) => (
+                  {splitMiraParagraphs(turn.content).map((sentence) => (
                     <p key={sentence}>{sentence}</p>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
+                  Mira
+                </p>
+                Checking the approved OneSmarter knowledge base...
+              </div>
+            )}
+
+            <div ref={threadEndRef} />
           </div>
 
           {miraResponse && !isLoading && !errorMessage && (
@@ -695,8 +795,10 @@ const MiraConversationPanel = () => {
           <p className="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-xs leading-5 text-zinc-400">
             Sample buttons and typed questions use Mira's staged, grounded
             response path. Sensitive or out-of-scope questions may be handled by
-            deterministic safety rules. No uploads or persistent memory are
-            enabled.
+            deterministic safety rules. Conversation context is used only during
+            this browser session and is not intended for PHI, confidential
+            documents, or private operational details. No uploads or persistent
+            memory are enabled.
           </p>
         </div>
       </div>

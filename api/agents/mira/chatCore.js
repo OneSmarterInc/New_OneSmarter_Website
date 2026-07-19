@@ -10,6 +10,9 @@ const PRIVACY_REMINDER =
   "Do not submit PHI, confidential documents, or private operational details through this public agent.";
 const RATE_LIMIT_MAX_REQUESTS = 20;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_CONVERSATION_HISTORY_MESSAGES = 6;
+const MAX_CONVERSATION_HISTORY_TOTAL_CHARS = 2000;
+const MAX_CONVERSATION_HISTORY_MESSAGE_CHARS = 700;
 const rateLimitBuckets = new Map();
 
 const createRequestId = (providedRequestId) => {
@@ -46,6 +49,80 @@ const normalizeConversationId = (conversationId) => {
     return conversationId.trim().slice(0, 120);
   }
   return crypto.randomUUID();
+};
+
+const normalizeConversationHistory = (conversationHistory) => {
+  if (conversationHistory === undefined || conversationHistory === null) {
+    return { ok: true, history: [] };
+  }
+
+  if (!Array.isArray(conversationHistory)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "invalid_conversation_history",
+      message: "conversationHistory must be an array when provided.",
+    };
+  }
+
+  if (conversationHistory.length > MAX_CONVERSATION_HISTORY_MESSAGES) {
+    return {
+      ok: false,
+      status: 413,
+      error: "conversation_history_too_long",
+      message: `conversationHistory must include ${MAX_CONVERSATION_HISTORY_MESSAGES} messages or fewer.`,
+    };
+  }
+
+  let totalChars = 0;
+  const history = [];
+
+  for (const turn of conversationHistory) {
+    if (!turn || typeof turn !== "object" || Array.isArray(turn)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "invalid_conversation_history",
+        message: "conversationHistory entries must be objects.",
+      };
+    }
+
+    const role = turn.role;
+    const content = typeof turn.content === "string" ? turn.content.trim() : "";
+
+    if (!["user", "assistant"].includes(role) || !content) {
+      return {
+        ok: false,
+        status: 400,
+        error: "invalid_conversation_history",
+        message:
+          "conversationHistory entries must include role user or assistant and non-empty string content.",
+      };
+    }
+
+    if (content.length > MAX_CONVERSATION_HISTORY_MESSAGE_CHARS) {
+      return {
+        ok: false,
+        status: 413,
+        error: "conversation_history_too_long",
+        message: `conversationHistory entries must be ${MAX_CONVERSATION_HISTORY_MESSAGE_CHARS} characters or fewer.`,
+      };
+    }
+
+    totalChars += content.length;
+    if (totalChars > MAX_CONVERSATION_HISTORY_TOTAL_CHARS) {
+      return {
+        ok: false,
+        status: 413,
+        error: "conversation_history_too_long",
+        message: `conversationHistory must be ${MAX_CONVERSATION_HISTORY_TOTAL_CHARS} total characters or fewer.`,
+      };
+    }
+
+    history.push({ role, content });
+  }
+
+  return { ok: true, history };
 };
 
 const headerValue = (headers = {}, key) => {
@@ -236,7 +313,14 @@ export const handleMiraChatRequest = async ({
     return errorResult;
   }
 
-  const { message, conversationId, persona, memoryTheme, empathyState } = parsedBody;
+  const {
+    message,
+    conversationId,
+    persona,
+    memoryTheme,
+    empathyState,
+    conversationHistory,
+  } = parsedBody;
 
   if (typeof message !== "string") {
     const errorResult = jsonError(400, "missing_message", "message is required and must be a string.", {
@@ -307,6 +391,37 @@ export const handleMiraChatRequest = async ({
     return errorResult;
   }
 
+  const normalizedHistory = normalizeConversationHistory(conversationHistory);
+  if (!normalizedHistory.ok) {
+    const errorResult = jsonError(
+      normalizedHistory.status,
+      normalizedHistory.error,
+      normalizedHistory.message,
+      {
+        requestId,
+        timestamp,
+      },
+    );
+    safeLogEvent(
+      {
+        ...logBase,
+        status: errorResult.status,
+        messageLength: trimmedMessage.length,
+        conversationHistoryCount: Array.isArray(conversationHistory)
+          ? conversationHistory.length
+          : 0,
+        conversationHistoryChars: 0,
+        riskFlags: [],
+        handoffNeeded: false,
+        confidence: "",
+        matchedSourceIds: [],
+        errorCode: normalizedHistory.error,
+      },
+      logger,
+    );
+    return errorResult;
+  }
+
   try {
     const runtimeConfig = readMiraRuntimeConfig();
     const result = await runMiraResponseAdapter({
@@ -315,6 +430,7 @@ export const handleMiraChatRequest = async ({
       persona,
       memoryTheme,
       empathyState,
+      conversationHistory: normalizedHistory.history,
       config: runtimeConfig,
     });
     const normalizedConversationId = normalizeConversationId(conversationId);
@@ -404,6 +520,11 @@ export const handleMiraChatRequest = async ({
         providerUsageOutputTokens: result.providerMetadata?.providerUsageOutputTokens ?? null,
         providerUsageReasoningTokens: result.providerMetadata?.providerUsageReasoningTokens ?? null,
         messageLength: trimmedMessage.length,
+        conversationHistoryCount: normalizedHistory.history.length,
+        conversationHistoryChars: normalizedHistory.history.reduce(
+          (total, turn) => total + turn.content.length,
+          0,
+        ),
         riskFlags: result.riskFlags,
         handoffNeeded: result.handoffNeeded,
         confidence: result.confidence,
