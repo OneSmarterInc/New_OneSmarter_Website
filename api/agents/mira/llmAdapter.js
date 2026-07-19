@@ -12,7 +12,6 @@ const HARD_STOP_RISK_FLAGS = new Set([
   "compliance_guarantee",
   "prompt_injection",
   "business_specific_review",
-  "out_of_scope",
 ]);
 
 const unavailableResponse = (message) => ({
@@ -74,6 +73,8 @@ const hasHardStopRisk = (riskFlags = []) =>
 
 const hasClaimBoundaryRisk = (riskFlags = []) =>
   riskFlags.includes("hipaa_claim_boundary") || riskFlags.includes("soc2_claim_boundary");
+
+const hasOutOfScopeRisk = (riskFlags = []) => riskFlags.includes("out_of_scope");
 
 const hasApprovedContext = (localResult) =>
   Array.isArray(localResult?.matchedEntries) &&
@@ -139,6 +140,10 @@ export const runMiraResponseAdapter = async ({
 
     if (!config.providerConfigComplete) {
       return withFallbackMetadata(localResult, "missing_provider_config");
+    }
+
+    if (hasOutOfScopeRisk(localResult.riskFlags)) {
+      return withFallbackMetadata(localResult, "out_of_scope");
     }
 
     if (hasHardStopRisk(localResult.riskFlags)) {

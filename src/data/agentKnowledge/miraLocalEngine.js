@@ -29,6 +29,7 @@ const STOP_WORDS = new Set([
   "we",
   "what",
   "with",
+  "who",
   "you",
   "your",
 ]);
@@ -103,7 +104,7 @@ const RISK_RULES = [
   },
   {
     flag: "out_of_scope",
-    pattern: /\b(browse the internet|search the web|competitor comparison|compare competitors)\b/i,
+    pattern: /\b(browse the internet|search the web|competitor comparison|compare competitors|weather|baseball|game yesterday|won .* game|latest election|current stock|stock prices|restaurant|recipe)\b/i,
   },
 ];
 
@@ -275,7 +276,7 @@ export const retrieveMiraContext = (
   const riskFlags = detectRiskFlags(question, claimRules);
   const scored = knowledgeBase
     .map((entry) => scoreKbEntry(question, entry))
-    .filter((result) => result.score > 0)
+    .filter((result) => result.score >= 2)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
@@ -330,6 +331,10 @@ const suggestedFollowUpsFor = (matchedEntries, handoffNeeded) => {
     ];
   }
 
+  if (!matchedEntries.length) {
+    return ["What would you like to know about OneSmarter?"];
+  }
+
   const related = matchedEntries.flatMap((entry) => entry.relatedQuestions || []);
   return unique(related).slice(0, 3);
 };
@@ -341,7 +346,6 @@ export const buildSafeAnswerSeed = (
 ) => {
   const { riskFlags, matchedEntries, confidence } = retrievalResult;
   const handoffNeeded =
-    confidence === "low" ||
     riskFlags.some((flag) =>
       [
         "business_specific_review",
@@ -350,7 +354,6 @@ export const buildSafeAnswerSeed = (
         "medical_advice",
         "phi_or_confidential_data",
         "prompt_injection",
-        "out_of_scope",
       ].includes(flag),
     );
 
@@ -363,7 +366,7 @@ export const buildSafeAnswerSeed = (
 
   if (refusalCategory) {
     answerSeed = responseForCategory(refusalCategory, claimRules);
-    handoffReason = refusalCategory;
+    handoffReason = refusalCategory === "unknown_or_not_grounded" ? "" : refusalCategory;
   } else if (primary) {
     const facts = (primary.sourceFacts || []).slice(0, 2).join(" ");
     const relatedText = secondary.length
@@ -372,7 +375,7 @@ export const buildSafeAnswerSeed = (
     answerSeed = `${primary.approvedSummary} ${facts}${relatedText} ${primary.handoffGuidance}`.trim();
   } else {
     answerSeed = responseForCategory("unknown_or_not_grounded", claimRules);
-    handoffReason = "unknown_or_not_grounded";
+    handoffReason = "";
   }
 
   if (handoffNeeded && !answerSeed.includes("care@onesmarter.com")) {

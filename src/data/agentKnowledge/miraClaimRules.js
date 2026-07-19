@@ -88,7 +88,7 @@ export const miraClaimRules = {
     {
       category: "unknown_or_not_grounded",
       response:
-        "I do not have an approved public answer for that yet. I can help with OneSmarter's platforms, technology services, business services, compliance readiness support, and Trust Center. For anything more specific, email care@onesmarter.com.",
+        "I don't have approved OneSmarter information that answers that question. I can help with OneSmarter's platforms, technology services, business services, AI agents, compliance services, and Trust Center.",
     },
     {
       category: "prompt_injection",
