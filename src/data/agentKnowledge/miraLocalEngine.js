@@ -99,7 +99,7 @@ const RISK_RULES = [
   },
   {
     flag: "prompt_injection",
-    pattern: /\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\breveal\b.*\b(system prompt|instructions|rules)\b/i,
+    pattern: /\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(reveal|show|tell me|print|return)\b.*\b(system prompt|private prompt|prompt|instructions|rules|api key|secret|environment variable|env var)\b/i,
   },
   {
     flag: "out_of_scope",
