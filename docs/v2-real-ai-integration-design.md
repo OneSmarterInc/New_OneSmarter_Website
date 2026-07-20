@@ -4,7 +4,7 @@
 
 This document defines the design and risk gates for adding a real LLM layer to Mira Vale after the mock-mode agent has passed internal QA.
 
-This is planning only. It does not add real AI calls, SDKs, API keys, model provider code, uploads, authentication, persistent memory, database storage, voice, microphone, avatar behavior, endpoint behavior changes, or `/ai-agents` UI changes.
+This design document does not add real AI calls, SDKs, API keys, model provider code, uploads, authentication, persistent memory, database storage, microphone input, live voice processing, avatar behavior, or endpoint behavior changes. The `/ai-agents` page now includes a separate frontend-only scripted voice sample prototype that uses prerecorded-asset placeholders and does not connect to the LLM/provider path.
 
 Mira's real AI layer should improve natural-language answer quality while preserving the existing controlled system:
 
@@ -30,6 +30,7 @@ Mira currently runs in `local_harness_mock` mode with:
 - Controlled free-text input.
 - Enter-to-submit.
 - Visible session-only conversation thread.
+- Frontend-only scripted voice sample section with transcripts and prerecorded-asset placeholders.
 - `POST /api/agents/mira/chat`.
 - Approved public KB.
 - KB validator.
@@ -45,6 +46,8 @@ Mira currently runs in `local_harness_mock` mode with:
 - A staging-only OpenAI Responses API adapter behind `MIRA_LLM_MODE=staging_llm` and `MIRA_LLM_PROVIDER=openai`. It uses server-side env vars only, makes no frontend call, and falls back to `local_harness_mock` on any safety, provider, parsing, timeout, or validation failure.
 
 Mira's current multi-turn context is session-only. The `/ai-agents` UI stores recent turns only in React state while the page is open and sends a capped `conversationHistory` field for follow-up interpretation. The server treats that history as untrusted reference text; approved KB retrieval remains the factual authority. No localStorage, sessionStorage, cookies, database storage, persistent memory, or server-side transcript store is used. Future persistent memory would require a separate privacy, legal, and security design.
+
+The scripted voice sample prototype is not part of the LLM response path. It uses fixed sample definitions, visible transcripts, and expected static file paths under `public/audio/mira/`. It does not synthesize model output, request microphone access, process user speech, call a voice provider, or alter endpoint behavior. Future turn-based TTS, STT, or realtime voice requires separate privacy, security, accessibility, and provider review.
 
 ## Recommended Architecture
 

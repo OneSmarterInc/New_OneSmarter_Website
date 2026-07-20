@@ -3,6 +3,12 @@ import {
   MIRA_MOOD_SIGNAL_KEYS,
   deriveMiraPresentationState,
 } from "../data/agentPresentation/miraPresentationState.js";
+import {
+  MIRA_ALLOWED_VOICE_STYLES,
+  MIRA_LANGUAGE_DEMOS,
+  isAvailableMiraVoiceSample,
+  miraVoiceSamples,
+} from "../data/agentPresentation/miraVoiceSamples.js";
 
 const agents = [
   {
@@ -513,6 +519,237 @@ const AgentCard = ({ agent }) => (
     </div>
   </article>
 );
+
+const MiraVoiceSamplesPanel = () => {
+  const audioRef = useRef(null);
+  const [activeSampleId, setActiveSampleId] = useState("");
+  const [playbackState, setPlaybackState] = useState("idle");
+  const [voiceStyle, setVoiceStyle] = useState(MIRA_ALLOWED_VOICE_STYLES[0]);
+
+  const activeSample = miraVoiceSamples.find((sample) => sample.id === activeSampleId);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
+
+  const handlePlay = async (sample) => {
+    if (!isAvailableMiraVoiceSample(sample)) {
+      stopAudio();
+      setActiveSampleId(sample.id);
+      setPlaybackState("awaiting_asset");
+      return;
+    }
+
+    try {
+      if (audioRef.current) {
+        if (activeSampleId !== sample.id) {
+          audioRef.current.src = sample.assetPath;
+        }
+        audioRef.current.currentTime = 0;
+        await audioRef.current.play();
+        setActiveSampleId(sample.id);
+        setPlaybackState("playing");
+      }
+    } catch {
+      setActiveSampleId(sample.id);
+      setPlaybackState("unavailable");
+    }
+  };
+
+  const handlePause = () => {
+    if (audioRef.current) audioRef.current.pause();
+    setPlaybackState(activeSampleId ? "paused" : "idle");
+  };
+
+  const handleStop = () => {
+    stopAudio();
+    setPlaybackState("idle");
+  };
+
+  const handleRestart = async (sample) => {
+    if (!isAvailableMiraVoiceSample(sample)) {
+      stopAudio();
+      setActiveSampleId(sample.id);
+      setPlaybackState("awaiting_asset");
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.src = sample.assetPath;
+      audioRef.current.currentTime = 0;
+      try {
+        await audioRef.current.play();
+        setActiveSampleId(sample.id);
+        setPlaybackState("playing");
+      } catch {
+        setActiveSampleId(sample.id);
+        setPlaybackState("unavailable");
+      }
+    }
+  };
+
+  const playbackLabelFor = (sample) => {
+    if (sample.id !== activeSampleId) {
+      return sample.status === "available" ? "Ready" : "Awaiting audio asset";
+    }
+    if (playbackState === "playing") return "Playing";
+    if (playbackState === "paused") return "Paused";
+    if (playbackState === "awaiting_asset") return "Awaiting audio asset";
+    if (playbackState === "unavailable") return "Audio unavailable";
+    return sample.status === "available" ? "Ready" : "Awaiting audio asset";
+  };
+
+  return (
+    <section className="bg-white px-5 py-16 text-black md:px-12">
+      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.78fr_1.22fr]">
+        <div>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
+            Scripted voice sample
+          </p>
+          <h2 className="text-2xl font-bold md:text-4xl">Hear Mira</h2>
+          <p className="mt-4 leading-7 text-gray-700">
+            Preview Mira's intended speaking style using preapproved scripted
+            samples. No microphone or live voice processing is used.
+          </p>
+          <p className="mt-4 rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-950">
+            These samples are prerecorded. No microphone, speech recognition,
+            or user audio processing is active.
+          </p>
+
+          <div className="mt-6">
+            <p className="text-sm font-semibold text-zinc-950">Voice style</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {MIRA_ALLOWED_VOICE_STYLES.map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  onClick={() => setVoiceStyle(style)}
+                  aria-pressed={voiceStyle === style}
+                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 ${
+                    voiceStyle === style
+                      ? "border-red-600 bg-red-600 text-white"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-red-300"
+                  }`}
+                >
+                  {style}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="text-sm font-semibold text-zinc-950">Language demo</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+              {MIRA_LANGUAGE_DEMOS.map((language) => (
+                <span
+                  key={language.id}
+                  className={`rounded-full border px-3 py-2 ${
+                    language.status === "available"
+                      ? "border-gray-200 bg-gray-50 text-gray-700"
+                      : "border-dashed border-gray-300 bg-white text-gray-500"
+                  }`}
+                >
+                  {language.label}
+                  {language.status === "planned" ? " - planned" : ""}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-[#f6f7f9] p-5 shadow-sm md:p-6">
+          <audio
+            ref={audioRef}
+            preload="none"
+            onEnded={() => setPlaybackState("idle")}
+            aria-label="Mira scripted voice sample audio"
+          />
+          <div className="grid gap-4">
+            {miraVoiceSamples.map((sample) => {
+              const isAvailable = isAvailableMiraVoiceSample(sample);
+              const isActive = activeSampleId === sample.id;
+              const stateLabel = playbackLabelFor(sample);
+
+              return (
+                <article
+                  key={sample.id}
+                  className={`rounded-lg border bg-white p-4 ${
+                    isActive ? "border-red-300 shadow-sm" : "border-gray-200"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold text-zinc-950">{sample.label}</h3>
+                      <p className="mt-1 text-xs font-semibold text-red-600">
+                        {sample.posture}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white">
+                      {stateLabel}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-gray-700">
+                    {sample.transcript}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePlay(sample)}
+                      disabled={!isAvailable}
+                      aria-label={`Play ${sample.label} Mira voice sample`}
+                      className="rounded-md bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+                    >
+                      Play
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePause}
+                      disabled={!isAvailable || !isActive || playbackState !== "playing"}
+                      aria-label={`Pause ${sample.label} Mira voice sample`}
+                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                    >
+                      Pause
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStop}
+                      disabled={!isAvailable || !isActive || playbackState === "idle"}
+                      aria-label={`Stop ${sample.label} Mira voice sample`}
+                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                    >
+                      Stop
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRestart(sample)}
+                      disabled={!isAvailable}
+                      aria-label={`Restart ${sample.label} Mira voice sample`}
+                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                    >
+                      Restart
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-gray-500">
+            Audio files are expected under <code>public/audio/mira/</code>.
+            Until approved files are added, the transcripts remain available
+            and playback controls stay disabled.
+          </p>
+          {activeSample && (
+            <p className="sr-only" aria-live="polite">
+              {activeSample.label} sample state: {playbackLabelFor(activeSample)}.
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
 
 const MiraConversationPanel = () => {
   const latestRequestId = useRef(0);
@@ -1063,6 +1300,8 @@ const AiAgentsPage = () => {
           </div>
         </div>
       </section>
+
+      <MiraVoiceSamplesPanel />
 
       <MiraConversationPanel />
 

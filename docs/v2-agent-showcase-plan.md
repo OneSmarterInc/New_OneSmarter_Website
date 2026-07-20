@@ -317,7 +317,7 @@ Messaging direction:
 | Phase 5 | Future capability introductions | Theo, Elena, Ravi, and Selene remain future capabilities until scope and safety are approved |
 | Phase 6 | Evaluation and governance | Review legal, privacy, security, and content boundaries before any live agent release |
 | Phase 7 | Optional live AI integration | Only after backend, logging, consent, safety, and privacy requirements are approved |
-| Phase 8 | Agent world visuals and collaboration | Agent society visuals, voice, memory engine, video-style scenes, and agent-to-agent messaging are future phases |
+| Phase 8 | Agent world visuals and collaboration | Agent society visuals, memory engine, video-style scenes, and agent-to-agent messaging are future phases; Mira now has a frontend-only scripted voice sample prototype with no live voice processing |
 
 ## Agent Expansion Roadmap
 
@@ -344,6 +344,7 @@ Maya should start at Layer 1 only. Mira remains the only active endpoint agent u
 - No claims of guaranteed compliance.
 - No real AI API calls in the first release.
 - No backend dependencies in the first release.
+- Scripted voice samples may use approved static audio assets only; no microphone, speech recognition, live TTS, realtime voice, or user audio processing.
 - Use only approved public content in the first release.
 - Preserve Version 1 HIPAA and SOC 2 claim boundaries.
 - Do not use unsupported HIPAA certification phrasing, outdated ticketing labels, or common HIPAA misspellings.
@@ -376,9 +377,10 @@ Maya should start at Layer 1 only. Mira remains the only active endpoint agent u
 - Security header changes.
 - Changes to the Version 1 homepage hero.
 - Changes to HIPAA/SOC wording.
+- Microphone input, speech recognition, live TTS, realtime voice, or user audio processing.
 - Contact or Insights navigation changes.
 - New service categories.
 
 ## Recommended Next Work Package
 
-Work Package V2-1 should create a static `/ai-agents` Agent Showcase page on the `v2/agent-showcase` branch only. It should introduce the named agent team, feature Mira Vale as the first guide concept, include cards for Maya, Theo, Elena, Ravi, and Selene as future capabilities, keep all CTAs as `mailto:care@onesmarter.com`, and avoid live scanning, uploads, voice, video, backend dependencies, or AI API calls.
+The `/ai-agents` page now includes Mira as the first guide, staged text interaction, session-only continuity, mood/posture signals, and a frontend-only scripted voice sample prototype. Future work should continue to avoid live scanning, uploads, microphone input, speech recognition, dynamic TTS, realtime voice, video, new backend dependencies, or additional AI API calls unless a later package explicitly approves the scope.
