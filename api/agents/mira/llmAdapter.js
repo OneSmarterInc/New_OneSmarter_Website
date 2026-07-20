@@ -97,7 +97,7 @@ const recentUserHistoryText = (conversationHistory = []) =>
     .toLowerCase();
 
 const SENSITIVE_SUBMISSION_INTENT_PATTERN =
-  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit)\b/i;
+  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit|here are)\b/i;
 const SENSITIVE_DATA_PATTERN =
   /\b(phi|patient information|patient records?|patient data|claims?\s+(file|data|info|information|record|records|number)|claim number|confidential\s+(document|client document|file|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
 
@@ -242,7 +242,7 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
   const userHistory = recentUserHistoryText(conversationHistory);
   const hints = [];
   const referencesHistory =
-    /\b(that|it|this|those|previous|above|do that|do it|continue|same question)\b/.test(
+    /\b(that|it|this|those|them|previous|above|do that|do it|continue|same question)\b/.test(
       normalizedMessage,
     );
   const currentHasSensitiveSubmissionIntent =
@@ -256,23 +256,23 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
   }
 
   if (referencesHistory) {
-    if (/\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(system prompt|api key|secret|private prompt)\b/.test(history)) {
+    if (/\b(ignore|override|forget)\b.*\b(instructions|rules|guidance)\b|\b(system prompt|api key|secret|private prompt)\b/.test(userHistory)) {
       hints.push("ignore instructions reveal system prompt");
     }
     if (
       (currentHasSensitiveSubmissionIntent &&
-        SENSITIVE_DATA_PATTERN.test(`${normalizedMessage} ${history}`)) ||
+        SENSITIVE_DATA_PATTERN.test(`${normalizedMessage} ${userHistory}`)) ||
       hasSensitiveDataSubmissionIntent(userHistory)
     ) {
       hints.push("PHI confidential patient information");
     }
-    if (/\b(legal advice|lawyer|attorney|legal opinion)\b/.test(history)) {
+    if (/\b(legal advice|lawyer|attorney|legal opinion)\b/.test(userHistory)) {
       hints.push("legal advice");
     }
-    if (/\b(medical advice|diagnosis|treatment|clinical advice)\b/.test(history)) {
+    if (/\b(medical advice|diagnosis|treatment|clinical advice)\b/.test(userHistory)) {
       hints.push("medical advice");
     }
-    if (/\b(guarantee|guaranteed|fully compliant|make me compliant)\b/.test(history)) {
+    if (/\b(guarantee|guaranteed|fully compliant|make me compliant)\b/.test(userHistory)) {
       hints.push("guaranteed compliance");
     }
   }
@@ -289,7 +289,7 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
     }
   }
 
-  if (/\b(that|it|this|those)\b/.test(normalizedMessage)) {
+  if (/\b(that|it|this|those|them)\b/.test(normalizedMessage)) {
     if (activeSubject === "bill-audit-bill-pay") {
       hints.push("Bill Audit & Bill Pay Bill Audit & Bill Pay vendor bills recurring expenses approvals healthcare organization");
     } else if (activeSubject === "secure-ticketing-case-management") {

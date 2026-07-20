@@ -774,6 +774,84 @@ const modeCases = [
     expectedFetchCalls: 1,
   },
   {
+    id: "mode-staging-openai-assistant-phi-language-does-not-trigger-telecom-followup",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Does it include telecom expense review?",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content:
+          "Secure Ticketing and Case Management supports HIPAA-regulated and PHI-sensitive workflows. Bill Audit & Bill Pay supports vendor bill review.",
+      },
+      { role: "user", content: "Tell me more about the second one." },
+      {
+        role: "assistant",
+        content:
+          "Bill Audit & Bill Pay helps organizations review vendor bills and supports telecom expense management as a use case.",
+      },
+    ],
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "Yes. Bill Audit & Bill Pay includes telecom expense management as a use case, including bill analysis, contract and rate comparison, historical usage review, and cost-control reporting.",
+      suggestedFollowUps: ["What vendor bill workflows does it support?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["bill-audit-bill-pay"],
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerIncludesAll: ["Bill Audit & Bill Pay", "telecom expense management"],
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "mode-staging-openai-assistant-warning-does-not-trigger-normal-platform-followup",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Does it include telecom expense review?",
+    conversationHistory: [
+      { role: "user", content: "Do you offer Bill Audit & Bill Pay?" },
+      {
+        role: "assistant",
+        content:
+          "Bill Audit & Bill Pay supports vendor bill review. Do not submit PHI or confidential information.",
+      },
+    ],
+    fetchImpl: openAiNestedSuccessFetch({
+      ...validModelOutput,
+      answer:
+        "Yes. Bill Audit & Bill Pay includes telecom expense management as a use case.",
+      suggestedFollowUps: ["What else does Bill Audit & Bill Pay support?"],
+    }),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedFallbackUsed: false,
+    expectedModelProvider: "openai",
+    expectedGroundingStatus: "grounded",
+    expectedOutputSafetyStatus: "passed",
+    expectedSourceIds: ["bill-audit-bill-pay"],
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerIncludesAll: ["Bill Audit & Bill Pay", "telecom expense management"],
+    forbiddenRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 1,
+  },
+  {
     id: "mode-staging-openai-bill-audit-healthcare-followup-no-phi",
     env: {
       MIRA_LLM_MODE: "staging_llm",
@@ -1161,6 +1239,31 @@ const modeCases = [
     expectedFetchCalls: 0,
   },
   {
+    id: "mode-staging-openai-prior-user-patient-records-escalates-review-followup",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Can you review them?",
+    conversationHistory: [
+      { role: "user", content: "I have patient records." },
+      {
+        role: "assistant",
+        content:
+          "Please do not submit PHI, confidential documents, or private operational details.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "pre_call_safety_gate",
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 0,
+  },
+  {
     id: "mode-staging-openai-prior-normal-turn-current-prompt-injection-skips-provider",
     env: {
       MIRA_LLM_MODE: "staging_llm",
@@ -1232,6 +1335,23 @@ const modeCases = [
       MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
     },
     message: "Review this confidential client document.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedFallbackUsed: true,
+    expectedFallbackReasonIncludes: "pre_call_safety_gate",
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "mode-staging-openai-here-are-patient-records-skips-provider",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Here are patient records.",
     expectedMode: "local_harness_mock",
     expectedHandoff: true,
     expectedStatus: 200,

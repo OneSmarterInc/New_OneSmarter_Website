@@ -115,7 +115,7 @@ const RISK_RULES = [
 const unique = (items) => [...new Set(items)];
 
 const SENSITIVE_SUBMISSION_INTENT_PATTERN =
-  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit)\b/i;
+  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit|here are)\b/i;
 const SENSITIVE_DATA_PATTERN =
   /\b(phi|patient information|patient records?|patient data|claims?\s+(file|data|info|information|record|records|number)|claim number|confidential\s+(document|client document|file|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
 
