@@ -18,7 +18,9 @@ const expectedStates = [
   "concerned",
   "confident",
 ];
-const expectedWelcomingPath = "/images/agents/mira/mira-welcoming.webp";
+const expectedAssetPaths = Object.fromEntries(
+  expectedStates.map((state) => [state, `/images/agents/mira/mira-${state}.webp`]),
+);
 
 if (miraVisualStates.length !== 6) {
   fail(`visual-states: expected exactly 6 states, found ${miraVisualStates.length}.`);
@@ -53,24 +55,20 @@ for (const state of miraVisualStates) {
     }
   }
 
-  if (state.id === "welcoming") {
-    if (state.assetStatus !== "available") {
-      fail("welcoming: approved portrait must be available.");
-    }
-    if (state.approvalStatus !== "approved") {
-      fail("welcoming: approved portrait must include approvalStatus approved.");
-    }
-    if (state.identityProfileId !== "mira-visual-v1") {
-      fail("welcoming: approved portrait must use identityProfileId mira-visual-v1.");
-    }
-    if (state.assetPath !== expectedWelcomingPath) {
-      fail(`welcoming: assetPath must be ${expectedWelcomingPath}.`);
-    }
-    if (!existsSync(`public${state.assetPath}`)) {
-      fail("welcoming: approved WebP portrait must exist in public/images/agents/mira/.");
-    }
-  } else if (state.assetStatus !== "pending_asset") {
-    fail(`${state.id}: only Welcoming should be available until the remaining portraits are approved.`);
+  if (state.assetStatus !== "available") {
+    fail(`${state.id}: approved portrait must be available.`);
+  }
+  if (state.approvalStatus !== "approved") {
+    fail(`${state.id}: approved portrait must include approvalStatus approved.`);
+  }
+  if (state.identityProfileId !== "mira-visual-v1") {
+    fail(`${state.id}: approved portrait must use identityProfileId mira-visual-v1.`);
+  }
+  if (state.assetPath !== expectedAssetPaths[state.id]) {
+    fail(`${state.id}: assetPath must be ${expectedAssetPaths[state.id]}.`);
+  }
+  if (!existsSync(`public${state.assetPath}`)) {
+    fail(`${state.id}: approved WebP portrait must exist in public/images/agents/mira/.`);
   }
   if (state.fallbackInitials !== "MV") {
     fail(`${state.id}: fallback initials must be MV.`);
@@ -141,6 +139,10 @@ if (!componentSource.includes("onError={() =>")) {
 
 if (!componentSource.includes("motion-safe:transition-opacity")) {
   fail("visual-ui: reduced-motion compatible transition class is required.");
+}
+
+if (!componentSource.includes("loading=\"lazy\"")) {
+  fail("visual-ui: portrait image should use lazy loading.");
 }
 
 if (!componentSource.includes("Static artwork only")) {

@@ -28,8 +28,10 @@ export const miraVisualStates = [
     expression: "Engaged",
     accessibilityDescription:
       "Mira appears engaged and ready to explain approved OneSmarter information.",
-    assetStatus: "pending_asset",
+    assetStatus: "available",
     assetPath: "/images/agents/mira/mira-helpful.webp",
+    approvalStatus: "approved",
+    identityProfileId: "mira-visual-v1",
     fallbackInitials: "MV",
     designDirection:
       "Engaged, confident, and lightly smiling without a sales-like tone.",
@@ -40,8 +42,10 @@ export const miraVisualStates = [
     expression: "Reflective",
     accessibilityDescription:
       "Mira appears reflective and composed while considering the question.",
-    assetStatus: "pending_asset",
+    assetStatus: "available",
     assetPath: "/images/agents/mira/mira-thoughtful.webp",
+    approvalStatus: "approved",
+    identityProfileId: "mira-visual-v1",
     fallbackInitials: "MV",
     designDirection:
       "Reflective, composed, and subtly concentrated with restrained expression.",
@@ -52,8 +56,10 @@ export const miraVisualStates = [
     expression: "Precise",
     accessibilityDescription:
       "Mira appears precise and calm for questions that need careful boundaries.",
-    assetStatus: "pending_asset",
+    assetStatus: "available",
     assetPath: "/images/agents/mira/mira-careful.webp",
+    approvalStatus: "approved",
+    identityProfileId: "mira-visual-v1",
     fallbackInitials: "MV",
     designDirection:
       "Precise, serious but calm, and measured for trust or safety language.",
@@ -64,8 +70,10 @@ export const miraVisualStates = [
     expression: "Protective",
     accessibilityDescription:
       "Mira appears protective and empathetic without sounding alarmed.",
-    assetStatus: "pending_asset",
+    assetStatus: "available",
     assetPath: "/images/agents/mira/mira-concerned.webp",
+    approvalStatus: "approved",
+    identityProfileId: "mira-visual-v1",
     fallbackInitials: "MV",
     designDirection:
       "Protective and empathetic, with a calm safety-boundary posture.",
@@ -76,8 +84,10 @@ export const miraVisualStates = [
     expression: "Assured",
     accessibilityDescription:
       "Mira appears steady and assured for a grounded approved response.",
-    assetStatus: "pending_asset",
+    assetStatus: "available",
     assetPath: "/images/agents/mira/mira-confident.webp",
+    approvalStatus: "approved",
+    identityProfileId: "mira-visual-v1",
     fallbackInitials: "MV",
     designDirection:
       "Steady, assured, and professional, with calm confidence rather than bravado.",

@@ -121,17 +121,17 @@ Additional policies needed before realtime or open-ended voice:
 
 Mira's visual persona should communicate agent presence without pretending to be a real person.
 
-The `/ai-agents` page now includes a static visual-presence prototype for Mira. It maps the existing conversation posture to one of six approved static visual states: welcoming, helpful, thoughtful, careful, concerned, and confident. The Welcoming portrait is approved under identity profile `mira-visual-v1` and acts as the visual identity baseline. The other five states still use a branded local placeholder with `MV` initials, posture text, and accessible descriptions until matching artwork is approved.
+The `/ai-agents` page now includes a static visual-presence prototype for Mira. It maps the existing conversation posture to one of six approved static visual states: welcoming, helpful, thoughtful, careful, concerned, and confident. All six portraits are approved under identity profile `mira-visual-v1` and wired as optimized local WebP assets. A branded local placeholder with `MV` initials, posture text, and accessible descriptions remains available as the image-error fallback.
 
 This static visual layer does not add camera access, facial tracking, lip-sync, generated video, runtime image generation, realtime avatar services, microphone input, speech recognition, or live animation.
 
-Future Helpful, Thoughtful, Careful, Concerned, and Confident portraits should use the same person, framing, lighting, wardrobe family, and background style as the approved Welcoming portrait.
+The approved portraits use the same person, framing, lighting, wardrobe family, and background style.
 
 Recommended progression:
 
 | Stage | Capability | Notes |
 | --- | --- | --- |
-| A1 | Static persona card | Implemented: static visual-presence placeholder with controlled posture states. |
+| A1 | Static persona card | Implemented: six approved static portraits with controlled posture states and placeholder fallback. |
 | A2 | Expression-state prototype | Show simple states such as welcoming, thinking, reviewing, handoff, and unavailable. |
 | A3 | Simple animated visual state | Add restrained motion for state changes, respecting reduced-motion settings. |
 | A4 | Agent-world scene concepts | Prototype coffee-break, chess, operations-room, trust-review-table, and agent-feed scenes as conceptual visual environments. |

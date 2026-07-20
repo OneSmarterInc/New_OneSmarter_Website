@@ -70,7 +70,7 @@ First task: Answer visitor questions about OneSmarter from approved public websi
 
 Voice status: Mira's `mira-v1` voice profile is the approved scripted voice identity. Welcome, Helpful, Careful, Concerned, and Handoff are wired for prerecorded static playback from `public/audio/mira/`. No live voice, microphone input, browser speech synthesis, realtime voice, dynamic text-to-speech, or user-audio processing exists.
 
-Visual status: Mira now has a static visual-presence prototype that maps her conversation posture to six approved states: welcoming, helpful, thoughtful, careful, concerned, and confident. The Welcoming portrait is approved under `mira-visual-v1` and serves as the identity baseline; the other five states remain placeholder-only until matching portraits are approved with the same person, framing, lighting, wardrobe family, and background style. This is static artwork/placeholder behavior only. No camera access, facial tracking, lip-sync, generated video, runtime image generation, live avatar service, or animation system exists.
+Visual status: Mira now has a static visual-presence prototype that maps her conversation posture to six approved states: welcoming, helpful, thoughtful, careful, concerned, and confident. All six portraits are approved under `mira-visual-v1` and wired as local static WebP assets using the same person, framing, lighting, wardrobe family, and background style. A placeholder remains available only as an image-error fallback. No camera access, facial tracking, lip-sync, generated video, runtime image generation, live avatar service, or animation system exists.
 
 ### Maya Renshaw - The Client Navigator
 

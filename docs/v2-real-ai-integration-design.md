@@ -49,7 +49,7 @@ Mira's current multi-turn context is session-only. The `/ai-agents` UI stores re
 
 The scripted voice sample prototype is not part of the LLM response path. It uses fixed sample definitions, visible transcripts, and approved static file paths under `public/audio/mira/`. It does not synthesize model output, request microphone access, process user speech, call a voice provider at runtime, or alter endpoint behavior. Future dynamic turn-based TTS, STT, or realtime voice requires separate privacy, safety, cost, security, accessibility, provider, and production review.
 
-The static Mira visual-presence prototype is also outside the LLM response path. It deterministically maps approved presentation metadata to one of six controlled placeholder states and does not use camera access, facial tracking, lip-sync, generated video, runtime image generation, realtime avatar services, or live animation. Future animated/avatar behavior requires a separate risk gate and allowed-state validation.
+The static Mira visual-presence prototype is also outside the LLM response path. It deterministically maps approved presentation metadata to one of six approved local WebP portrait states and does not use camera access, facial tracking, lip-sync, generated video, runtime image generation, realtime avatar services, or live animation. Future animated/avatar behavior requires a separate risk gate and allowed-state validation.
 
 ## Recommended Architecture
 

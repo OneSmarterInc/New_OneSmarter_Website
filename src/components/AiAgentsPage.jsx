@@ -467,6 +467,10 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
             <img
               src={visualState.assetPath}
               alt={visualState.accessibilityDescription}
+              width="1254"
+              height="1254"
+              loading="lazy"
+              decoding="async"
               onError={() =>
                 setFailedAssetIds((currentIds) =>
                   currentIds.includes(visualState.id)
