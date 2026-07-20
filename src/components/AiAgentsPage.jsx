@@ -546,6 +546,8 @@ const MiraVoiceSamplesPanel = () => {
     try {
       if (audioRef.current) {
         if (activeSampleId !== sample.id) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
           audioRef.current.src = sample.assetPath;
         }
         audioRef.current.currentTime = 0;

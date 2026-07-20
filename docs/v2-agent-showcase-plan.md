@@ -68,7 +68,7 @@ Memory themes:
 
 First task: Answer visitor questions about OneSmarter from approved public website content.
 
-Voice status: Mira's `mira-v1` voice profile is approved for continued scripted sample production, and the Welcome sample is wired for review playback from `public/audio/mira/mira-welcome.mp3`. The remaining scripted samples are still pending assets. No live voice, microphone input, browser speech synthesis, realtime voice, or user-audio processing exists.
+Voice status: Mira's `mira-v1` voice profile is the approved scripted voice identity. Welcome, Helpful, Careful, Concerned, and Handoff are wired for prerecorded static playback from `public/audio/mira/`. No live voice, microphone input, browser speech synthesis, realtime voice, dynamic text-to-speech, or user-audio processing exists.
 
 ### Maya Renshaw - The Client Navigator
 
