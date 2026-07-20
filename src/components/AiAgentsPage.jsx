@@ -9,6 +9,7 @@ import {
   isAvailableMiraVoiceSample,
   miraVoiceSamples,
 } from "../data/agentPresentation/miraVoiceSamples.js";
+import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
 
 const agents = [
   {
@@ -428,6 +429,72 @@ const MiraMoodSignalPanel = ({ presentationState }) => (
     </div>
   </aside>
 );
+
+const MiraVisualPresencePanel = ({ presentationState }) => {
+  const visualState = getMiraVisualStateForPosture(presentationState?.posture);
+  const hasApprovedAsset = visualState.assetStatus === "available";
+
+  return (
+    <aside
+      className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-xs text-zinc-300"
+      aria-label="Mira static visual presence"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-white">Mira's current presence</p>
+          <p className="mt-2 max-w-xl leading-5 text-zinc-400">
+            Mira's visual posture reflects the tone of the current conversation.
+            Static artwork only; no camera, tracking, or live avatar processing
+            is active.
+          </p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-200">
+          {visualState.label}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-[10rem_1fr] sm:items-center">
+        <div className="motion-safe:transition-opacity motion-safe:duration-300">
+          {hasApprovedAsset ? (
+            <img
+              src={visualState.assetPath}
+              alt={visualState.accessibilityDescription}
+              className="aspect-square w-full rounded-lg border border-white/10 object-cover"
+            />
+          ) : (
+            <div
+              className="flex aspect-square min-h-36 flex-col items-center justify-center rounded-lg border border-red-500/20 bg-[radial-gradient(circle_at_35%_25%,rgba(248,113,113,0.28),transparent_35%),linear-gradient(145deg,rgba(24,24,27,0.96),rgba(5,5,5,0.96))] p-4 text-center shadow-lg shadow-black/20"
+              role="img"
+              aria-label={visualState.accessibilityDescription}
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 text-lg font-bold text-white">
+                {visualState.fallbackInitials}
+              </div>
+              <p className="mt-4 text-sm font-semibold text-white">
+                {visualState.label}
+              </p>
+              <p className="mt-1 text-[11px] uppercase tracking-wide text-red-200">
+                Static portrait pending
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white">
+            {visualState.expression}
+          </p>
+          <p className="mt-2 leading-6 text-zinc-300">
+            {visualState.accessibilityDescription}
+          </p>
+          <p className="mt-3 rounded border border-white/10 bg-black/20 px-3 py-2 leading-5 text-zinc-400">
+            {visualState.designDirection}
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+};
 
 const AgentNetwork = () => (
   <div className="relative min-h-[340px] overflow-hidden rounded-lg border border-white/10 bg-black/45 p-4 shadow-2xl shadow-black/40 sm:min-h-[360px] sm:p-6">
@@ -1105,7 +1172,8 @@ const MiraConversationPanel = () => {
             </div>
           )}
 
-          <div className="mt-6">
+          <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <MiraVisualPresencePanel presentationState={presentationState} />
             <MiraMoodSignalPanel presentationState={presentationState} />
           </div>
 

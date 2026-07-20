@@ -121,11 +121,15 @@ Additional policies needed before realtime or open-ended voice:
 
 Mira's visual persona should communicate agent presence without pretending to be a real person.
 
+The `/ai-agents` page now includes a static visual-presence prototype for Mira. It maps the existing conversation posture to one of six approved static visual states: welcoming, helpful, thoughtful, careful, concerned, and confident. Approved artwork has not been added yet, so the UI uses a branded local placeholder with `MV` initials, posture text, and accessible descriptions.
+
+This static visual layer does not add camera access, facial tracking, lip-sync, generated video, runtime image generation, realtime avatar services, microphone input, speech recognition, or live animation.
+
 Recommended progression:
 
 | Stage | Capability | Notes |
 | --- | --- | --- |
-| A1 | Static persona card | Expand the current Mira card with refined role, status, and tone details. |
+| A1 | Static persona card | Implemented: static visual-presence placeholder with controlled posture states. |
 | A2 | Expression-state prototype | Show simple states such as welcoming, thinking, reviewing, handoff, and unavailable. |
 | A3 | Simple animated visual state | Add restrained motion for state changes, respecting reduced-motion settings. |
 | A4 | Agent-world scene concepts | Prototype coffee-break, chess, operations-room, trust-review-table, and agent-feed scenes as conceptual visual environments. |
@@ -138,6 +142,7 @@ Guidelines:
 - Keep the visual language custom, branded, and clearly software-based.
 - Avoid over-animated or entertainment-first presentation for enterprise/security contexts.
 - Make the visual state support comprehension, not distract from the answer.
+- Future animated avatar work requires separate privacy, accessibility, performance, safety, vendor, and production review.
 
 ### Mood Signal and Expression State Layer
 
