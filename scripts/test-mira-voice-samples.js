@@ -13,6 +13,7 @@ import {
 const failures = [];
 const fail = (message) => failures.push(message);
 const root = process.cwd();
+const expectedWelcomePath = "/audio/mira/mira-welcome.mp3";
 
 const ids = new Set();
 for (const sample of miraVoiceSamples) {
@@ -59,6 +60,27 @@ for (const sample of miraVoiceSamples) {
   }
 
   const localAssetPath = path.join(root, "public", sample.assetPath.replace(/^\//, ""));
+  if (sample.id === "welcome") {
+    if (sample.status !== "available") {
+      fail("welcome: approved Welcome sample must be available.");
+    }
+    if (sample.approvalStatus !== "approved") {
+      fail("welcome: approved Welcome sample must include approvalStatus approved.");
+    }
+    if (sample.assetPath !== expectedWelcomePath) {
+      fail(`welcome: assetPath must be ${expectedWelcomePath}.`);
+    }
+    if (!existsSync(localAssetPath)) {
+      fail("welcome: approved local MP3 asset must exist in public/audio/mira/.");
+    }
+  } else {
+    if (sample.status !== "pending_asset") {
+      fail(`${sample.id}: only Welcome should be available until the remaining assets are approved.`);
+    }
+    if (sample.approvalStatus === "approved") {
+      fail(`${sample.id}: pending sample must not be marked approved.`);
+    }
+  }
   if (sample.status === "available" && !existsSync(localAssetPath)) {
     fail(`${sample.id}: available sample must have a local asset file.`);
   }
@@ -118,6 +140,22 @@ if (audioTagCount !== 1) {
 
 if (!componentSource.includes("disabled={!isAvailable}")) {
   fail("voice-ui: unavailable samples should keep playback controls disabled.");
+}
+
+for (const stateLabel of [
+  "Playing",
+  "Paused",
+  "Stopped",
+  "Ended",
+  "Audio sample unavailable",
+]) {
+  if (!componentSource.includes(stateLabel)) {
+    fail(`voice-ui: missing visible playback state label ${stateLabel}.`);
+  }
+}
+
+if (!componentSource.includes("onError={() => activeSampleId && setPlaybackState(\"unavailable\")}")) {
+  fail("voice-ui: audio error state should be handled without crashing.");
 }
 
 if (failures.length) {

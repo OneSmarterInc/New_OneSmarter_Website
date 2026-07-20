@@ -5,6 +5,8 @@ Profile ID: `mira-v1`
 
 This specification defines the approved production direction for Mira Vale's scripted voice samples. It is for asset production and review only. It does not authorize live text-to-speech, speech-to-text, microphone input, browser speech synthesis, realtime voice, or any additional AI/model call.
 
+Status update: the Welcome sample candidate has been approved and wired for playback under profile `mira-v1`. The remaining Helpful, Careful, Concerned, and Handoff samples are still pending assets and should not be produced or enabled until the approved Welcome direction has been reviewed as the baseline for continued sample production.
+
 ## Identity
 
 - Adult female voice.
@@ -103,3 +105,14 @@ Approved audio files should be placed at:
 - `public/audio/mira/mira-handoff.mp3`
 
 The website should keep samples in `pending_asset` status until reviewed MP3 files are present and approved.
+
+Current approved playback asset:
+
+- `public/audio/mira/mira-welcome.mp3` - Welcome sample, approved for review playback.
+
+Pending assets:
+
+- `public/audio/mira/mira-helpful.mp3`
+- `public/audio/mira/mira-careful.mp3`
+- `public/audio/mira/mira-concerned.mp3`
+- `public/audio/mira/mira-handoff.mp3`

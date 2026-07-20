@@ -566,7 +566,7 @@ const MiraVoiceSamplesPanel = () => {
 
   const handleStop = () => {
     stopAudio();
-    setPlaybackState("idle");
+    setPlaybackState(activeSampleId ? "stopped" : "idle");
   };
 
   const handleRestart = async (sample) => {
@@ -596,8 +596,10 @@ const MiraVoiceSamplesPanel = () => {
     }
     if (playbackState === "playing") return "Playing";
     if (playbackState === "paused") return "Paused";
+    if (playbackState === "stopped") return "Stopped";
+    if (playbackState === "ended") return "Ended";
     if (playbackState === "awaiting_asset") return "Awaiting audio asset";
-    if (playbackState === "unavailable") return "Audio unavailable";
+    if (playbackState === "unavailable") return "Audio sample unavailable";
     return sample.status === "available" ? "Ready" : "Awaiting audio asset";
   };
 
@@ -663,7 +665,8 @@ const MiraVoiceSamplesPanel = () => {
           <audio
             ref={audioRef}
             preload="none"
-            onEnded={() => setPlaybackState("idle")}
+            onEnded={() => setPlaybackState("ended")}
+            onError={() => activeSampleId && setPlaybackState("unavailable")}
             aria-label="Mira scripted voice sample audio"
           />
           <div className="grid gap-4">

@@ -35,7 +35,8 @@ export const miraVoiceSamples = [
     pronunciationNotes: MIRA_VOICE_PRONUNCIATION_NOTES,
     productionDirection:
       "Warm, slight smile, gentle opening lift. Keep the first sentence friendly and composed.",
-    status: "pending_asset",
+    status: "available",
+    approvalStatus: "approved",
     assetPath: "/audio/mira/mira-welcome.mp3",
     transcript:
       "Hi, I'm Mira, OneSmarter's AI guide. I can help you understand our platforms, technology services, business services, compliance readiness, and Trust Center.",
