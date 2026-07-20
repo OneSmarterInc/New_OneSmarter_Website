@@ -4,6 +4,7 @@ import process from "node:process";
 import {
   MIRA_ALLOWED_VOICE_STYLES,
   MIRA_LANGUAGE_DEMOS,
+  MIRA_VOICE_PROFILE_ID,
   MIRA_VOICE_SAMPLE_STATUSES,
   isAllowedMiraVoiceStyle,
   miraVoiceSamples,
@@ -31,6 +32,18 @@ for (const sample of miraVoiceSamples) {
   }
   if (!sample.posture || !isAllowedMiraVoiceStyle(sample.posture)) {
     fail(`${sample.id}: posture must be an allowed voice style.`);
+  }
+  if (sample.voiceProfileId !== MIRA_VOICE_PROFILE_ID) {
+    fail(`${sample.id}: voiceProfileId must be ${MIRA_VOICE_PROFILE_ID}.`);
+  }
+  if (!sample.pace || !/\b1(4[5-9]|5[0-5])\b/.test(sample.pace)) {
+    fail(`${sample.id}: pace must reference the approved 145-155 wpm range.`);
+  }
+  if (!Array.isArray(sample.pronunciationNotes) || sample.pronunciationNotes.length < 9) {
+    fail(`${sample.id}: pronunciationNotes must include the approved guide.`);
+  }
+  if (!sample.productionDirection || typeof sample.productionDirection !== "string") {
+    fail(`${sample.id}: productionDirection is required.`);
   }
   if (!MIRA_VOICE_SAMPLE_STATUSES.includes(sample.status)) {
     fail(`${sample.id}: invalid status ${sample.status}.`);

@@ -614,8 +614,8 @@ const MiraVoiceSamplesPanel = () => {
             samples. No microphone or live voice processing is used.
           </p>
           <p className="mt-4 rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-950">
-            These samples are prerecorded. No microphone, speech recognition,
-            or user audio processing is active.
+            These samples will use prerecorded audio. No microphone, speech
+            recognition, or user audio processing is active.
           </p>
 
           <div className="mt-6">

@@ -11,11 +11,30 @@ export const MIRA_LANGUAGE_DEMOS = [
 
 export const MIRA_VOICE_SAMPLE_STATUSES = ["available", "pending_asset"];
 
+export const MIRA_VOICE_PROFILE_ID = "mira-v1";
+
+export const MIRA_VOICE_PRONUNCIATION_NOTES = [
+  "OneSmarter -> One Smarter",
+  "Mira -> MEER-ah",
+  "HIPAA -> HIP-uh",
+  "SOC 2 -> sock two",
+  "IBM i -> I-B-M eye",
+  "AS400 -> A-S four hundred",
+  "AI -> A-I",
+  "TPA -> T-P-A",
+  "PHI -> P-H-I",
+];
+
 export const miraVoiceSamples = [
   {
     id: "welcome",
     label: "Welcome",
+    voiceProfileId: MIRA_VOICE_PROFILE_ID,
+    pace: "145-150 wpm",
     posture: "Warm Guide",
+    pronunciationNotes: MIRA_VOICE_PRONUNCIATION_NOTES,
+    productionDirection:
+      "Warm, slight smile, gentle opening lift. Keep the first sentence friendly and composed.",
     status: "pending_asset",
     assetPath: "/audio/mira/mira-welcome.mp3",
     transcript:
@@ -24,7 +43,12 @@ export const miraVoiceSamples = [
   {
     id: "helpful",
     label: "Helpful",
+    voiceProfileId: MIRA_VOICE_PROFILE_ID,
+    pace: "150-155 wpm",
     posture: "Warm Guide",
+    pronunciationNotes: MIRA_VOICE_PRONUNCIATION_NOTES,
+    productionDirection:
+      "Confident, conversational, and modestly quicker than Welcome. Keep the line useful rather than promotional.",
     status: "pending_asset",
     assetPath: "/audio/mira/mira-helpful.mp3",
     transcript:
@@ -33,7 +57,12 @@ export const miraVoiceSamples = [
   {
     id: "careful",
     label: "Careful",
+    voiceProfileId: MIRA_VOICE_PROFILE_ID,
+    pace: "145-150 wpm",
     posture: "Careful Reviewer",
+    pronunciationNotes: MIRA_VOICE_PRONUNCIATION_NOTES,
+    productionDirection:
+      "Slower and deliberate. Emphasize approved compliance language without sounding defensive.",
     status: "pending_asset",
     assetPath: "/audio/mira/mira-careful.mp3",
     transcript:
@@ -42,7 +71,12 @@ export const miraVoiceSamples = [
   {
     id: "concerned",
     label: "Concerned",
+    voiceProfileId: MIRA_VOICE_PROFILE_ID,
+    pace: "145-150 wpm",
     posture: "Careful Reviewer",
+    pronunciationNotes: MIRA_VOICE_PRONUNCIATION_NOTES,
+    productionDirection:
+      "Calm and protective. Never alarmist. The warning should sound respectful and clear.",
     status: "pending_asset",
     assetPath: "/audio/mira/mira-concerned.mp3",
     transcript:
@@ -51,7 +85,12 @@ export const miraVoiceSamples = [
   {
     id: "handoff",
     label: "Handoff",
+    voiceProfileId: MIRA_VOICE_PROFILE_ID,
+    pace: "145-150 wpm",
     posture: "Thoughtful Strategist",
+    pronunciationNotes: MIRA_VOICE_PRONUNCIATION_NOTES,
+    productionDirection:
+      "Reassuring. Speak care@onesmarter.com slowly and distinctly.",
     status: "pending_asset",
     assetPath: "/audio/mira/mira-handoff.mp3",
     transcript:
@@ -63,4 +102,3 @@ export const isAvailableMiraVoiceSample = (sample) => sample?.status === "availa
 
 export const isAllowedMiraVoiceStyle = (style) =>
   MIRA_ALLOWED_VOICE_STYLES.includes(style);
-
