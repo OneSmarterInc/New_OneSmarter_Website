@@ -14,8 +14,10 @@ export const miraVisualStates = [
     expression: "Soft smile",
     accessibilityDescription:
       "Mira appears warm and attentive, with an open professional posture.",
-    assetStatus: "pending_asset",
+    assetStatus: "available",
     assetPath: "/images/agents/mira/mira-welcoming.webp",
+    approvalStatus: "approved",
+    identityProfileId: "mira-visual-v1",
     fallbackInitials: "MV",
     designDirection:
       "Soft smile, open posture, attentive eyes, and a composed business presence.",

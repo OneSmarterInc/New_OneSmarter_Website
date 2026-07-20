@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import process from "node:process";
 import {
   MIRA_POSTURE_TO_VISUAL_STATE,
@@ -18,6 +18,7 @@ const expectedStates = [
   "concerned",
   "confident",
 ];
+const expectedWelcomingPath = "/images/agents/mira/mira-welcoming.webp";
 
 if (miraVisualStates.length !== 6) {
   fail(`visual-states: expected exactly 6 states, found ${miraVisualStates.length}.`);
@@ -52,8 +53,24 @@ for (const state of miraVisualStates) {
     }
   }
 
-  if (state.assetStatus !== "pending_asset") {
-    fail(`${state.id}: visual artwork should remain pending_asset until approved.`);
+  if (state.id === "welcoming") {
+    if (state.assetStatus !== "available") {
+      fail("welcoming: approved portrait must be available.");
+    }
+    if (state.approvalStatus !== "approved") {
+      fail("welcoming: approved portrait must include approvalStatus approved.");
+    }
+    if (state.identityProfileId !== "mira-visual-v1") {
+      fail("welcoming: approved portrait must use identityProfileId mira-visual-v1.");
+    }
+    if (state.assetPath !== expectedWelcomingPath) {
+      fail(`welcoming: assetPath must be ${expectedWelcomingPath}.`);
+    }
+    if (!existsSync(`public${state.assetPath}`)) {
+      fail("welcoming: approved WebP portrait must exist in public/images/agents/mira/.");
+    }
+  } else if (state.assetStatus !== "pending_asset") {
+    fail(`${state.id}: only Welcoming should be available until the remaining portraits are approved.`);
   }
   if (state.fallbackInitials !== "MV") {
     fail(`${state.id}: fallback initials must be MV.`);
@@ -116,6 +133,10 @@ if (!componentSource.includes("MiraVisualPresencePanel")) {
 
 if (!componentSource.includes("role=\"img\"")) {
   fail("visual-ui: placeholder should expose an image role with accessible label.");
+}
+
+if (!componentSource.includes("onError={() =>")) {
+  fail("visual-ui: image errors should fall back to the placeholder.");
 }
 
 if (!componentSource.includes("motion-safe:transition-opacity")) {

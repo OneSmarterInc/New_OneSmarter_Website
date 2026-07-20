@@ -432,7 +432,15 @@ const MiraMoodSignalPanel = ({ presentationState }) => (
 
 const MiraVisualPresencePanel = ({ presentationState }) => {
   const visualState = getMiraVisualStateForPosture(presentationState?.posture);
-  const hasApprovedAsset = visualState.assetStatus === "available";
+  const [failedAssetIds, setFailedAssetIds] = useState([]);
+  const imageUnavailable = failedAssetIds.includes(visualState.id);
+  const hasApprovedAsset = visualState.assetStatus === "available" && !imageUnavailable;
+
+  useEffect(() => {
+    setFailedAssetIds((currentIds) =>
+      currentIds.filter((assetId) => assetId !== visualState.id),
+    );
+  }, [visualState.id]);
 
   return (
     <aside
@@ -459,6 +467,13 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
             <img
               src={visualState.assetPath}
               alt={visualState.accessibilityDescription}
+              onError={() =>
+                setFailedAssetIds((currentIds) =>
+                  currentIds.includes(visualState.id)
+                    ? currentIds
+                    : [...currentIds, visualState.id],
+                )
+              }
               className="aspect-square w-full rounded-lg border border-white/10 object-cover"
             />
           ) : (
