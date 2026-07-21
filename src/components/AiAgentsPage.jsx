@@ -453,7 +453,7 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-white">Mira's current presence</p>
+          <p className="text-sm font-semibold text-white">Mira's live presence</p>
           <p className="mt-2 max-w-xl leading-5 text-zinc-400">
             Mira's visual posture reflects the tone of the current conversation.
             Static artwork only; no camera, tracking, or live avatar processing
