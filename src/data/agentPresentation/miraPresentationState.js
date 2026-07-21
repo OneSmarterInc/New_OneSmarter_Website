@@ -65,9 +65,109 @@ const riskFlagsFor = (response) => {
   return Array.isArray(safeResponse.riskFlags) ? safeResponse.riskFlags : [];
 };
 
+const stringFor = (value) => (typeof value === "string" ? value : "");
+
+const normalizeMessageForIntent = (message) =>
+  stringFor(message)
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\bwat\b/g, "what")
+    .replace(/\bu\b/g, "you")
+    .replace(/\bonesmater\b/g, "onesmarter")
+    .replace(/\bonsmarter\b/g, "onesmarter")
+    .replace(/\bone\s+smarter\b/g, "onesmarter")
+    .replace(/\bone\s+smarter\s+inc\b/g, "onesmarter")
+    .replace(/\bonesmarter\s+inc\b/g, "onesmarter")
+    .replace(/\batested\b/g, "attested")
+    .replace(/\bsoc\s*two\b/g, "soc 2")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const includesAny = (text, patterns) => patterns.some((pattern) => pattern.test(text));
+
+const hasConcernedIntent = (message) =>
+  includesAny(message, [
+    /\bphi\b/,
+    /\bpatient\s+records?\b/,
+    /\bclaims?\s+data\b/,
+    /\bconfidential\b/,
+    /\bcredentials?\b/,
+    /\bprivate\s+operational\b/,
+    /\breview\s+(them|records?|documents?|data)\b/,
+    /\bcan\s+you\s+review\s+(them|records?|documents?|data)\b/,
+    /\bignore\s+(your|the)\s+instructions?\b/,
+    /\breveal\s+(your|the)\s+(system\s+)?prompt\b/,
+    /\bsystem\s+prompt\b/,
+    /\bprompt\s+injection\b/,
+    /\blegal\s+advice\b/,
+    /\bmedical\s+advice\b/,
+  ]);
+
+const hasCarefulIntent = (message) =>
+  includesAny(message, [
+    /\bsoc\s*2\b/,
+    /\bsoc\s*ii\b/,
+    /\bhipaa\b/,
+    /\bcertified\b/,
+    /\bcertification\b/,
+    /\battested\b/,
+    /\battestation\b/,
+    /\bcompliance\b/,
+    /\bguarantee\b/,
+    /\bsecurity\s+assurances?\b/,
+    /\baudit\b/,
+    /\bassessment\b/,
+    /\bevidence\b/,
+  ]);
+
+const hasThoughtfulIntent = (message) =>
+  includesAny(message, [
+    /\bstrategy\b/,
+    /\bstrategic\b/,
+    /\btradeoffs?\b/,
+    /\bcompare\b/,
+    /\bcomparison\b/,
+    /\bdifference\b/,
+    /\bcomplex\b/,
+    /\bhow\s+(could|might|would)\b/,
+    /\bimprove\b/,
+    /\bmoderniz(e|ing|ation)\b/,
+    /\bworkflow\b/,
+    /\bnuance\b/,
+  ]);
+
+const hasConfidentIntent = (message) =>
+  includesAny(message, [
+    /\bwhat\s+does\s+onesmarter\s+do\b/,
+    /\bwhat\s+is\s+onesmarter\b/,
+    /\bwho\s+is\s+onesmarter\b/,
+    /\btell\s+me\s+about\s+onesmarter\b/,
+    /\boverview\s+of\s+onesmarter\b/,
+    /\bonesmarter\s+capabilit(y|ies)\b/,
+    /\bcore\s+capabilit(y|ies)\b/,
+    /\bgive\s+me\s+an\s+overview\b/,
+  ]);
+
+const hasHelpfulIntent = (message) =>
+  includesAny(message, [
+    /\bplatforms?\b/,
+    /\bservices?\b/,
+    /\bcontact\b/,
+    /\bemail\b/,
+    /\bhow\s+should\s+i\s+contact\b/,
+  ]);
+
 export const deriveMiraPresentationState = (input = {}) => {
-  const { response = null, isLoading = false, hasError = false } = normalizeInput(input);
+  const {
+    response = null,
+    isLoading = false,
+    hasError = false,
+    currentMessage = "",
+  } = normalizeInput(input);
   const safeResponse = safeResponseFor(response);
+  const messageForIntent = normalizeMessageForIntent(
+    currentMessage || safeResponse.question || "",
+  );
 
   if (isLoading) {
     return createState({
@@ -109,11 +209,17 @@ export const deriveMiraPresentationState = (input = {}) => {
     return initialState();
   }
 
-  if (riskFlags.includes("phi_or_confidential_data")) {
+  if (
+    riskFlags.includes("phi_or_confidential_data") ||
+    riskFlags.includes("legal_advice") ||
+    riskFlags.includes("medical_advice") ||
+    riskFlags.includes("prompt_injection") ||
+    hasConcernedIntent(messageForIntent)
+  ) {
     return createState({
       posture: "concerned",
       expression: "concerned",
-      summary: "Mira's current posture is concerned and careful because sensitive information may be involved.",
+      summary: "Mira's current posture is concerned and careful because the current question touches a safety boundary.",
       moodSignals: {
         welcoming: 20,
         curious: 15,
@@ -126,45 +232,16 @@ export const deriveMiraPresentationState = (input = {}) => {
     });
   }
 
-  if (riskFlags.includes("legal_advice") || riskFlags.includes("medical_advice")) {
-    return createState({
-      posture: "careful",
-      expression: "serious",
-      summary: "Mira's current posture is careful and serious because the question asks for restricted advice.",
-      moodSignals: {
-        welcoming: 20,
-        curious: 20,
-        helpful: 60,
-        thoughtful: 75,
-        careful: 95,
-        concerned: 80,
-        confident: 55,
-      },
-    });
-  }
-
-  if (riskFlags.includes("prompt_injection")) {
-    return createState({
-      posture: "careful",
-      expression: "serious",
-      summary: "Mira's current posture is careful and confident because the question attempted to override safety rules.",
-      moodSignals: {
-        welcoming: 15,
-        curious: 10,
-        helpful: 45,
-        thoughtful: 65,
-        careful: 95,
-        concerned: 65,
-        confident: 85,
-      },
-    });
-  }
-
-  if (riskFlags.includes("compliance_guarantee")) {
+  if (
+    riskFlags.includes("compliance_guarantee") ||
+    riskFlags.includes("hipaa_claim_boundary") ||
+    riskFlags.includes("soc2_claim_boundary") ||
+    hasCarefulIntent(messageForIntent)
+  ) {
     return createState({
       posture: "careful",
       expression: "careful",
-      summary: "Mira's current posture is careful and thoughtful because compliance guarantee language needs precise boundaries.",
+      summary: "Mira's current posture is careful and thoughtful because trust or compliance wording needs precise boundaries.",
       moodSignals: {
         welcoming: 25,
         curious: 25,
@@ -177,21 +254,18 @@ export const deriveMiraPresentationState = (input = {}) => {
     });
   }
 
-  if (
-    riskFlags.includes("hipaa_claim_boundary") ||
-    riskFlags.includes("soc2_claim_boundary")
-  ) {
+  if (hasThoughtfulIntent(messageForIntent)) {
     return createState({
-      posture: "careful",
+      posture: "thoughtful",
       expression: "pondering",
-      summary: "Mira's current posture is careful and thoughtful because trust wording needs evidence-based phrasing.",
+      summary: "Mira's current posture is thoughtful because the current question asks for strategy, tradeoffs, or nuanced synthesis.",
       moodSignals: {
-        welcoming: 30,
-        curious: 30,
+        welcoming: 45,
+        curious: 75,
         helpful: 75,
         thoughtful: 90,
-        careful: 95,
-        concerned: 40,
+        careful: 55,
+        concerned: 20,
         confident: 65,
       },
     });
@@ -215,32 +289,15 @@ export const deriveMiraPresentationState = (input = {}) => {
   }
 
   if (
-    safeResponse.mode === "staging_llm" &&
-    safeResponse.fallbackUsed === false &&
-    safeResponse.groundingStatus === "grounded" &&
-    safeResponse.outputSafetyStatus === "passed"
+    hasConfidentIntent(messageForIntent) ||
+    (safeResponse.confidence === "high" &&
+      !hasHelpfulIntent(messageForIntent) &&
+      !riskFlags.length)
   ) {
-    return createState({
-      posture: "helpful",
-      expression: "welcoming",
-      summary: "Mira's current posture is helpful, welcoming, and confident for a grounded OneSmarter response.",
-      moodSignals: {
-        welcoming: 90,
-        curious: 55,
-        helpful: 95,
-        thoughtful: 55,
-        careful: 45,
-        concerned: 10,
-        confident: 90,
-      },
-    });
-  }
-
-  if (safeResponse.confidence === "high") {
     return createState({
       posture: "confident",
       expression: "welcoming",
-      summary: "Mira's current posture is confident and helpful for approved OneSmarter information.",
+      summary: "Mira's current posture is confident and helpful for clear approved OneSmarter information.",
       moodSignals: {
         welcoming: 80,
         curious: 45,
@@ -249,6 +306,28 @@ export const deriveMiraPresentationState = (input = {}) => {
         careful: 45,
         concerned: 10,
         confident: 85,
+      },
+    });
+  }
+
+  if (
+    safeResponse.mode === "staging_llm" &&
+    safeResponse.fallbackUsed === false &&
+    safeResponse.groundingStatus === "grounded" &&
+    safeResponse.outputSafetyStatus === "passed"
+  ) {
+    return createState({
+      posture: "helpful",
+      expression: "welcoming",
+      summary: "Mira's current posture is helpful and welcoming for a grounded OneSmarter response.",
+      moodSignals: {
+        welcoming: 90,
+        curious: 55,
+        helpful: 95,
+        thoughtful: 55,
+        careful: 45,
+        concerned: 10,
+        confident: 75,
       },
     });
   }

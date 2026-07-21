@@ -435,6 +435,10 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
   const [failedAssetIds, setFailedAssetIds] = useState([]);
   const imageUnavailable = failedAssetIds.includes(visualState.id);
   const hasApprovedAsset = visualState.assetStatus === "available" && !imageUnavailable;
+  const showPresentationDebug =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname.includes("vercel.app"));
 
   useEffect(() => {
     setFailedAssetIds((currentIds) =>
@@ -509,6 +513,22 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
           <p className="mt-3 rounded border border-white/10 bg-black/20 px-3 py-2 leading-5 text-zinc-400">
             {visualState.designDirection}
           </p>
+          {showPresentationDebug && (
+            <dl className="mt-3 grid gap-1 rounded border border-white/10 bg-black/20 px-3 py-2 text-[11px] text-zinc-500">
+              <div className="flex justify-between gap-3">
+                <dt>Posture</dt>
+                <dd className="text-zinc-300">{presentationState.posture}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt>Expression</dt>
+                <dd className="text-zinc-300">{presentationState.expression}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt>Visual state</dt>
+                <dd className="text-zinc-300">{visualState.id}</dd>
+              </div>
+            </dl>
+          )}
         </div>
       </div>
     </aside>
@@ -850,11 +870,13 @@ const MiraConversationPanel = () => {
   const [customQuestion, setCustomQuestion] = useState("");
   const [inputWarning, setInputWarning] = useState("");
   const [miraResponse, setMiraResponse] = useState(null);
+  const [currentPresentationMessage, setCurrentPresentationMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const formattedResponse = formatMiraResponse(miraResponse);
   const presentationState = deriveMiraPresentationState({
     response: miraResponse,
+    currentMessage: currentPresentationMessage,
     isLoading,
     hasError: Boolean(errorMessage),
   });
@@ -879,6 +901,7 @@ const MiraConversationPanel = () => {
     setErrorMessage("");
     setInputWarning("");
     setMiraResponse(null);
+    setCurrentPresentationMessage(message);
     setConversationTurns((turns) => [...turns, userTurn]);
 
     try {
@@ -964,6 +987,7 @@ const MiraConversationPanel = () => {
     setSelectedIndex(null);
     setConversationTurns([]);
     setMiraResponse(null);
+    setCurrentPresentationMessage("");
     setIsLoading(false);
     setErrorMessage("");
     setInputWarning("");

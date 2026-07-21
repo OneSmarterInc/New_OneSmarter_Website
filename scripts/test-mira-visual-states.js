@@ -89,8 +89,12 @@ if (getMiraVisualStateForPosture("unknown")?.id !== "welcoming") {
 }
 
 for (const posture of expectedStates) {
-  if (getMiraVisualStateForPosture(posture)?.id !== posture) {
+  const visualState = getMiraVisualStateForPosture(posture);
+  if (visualState?.id !== posture) {
     fail(`visual-state: ${posture} posture did not resolve correctly.`);
+  }
+  if (visualState?.assetPath !== expectedAssetPaths[posture]) {
+    fail(`visual-state: ${posture} posture should load ${expectedAssetPaths[posture]}.`);
   }
 }
 
