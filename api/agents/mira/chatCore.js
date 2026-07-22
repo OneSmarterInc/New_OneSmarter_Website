@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { runMiraResponseAdapter } from "./llmAdapter.js";
 import { readMiraRuntimeConfig } from "./miraRuntimeConfig.js";
 import {
+  buildConversationEntityGroups,
   buildGroundedConversationEntities,
   normalizeGroundedConversationEntities,
 } from "./miraConversationReferences.js";
@@ -448,6 +449,9 @@ export const handleMiraChatRequest = async ({
       config: runtimeConfig,
     });
     const normalizedConversationId = normalizeConversationId(conversationId);
+    const responseConversationEntities = result.resolvedConversationEntities?.length
+      ? normalizeGroundedConversationEntities(result.resolvedConversationEntities)
+      : buildGroundedConversationEntities(result.matchedEntries);
     const responseBody = {
       requestId,
       timestamp,
@@ -461,7 +465,12 @@ export const handleMiraChatRequest = async ({
       handoffNeeded: result.handoffNeeded,
       handoffReason: result.handoffReason || null,
       matchedSources: compactSources(result.matchedEntries),
-      conversationEntities: buildGroundedConversationEntities(result.matchedEntries),
+      conversationEntities: responseConversationEntities,
+      conversationEntityGroups: buildConversationEntityGroups(
+        normalizedHistory.history,
+        responseConversationEntities,
+        requestId,
+      ),
       suggestedFollowUps: result.suggestedFollowUps,
       disclaimer: disclaimerFor(result),
       privacyReminder: PRIVACY_REMINDER,

@@ -219,6 +219,14 @@ const comparisonAnswerSeedForEntries = (matchedEntries = []) =>
     .filter((line, index) => line || index > 0)
     .join("\n");
 
+const listAnswerSeedForEntities = (entities = [], matchedEntries = []) =>
+  [
+    "The grounded items in that group are:",
+    ...entities.map((entity, index) => `${index + 1}. ${entity.label}`),
+    "",
+    ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
+  ].join("\n");
+
 const withResolvedConversationEntities = (
   localResult,
   referenceResolution,
@@ -231,7 +239,9 @@ const withResolvedConversationEntities = (
     ...localResult,
     confidence: "high",
     matchedEntries,
-    answerSeed: referenceResolution.isComparison
+    answerSeed: referenceResolution.isList
+      ? listAnswerSeedForEntities(referenceResolution.entities, matchedEntries)
+      : referenceResolution.isComparison
       ? comparisonAnswerSeedForEntries(matchedEntries)
       : `${matchedEntries[0].title}: ${answerSeedForEntries(matchedEntries)}`,
     suggestedFollowUps: matchedEntries

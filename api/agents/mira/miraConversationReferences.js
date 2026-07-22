@@ -10,8 +10,8 @@ const knowledgeById = new Map(
 
 const ENTITY_DEFINITIONS = {
   "technology-solutions-overview": {
-    label: "Technology Solutions",
-    type: "platform",
+    label: "Technology Solutions Overview",
+    type: "service-category",
     children: [
       {
         id: "healthcare-tpa-technology-services",
@@ -73,6 +73,7 @@ const groundedChildEntity = (definition, position) => ({
   type: definition.type,
   level: 1,
   position,
+  parentId: definition.parentId || "technology-solutions-overview",
   sourceIds: definition.sourceIds.filter((sourceId) => knowledgeById.has(sourceId)),
 });
 
@@ -130,9 +131,68 @@ export const normalizeGroundedConversationEntities = (entities) => {
   return entities
     .slice(0, MAX_TOP_LEVEL_ENTITIES)
     .map((entity, index) =>
-      groundedConversationEntityForId(entity?.id, { position: index + 1 }),
+      groundedConversationEntityForId(entity?.id, {
+        level: entity?.level === 1 ? 1 : 0,
+        position: index + 1,
+      }),
     )
     .filter(Boolean);
+};
+
+const MAIN_OFFERING_IDS = [
+  "secure-ticketing-case-management",
+  "bill-audit-bill-pay",
+  "technology-solutions-overview",
+];
+
+const groupForEntities = (entities, sourceTurnId = "") => {
+  const ids = entities.map((entity) => entity.id);
+  const isMainOfferings =
+    MAIN_OFFERING_IDS.every((id) => ids.includes(id)) && ids.length === 3;
+  const parentIds = [...new Set(entities.map((entity) => entity.parentId).filter(Boolean))];
+  const isSingleParentChildGroup =
+    entities.length > 0 && parentIds.length === 1 && entities.every((entity) => entity.level === 1);
+  const groupId = isMainOfferings
+    ? "main-offerings"
+    : isSingleParentChildGroup
+      ? `${parentIds[0]}-services`
+      : `entities:${ids.join("|")}`;
+  return {
+    groupId,
+    type: isMainOfferings
+      ? "offering"
+      : isSingleParentChildGroup
+        ? "service"
+        : entities[0]?.type || "entity",
+    sourceTurnId,
+    ...(isSingleParentChildGroup ? { parentId: parentIds[0] } : {}),
+    items: entities,
+  };
+};
+
+export const buildConversationEntityGroups = (
+  conversationHistory = [],
+  currentEntities = [],
+  currentTurnId = "current",
+) => {
+  const groups = [];
+  if (currentEntities.length) {
+    groups.push(groupForEntities(currentEntities, currentTurnId));
+  }
+  conversationHistory
+    .slice()
+    .reverse()
+    .filter((turn) => turn?.role === "assistant")
+    .forEach((turn, index) => {
+      const entities = normalizeGroundedConversationEntities(turn.conversationEntities);
+      if (entities.length) groups.push(groupForEntities(entities, `history-${index + 1}`));
+    });
+  return groups
+    .filter(
+      (group, index, allGroups) =>
+        allGroups.findIndex((candidate) => candidate.groupId === group.groupId) === index,
+    )
+    .slice(0, MAX_ENTITY_SETS);
 };
 
 const normalizeReferenceText = (message = "") =>
@@ -170,7 +230,7 @@ const ordinalIndex = (value = "") => {
 };
 
 const requestedType = (message = "") => {
-  const match = message.match(/\b(platform|service|industry|topic)s?\b/);
+  const match = message.match(/\b(platform|service|industry|topic|offering)s?\b/);
   return match?.[1] || "";
 };
 
@@ -179,47 +239,63 @@ const hasReferenceLanguage = (message = "") =>
     message,
   );
 
-const recentEntitySets = (conversationHistory = []) =>
-  conversationHistory
-    .slice()
-    .reverse()
-    .filter((turn) => turn?.role === "assistant")
-    .map((turn) => normalizeGroundedConversationEntities(turn.conversationEntities))
-    .filter((entities) => entities.length)
-    .slice(0, MAX_ENTITY_SETS);
+const isScopedListRequest = (message = "") =>
+  !/\b(first|second|third|fourth|last|previous|former|latter|option|number)\b/.test(
+    message,
+  ) &&
+  /\b(what|which|list|show)\b.*\b(items?|services?|topics?)\b.*\b(under|inside|within)\b/.test(
+    message,
+  );
+
+const recentEntityGroups = (conversationHistory = []) =>
+  buildConversationEntityGroups(conversationHistory);
 
 const normalizedLabel = (label = "") =>
   String(label).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
-const parentScopeFor = (message, entitySet) => {
+const parentScopeFor = (message, group) => {
   if (!/\b(under|inside|within)\b/.test(message)) return null;
   const searchableMessage = normalizedLabel(message);
+  if (group.parentId) {
+    const parent = groundedConversationEntityForId(group.parentId);
+    if (parent && searchableMessage.includes(normalizedLabel(parent.label))) {
+      return { parent, entities: group.items };
+    }
+  }
   return (
-    entitySet.find((entity) =>
-      searchableMessage.includes(normalizedLabel(entity.label)),
-    ) || null
+    group.items
+      .filter((entity) => entity.children?.length)
+      .map((parent) => ({ parent, entities: parent.children }))
+      .find(({ parent }) =>
+        searchableMessage.includes(normalizedLabel(parent.label)),
+      ) || null
   );
 };
 
-const selectEntitySet = (sets, type, message) => {
+const selectEntityGroup = (groups, type, message) => {
   if (!type && !/\b(under|inside|within)\b/.test(message)) {
-    return { entities: sets[0] || [], ambiguousParents: [] };
+    return { entities: groups[0]?.items || [], ambiguousParents: [] };
   }
-  for (const set of sets) {
-    const scopedParent = parentScopeFor(message, set);
+  for (const group of groups) {
+    const scopedParent = parentScopeFor(message, group);
     if (scopedParent) {
-      const scopedChildren = (scopedParent.children || []).filter(
+      const scopedChildren = scopedParent.entities.filter(
         (entity) => !type || entity.type === type,
       );
       return { entities: scopedChildren, ambiguousParents: [] };
     }
 
-    const typedTopLevel = set.filter((entity) => entity.type === type);
+    const typedTopLevel =
+      type === "offering"
+        ? group.type === "offering"
+          ? group.items
+          : []
+        : group.items.filter((entity) => entity.type === type);
     if (typedTopLevel.length) {
       return { entities: typedTopLevel, ambiguousParents: [] };
     }
 
-    const nestedGroups = set
+    const nestedGroups = group.items
       .map((parent) => ({
         parent,
         entities: (parent.children || []).filter((entity) => entity.type === type),
@@ -240,8 +316,8 @@ const selectEntitySet = (sets, type, message) => {
 
 const explicitlyNamedEntity = (message, sets) => {
   const searchableMessage = normalizedLabel(message);
-  for (const set of sets) {
-    for (const parent of set) {
+  for (const group of sets) {
+    for (const parent of group.items) {
       for (const entity of [...(parent.children || []), parent]) {
         const label = normalizedLabel(entity.label);
         if (label && searchableMessage.includes(label)) return entity;
@@ -291,7 +367,7 @@ export const resolveMiraConversationReference = (
   conversationHistory = [],
 ) => {
   const normalizedMessage = normalizeReferenceText(message);
-  const sets = recentEntitySets(conversationHistory);
+  const sets = recentEntityGroups(conversationHistory);
   const namedEntity = /\b(under|inside|within)\b/.test(normalizedMessage)
     ? null
     : explicitlyNamedEntity(normalizedMessage, sets);
@@ -303,12 +379,13 @@ export const resolveMiraConversationReference = (
       hadEntityContext: true,
     };
   }
-  if (!hasReferenceLanguage(normalizedMessage)) {
+  const scopedListRequest = isScopedListRequest(normalizedMessage);
+  if (!hasReferenceLanguage(normalizedMessage) && !scopedListRequest) {
     return { kind: "none", entities: [], isComparison: false, hadEntityContext: false };
   }
 
   const type = requestedType(normalizedMessage);
-  const selection = selectEntitySet(sets, type, normalizedMessage);
+  const selection = selectEntityGroup(sets, type, normalizedMessage);
   const entitySet = selection.entities;
   if (selection.ambiguousParents.length) {
     return {
@@ -326,6 +403,16 @@ export const resolveMiraConversationReference = (
       isComparison: false,
       hadEntityContext: false,
       clarification: clarificationFor([], type || "item"),
+    };
+  }
+
+  if (scopedListRequest) {
+    return {
+      kind: "resolved",
+      entities: entitySet,
+      isComparison: false,
+      isList: true,
+      hadEntityContext: true,
     };
   }
 

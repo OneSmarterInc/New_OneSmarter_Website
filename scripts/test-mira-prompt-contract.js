@@ -9,6 +9,7 @@ import { validateMiraModelOutput } from "../api/agents/mira/miraOutputValidator.
 import { readMiraRuntimeConfig } from "../api/agents/mira/miraRuntimeConfig.js";
 import { runOpenAiMiraAdapter } from "../api/agents/mira/openAiAdapter.js";
 import {
+  buildConversationEntityGroups,
   normalizeGroundedConversationEntities,
   resolveMiraConversationReference,
 } from "../api/agents/mira/miraConversationReferences.js";
@@ -760,6 +761,29 @@ const mixedHistory = [
     conversationEntities: serviceEntities,
   },
 ];
+const retainedPlatformHistory = [
+  ...platformHistory,
+  { role: "user", content: "Explain the third one." },
+  {
+    role: "assistant",
+    content: "Technology Solutions Overview was explained from approved content.",
+    conversationEntities: [{ id: "technology-solutions-overview" }],
+  },
+];
+const technologyServiceHistory = [
+  ...platformHistory,
+  { role: "user", content: "What services are under Technology Solutions?" },
+  {
+    role: "assistant",
+    content: "A grounded Technology Solutions service list was returned.",
+    conversationEntities: [
+      { id: "healthcare-tpa-technology-services", level: 1 },
+      { id: "claims-processing-services", level: 1 },
+      { id: "ai-agentic-services", level: 1 },
+      { id: "ibm-i-as400-services", level: 1 },
+    ],
+  },
+];
 
 const referenceCases = [
   ["ordinal-third", "Explain the third one.", platformHistory, ["technology-solutions-overview"]],
@@ -783,6 +807,9 @@ const referenceCases = [
   ["hierarchy-third-child", "Explain the third service under Technology Solutions.", platformHistory, ["ai-agentic-services"]],
   ["hierarchy-second-platform", "Explain the second platform.", platformHistory, ["bill-audit-bill-pay"]],
   ["hierarchy-last-top-level", "Explain the last one.", platformHistory, ["technology-solutions-overview"]],
+  ["retained-platform-group", "Explain the second platform.", retainedPlatformHistory, ["bill-audit-bill-pay"]],
+  ["retained-offering-group", "Explain the second offering.", retainedPlatformHistory, ["bill-audit-bill-pay"]],
+  ["nested-latest-group", "Explain the third one.", technologyServiceHistory, ["ai-agentic-services"]],
 ];
 
 for (const [id, message, history, expectedIds, expectedComparison = false] of referenceCases) {
@@ -834,6 +861,18 @@ if (
   fail("reference-hierarchy: child services must not alter top-level positions.");
 }
 
+const retainedGroups = buildConversationEntityGroups(
+  retainedPlatformHistory,
+  normalizeGroundedConversationEntities([{ id: "technology-solutions-overview" }]),
+  "current-test-turn",
+);
+if (
+  retainedGroups[0]?.items?.[0]?.id !== "technology-solutions-overview" ||
+  !retainedGroups.some((group) => group.groupId === "main-offerings")
+) {
+  fail("reference-groups: a focused follow-up group must retain the earlier main-offerings group.");
+}
+
 if (failures.length) {
   console.error("Mira prompt contract tests failed:");
   for (const failure of failures) {
@@ -843,4 +882,4 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks, 18 mocked model output cases, and 20 reference cases.");
+console.log("Ran prompt construction checks, 18 mocked model output cases, and 24 reference cases.");

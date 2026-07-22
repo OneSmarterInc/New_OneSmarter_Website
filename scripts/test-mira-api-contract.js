@@ -709,6 +709,7 @@ const modeCases = [
         "software-support-consolidation",
       ],
     },
+    expectedConversationGroupIds: ["main-offerings"],
   },
   {
     id: "structured-entities-third-reference",
@@ -772,6 +773,90 @@ const modeCases = [
     expectedStatus: 200,
     expectedRiskFlags: ["phi_or_confidential_data"],
     expectedFetchCalls: 0,
+  },
+  {
+    id: "structured-groups-retain-main-offerings-for-typed-platform",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain the second platform.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Three grounded top-level offerings were returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+          { id: "technology-solutions-overview" },
+        ],
+      },
+      { role: "user", content: "Explain the third one." },
+      {
+        role: "assistant",
+        content: "Technology Solutions Overview was explained.",
+        conversationEntities: [{ id: "technology-solutions-overview" }],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedConversationEntityIds: ["bill-audit-bill-pay"],
+    expectedConversationGroupIdsIncludes: ["main-offerings"],
+    expectedAnswerIncludes: "Bill Audit & Bill Pay",
+  },
+  {
+    id: "structured-groups-list-services-under-technology-solutions",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What services are under Technology Solutions?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Three grounded top-level offerings were returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+          { id: "technology-solutions-overview" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+    expectedConversationGroupIdsIncludes: [
+      "technology-solutions-overview-services",
+      "main-offerings",
+    ],
+    expectedAnswerIncludesAll: ["Claims Processing Services", "AI Agentic Services"],
+  },
+  {
+    id: "structured-groups-latest-service-list-controls-unqualified-ordinal",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain the third one.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "A grounded service list was returned.",
+        conversationEntities: [
+          { id: "healthcare-tpa-technology-services", level: 1 },
+          { id: "claims-processing-services", level: 1 },
+          { id: "ai-agentic-services", level: 1 },
+          { id: "ibm-i-as400-services", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "ai-agentic-services",
+    expectedConversationEntityIds: ["ai-agentic-services"],
+    expectedAnswerIncludes: "AI Agentic Services",
   },
   {
     id: "mode-off-safe-unavailable",
@@ -2555,6 +2640,21 @@ for (const modeCase of modeCases) {
       fail(
         `${modeCase.id}: expected ${parentId} children [${expectedChildIds}], got [${actualChildIds}].`,
       );
+    }
+  }
+  if (modeCase.expectedConversationGroupIds) {
+    const actualGroupIds = (result.body.conversationEntityGroups || []).map(
+      (group) => group.groupId,
+    );
+    if (JSON.stringify(actualGroupIds) !== JSON.stringify(modeCase.expectedConversationGroupIds)) {
+      fail(
+        `${modeCase.id}: expected conversation groups [${modeCase.expectedConversationGroupIds}], got [${actualGroupIds}].`,
+      );
+    }
+  }
+  for (const groupId of modeCase.expectedConversationGroupIdsIncludes || []) {
+    if (!(result.body.conversationEntityGroups || []).some((group) => group.groupId === groupId)) {
+      fail(`${modeCase.id}: missing retained conversation group ${groupId}.`);
     }
   }
   if (
