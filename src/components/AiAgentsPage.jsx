@@ -570,11 +570,10 @@ const AgentNetwork = () => (
               <div className="mb-2">{label}</div>
             )}
             <div
-              className={`flex h-16 w-16 items-center justify-center rounded-full border text-sm font-bold shadow-lg sm:h-20 sm:w-20 ${
-                isMira
+              className={`flex h-16 w-16 items-center justify-center rounded-full border text-sm font-bold shadow-lg sm:h-20 sm:w-20 ${isMira
                   ? "border-red-400 bg-red-600 text-white shadow-red-950/60"
                   : "border-white/15 bg-zinc-900 text-zinc-200"
-              }`}
+                }`}
             >
               {agent.initials}
             </div>
@@ -737,11 +736,10 @@ const MiraVoiceSamplesPanel = () => {
                   type="button"
                   onClick={() => setVoiceStyle(style)}
                   aria-pressed={voiceStyle === style}
-                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 ${
-                    voiceStyle === style
+                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 ${voiceStyle === style
                       ? "border-red-600 bg-red-600 text-white"
                       : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-red-400"
-                  }`}
+                    }`}
                 >
                   {style}
                 </button>
@@ -755,11 +753,10 @@ const MiraVoiceSamplesPanel = () => {
               {MIRA_LANGUAGE_DEMOS.map((language) => (
                 <span
                   key={language.id}
-                  className={`rounded-full border px-3 py-2 ${
-                    language.status === "available"
+                  className={`rounded-full border px-3 py-2 ${language.status === "available"
                       ? "border-white/10 bg-white/[0.04] text-zinc-200"
                       : "border-dashed border-white/20 bg-transparent text-zinc-400"
-                  }`}
+                    }`}
                 >
                   {language.label}
                   {language.status === "planned" ? " - planned" : ""}
@@ -786,9 +783,8 @@ const MiraVoiceSamplesPanel = () => {
               return (
                 <article
                   key={sample.id}
-                  className={`rounded-lg border bg-white/[0.04] p-4 ${
-                    isActive ? "border-red-400" : "border-white/10"
-                  }`}
+                  className={`rounded-lg border bg-white/[0.04] p-4 ${isActive ? "border-red-400" : "border-white/10"
+                    }`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
@@ -1028,20 +1024,14 @@ const MiraConversationPanel = () => {
 
   const handleCustomQuestionSubmit = async (event) => {
     event.preventDefault();
+
     const trimmedQuestion = customQuestion.trim();
-
-    if (!trimmedQuestion) {
-      setInputWarning("Enter a question for Mira before submitting.");
-      return;
-    }
-
-    if (trimmedQuestion.length > MIRA_INPUT_LIMIT) {
-      setInputWarning("Please shorten your question to 500 characters or fewer.");
-      return;
-    }
-
+    if (!trimmedQuestion) return;
+    event.currentTarget.querySelector("button[type='submit']")?.blur();
     setSelectedIndex(null);
-    await requestMiraAnswer(trimmedQuestion);
+    const answerRequest = requestMiraAnswer(trimmedQuestion);
+    setTimeout(() => guideToAnswerPanel(), 0);
+    await answerRequest;
     setCustomQuestion("");
   };
 
@@ -1124,11 +1114,10 @@ const MiraConversationPanel = () => {
                 disabled={isLoading}
                 aria-label={`Ask Mira: ${example.question}`}
                 aria-pressed={selectedIndex === index}
-                className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
-                  selectedIndex === index
+                className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${selectedIndex === index
                     ? "border-red-500 bg-red-600 text-white"
                     : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-red-500/60 hover:bg-white/[0.08]"
-                }`}
+                  }`}
               >
                 {example.question}
               </button>
@@ -1185,11 +1174,10 @@ const MiraConversationPanel = () => {
 
         <div
           ref={answerPanelRef}
-          className={`scroll-mt-24 rounded-lg border bg-[#090909] p-5 shadow-2xl shadow-black/40 transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none md:p-6 ${
-            isAnswerHighlighted
+          className={`scroll-mt-24 rounded-lg border bg-[#090909] p-5 shadow-2xl shadow-black/40 transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none md:p-6 ${isAnswerHighlighted
               ? "border-red-500/70 shadow-red-950/40"
               : "border-white/10"
-          }`}
+            }`}
         >
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div className="flex items-center gap-4">
@@ -1235,16 +1223,14 @@ const MiraConversationPanel = () => {
             {conversationTurns.map((turn) => (
               <div
                 key={turn.id}
-                className={`max-w-[92%] rounded-2xl px-5 py-4 text-sm leading-6 ${
-                  turn.role === "user"
+                className={`max-w-[92%] rounded-2xl px-5 py-4 text-sm leading-6 ${turn.role === "user"
                     ? "ml-auto rounded-tr-sm bg-white text-zinc-950"
                     : "rounded-tl-sm border border-white/10 bg-zinc-900 text-zinc-200"
-                }`}
+                  }`}
               >
                 <p
-                  className={`mb-2 text-xs font-semibold uppercase tracking-wide ${
-                    turn.role === "user" ? "text-zinc-500" : "text-red-300"
-                  }`}
+                  className={`mb-2 text-xs font-semibold uppercase tracking-wide ${turn.role === "user" ? "text-zinc-500" : "text-red-300"
+                    }`}
                 >
                   {turn.role === "user" ? "You" : "Mira"}
                 </p>
@@ -1443,11 +1429,10 @@ const PersonaLayerPrototype = () => {
                       key={option}
                       type="button"
                       onClick={() => setSelected(option)}
-                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
-                        selected === option
+                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${selected === option
                           ? "border-red-500 bg-red-600 text-white"
                           : "border-white/10 bg-white/[0.04] text-zinc-300 hover:border-red-500/60 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {option}
                     </button>
