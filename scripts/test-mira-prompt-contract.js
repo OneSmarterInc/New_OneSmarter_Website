@@ -8,7 +8,10 @@ import {
 import { validateMiraModelOutput } from "../api/agents/mira/miraOutputValidator.js";
 import { readMiraRuntimeConfig } from "../api/agents/mira/miraRuntimeConfig.js";
 import { runOpenAiMiraAdapter } from "../api/agents/mira/openAiAdapter.js";
-import { resolveMiraConversationReference } from "../api/agents/mira/miraConversationReferences.js";
+import {
+  normalizeGroundedConversationEntities,
+  resolveMiraConversationReference,
+} from "../api/agents/mira/miraConversationReferences.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -737,8 +740,8 @@ const platformEntities = [
   { id: "technology-solutions-overview" },
 ];
 const serviceEntities = [
-  { id: "technology-solutions-overview" },
   { id: "claims-processing-services" },
+  { id: "ai-agentic-services" },
 ];
 const platformHistory = [
   { role: "user", content: "What are your main platforms?" },
@@ -770,12 +773,16 @@ const referenceCases = [
     true,
   ],
   ["typed-platform", "Explain the second platform.", mixedHistory, ["bill-audit-bill-pay"]],
-  ["latest-turn", "Explain the second one.", mixedHistory, ["claims-processing-services"]],
+  ["latest-turn", "Explain the second one.", mixedHistory, ["ai-agentic-services"]],
   ["typo-third", "Explain therd one.", platformHistory, ["technology-solutions-overview"]],
   ["typo-pair", "Compare frist and secnd.", platformHistory, ["secure-ticketing-case-management", "bill-audit-bill-pay"], true],
   ["number-two", "Explain number two.", platformHistory, ["bill-audit-bill-pay"]],
   ["latter", "Explain the latter.", platformHistory, ["bill-audit-bill-pay"]],
   ["first-two", "Compare the first two.", platformHistory, ["secure-ticketing-case-management", "bill-audit-bill-pay"], true],
+  ["hierarchy-third-top-level", "Explain the third one.", platformHistory, ["technology-solutions-overview"]],
+  ["hierarchy-third-child", "Explain the third service under Technology Solutions.", platformHistory, ["ai-agentic-services"]],
+  ["hierarchy-second-platform", "Explain the second platform.", platformHistory, ["bill-audit-bill-pay"]],
+  ["hierarchy-last-top-level", "Explain the last one.", platformHistory, ["technology-solutions-overview"]],
 ];
 
 for (const [id, message, history, expectedIds, expectedComparison = false] of referenceCases) {
@@ -814,6 +821,19 @@ if (
   fail("reference-grounding: client labels and source IDs must be replaced with canonical KB data.");
 }
 
+const normalizedHierarchy = normalizeGroundedConversationEntities(platformEntities);
+const technologySolutionsEntity = normalizedHierarchy[2];
+if (
+  normalizedHierarchy.length !== 3 ||
+  technologySolutionsEntity?.level !== 0 ||
+  technologySolutionsEntity?.position !== 3 ||
+  technologySolutionsEntity?.children?.[2]?.id !== "ai-agentic-services" ||
+  technologySolutionsEntity?.children?.[2]?.level !== 1 ||
+  technologySolutionsEntity?.children?.[2]?.position !== 3
+) {
+  fail("reference-hierarchy: child services must not alter top-level positions.");
+}
+
 if (failures.length) {
   console.error("Mira prompt contract tests failed:");
   for (const failure of failures) {
@@ -823,4 +843,4 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks, 18 mocked model output cases, and 15 reference cases.");
+console.log("Ran prompt construction checks, 18 mocked model output cases, and 20 reference cases.");

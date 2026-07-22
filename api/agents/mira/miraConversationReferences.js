@@ -1,10 +1,62 @@
 import { onesmarterPublicKnowledgeBase } from "../../../src/data/agentKnowledge/onesmarterPublicKb.js";
 
 const MAX_ENTITY_SETS = 3;
-const MAX_ENTITIES_PER_TURN = 8;
+const MAX_TOP_LEVEL_ENTITIES = 8;
+const MAX_CHILD_ENTITIES = 8;
 
 const knowledgeById = new Map(
   onesmarterPublicKnowledgeBase.map((entry) => [entry.id, entry]),
+);
+
+const ENTITY_DEFINITIONS = {
+  "technology-solutions-overview": {
+    label: "Technology Solutions",
+    type: "platform",
+    children: [
+      {
+        id: "healthcare-tpa-technology-services",
+        label: "Healthcare & TPA Technology Services",
+        type: "service",
+        sourceIds: ["technology-solutions-overview"],
+      },
+      {
+        id: "claims-processing-services",
+        label: "Claims Processing Services",
+        type: "service",
+        sourceIds: ["claims-processing-services"],
+      },
+      {
+        id: "ai-agentic-services",
+        label: "AI Agentic Services",
+        type: "service",
+        sourceIds: ["ai-agentic-services"],
+      },
+      {
+        id: "ibm-i-as400-services",
+        label: "IBM i / AS400 Services",
+        type: "service",
+        sourceIds: ["technology-solutions-overview"],
+      },
+      {
+        id: "enterprise-software-development",
+        label: "Enterprise Software Development",
+        type: "service",
+        sourceIds: ["technology-solutions-overview"],
+      },
+      {
+        id: "software-support-consolidation",
+        label: "Software Support Consolidation",
+        type: "service",
+        sourceIds: ["technology-solutions-overview"],
+      },
+    ],
+  },
+};
+
+const childDefinitionById = new Map(
+  Object.entries(ENTITY_DEFINITIONS).flatMap(([parentId, definition]) =>
+    (definition.children || []).map((child) => [child.id, { ...child, parentId }]),
+  ),
 );
 
 const entityTypeFor = (entry) => {
@@ -15,31 +67,71 @@ const entityTypeFor = (entry) => {
   return "topic";
 };
 
-export const groundedConversationEntityForId = (id) => {
+const groundedChildEntity = (definition, position) => ({
+  id: definition.id,
+  label: definition.label,
+  type: definition.type,
+  level: 1,
+  position,
+  sourceIds: definition.sourceIds.filter((sourceId) => knowledgeById.has(sourceId)),
+});
+
+export const groundedConversationEntityForId = (
+  id,
+  { level = 0, position = 1, includeChildren = true } = {},
+) => {
+  const childDefinition = childDefinitionById.get(id);
+  if (level > 0 && childDefinition) {
+    return groundedChildEntity(childDefinition, position);
+  }
   const entry = knowledgeById.get(id);
   if (!entry) return null;
+  const definition = ENTITY_DEFINITIONS[id];
   return {
     id: entry.id,
-    label: entry.title,
-    type: entityTypeFor(entry),
+    label: definition?.label || entry.title,
+    type: definition?.type || entityTypeFor(entry),
+    level: 0,
+    position,
     sourceIds: [entry.id],
+    ...(includeChildren && definition?.children?.length
+      ? {
+          children: definition.children
+            .slice(0, MAX_CHILD_ENTITIES)
+            .map((child, index) => groundedChildEntity(child, index + 1)),
+        }
+      : {}),
   };
 };
 
-export const buildGroundedConversationEntities = (matchedEntries = []) =>
-  matchedEntries
-    .map((entry) => groundedConversationEntityForId(entry?.id))
+export const buildGroundedConversationEntities = (matchedEntries = []) => {
+  const matchedIds = new Set(matchedEntries.map((entry) => entry?.id));
+  const childIdsToNest = new Set(
+    [...matchedIds].filter((id) => {
+      const parentId = childDefinitionById.get(id)?.parentId;
+      return parentId && matchedIds.has(parentId);
+    }),
+  );
+  return matchedEntries
+    .filter((entry) => !childIdsToNest.has(entry?.id))
+    .map((entry, index) =>
+      groundedConversationEntityForId(entry?.id, { position: index + 1 }),
+    )
     .filter(Boolean)
     .filter((entity, index, entities) =>
       entities.findIndex((candidate) => candidate.id === entity.id) === index,
     )
-    .slice(0, MAX_ENTITIES_PER_TURN);
+    .slice(0, MAX_TOP_LEVEL_ENTITIES)
+    .map((entity, index) => ({ ...entity, position: index + 1 }));
+};
 
 export const normalizeGroundedConversationEntities = (entities) => {
   if (!Array.isArray(entities)) return [];
   return entities
-    .slice(0, MAX_ENTITIES_PER_TURN)
-    .map((entity) => groundedConversationEntityForId(entity?.id))
+    .slice(0, MAX_TOP_LEVEL_ENTITIES)
+    .map((entity, index) =>
+      groundedConversationEntityForId(entity?.id, { position: index + 1 }),
+    )
     .filter(Boolean);
 };
 
@@ -96,13 +188,67 @@ const recentEntitySets = (conversationHistory = []) =>
     .filter((entities) => entities.length)
     .slice(0, MAX_ENTITY_SETS);
 
-const selectEntitySet = (sets, type) => {
-  if (!type) return sets[0] || [];
-  for (const set of sets) {
-    const typed = set.filter((entity) => entity.type === type);
-    if (typed.length) return typed;
+const normalizedLabel = (label = "") =>
+  String(label).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const parentScopeFor = (message, entitySet) => {
+  if (!/\b(under|inside|within)\b/.test(message)) return null;
+  const searchableMessage = normalizedLabel(message);
+  return (
+    entitySet.find((entity) =>
+      searchableMessage.includes(normalizedLabel(entity.label)),
+    ) || null
+  );
+};
+
+const selectEntitySet = (sets, type, message) => {
+  if (!type && !/\b(under|inside|within)\b/.test(message)) {
+    return { entities: sets[0] || [], ambiguousParents: [] };
   }
-  return [];
+  for (const set of sets) {
+    const scopedParent = parentScopeFor(message, set);
+    if (scopedParent) {
+      const scopedChildren = (scopedParent.children || []).filter(
+        (entity) => !type || entity.type === type,
+      );
+      return { entities: scopedChildren, ambiguousParents: [] };
+    }
+
+    const typedTopLevel = set.filter((entity) => entity.type === type);
+    if (typedTopLevel.length) {
+      return { entities: typedTopLevel, ambiguousParents: [] };
+    }
+
+    const nestedGroups = set
+      .map((parent) => ({
+        parent,
+        entities: (parent.children || []).filter((entity) => entity.type === type),
+      }))
+      .filter((group) => group.entities.length);
+    if (nestedGroups.length === 1) {
+      return { entities: nestedGroups[0].entities, ambiguousParents: [] };
+    }
+    if (nestedGroups.length > 1) {
+      return {
+        entities: [],
+        ambiguousParents: nestedGroups.map((group) => group.parent),
+      };
+    }
+  }
+  return { entities: [], ambiguousParents: [] };
+};
+
+const explicitlyNamedEntity = (message, sets) => {
+  const searchableMessage = normalizedLabel(message);
+  for (const set of sets) {
+    for (const parent of set) {
+      for (const entity of [...(parent.children || []), parent]) {
+        const label = normalizedLabel(entity.label);
+        if (label && searchableMessage.includes(label)) return entity;
+      }
+    }
+  }
+  return null;
 };
 
 const formatEntityChoices = (entities) => {
@@ -145,13 +291,34 @@ export const resolveMiraConversationReference = (
   conversationHistory = [],
 ) => {
   const normalizedMessage = normalizeReferenceText(message);
+  const sets = recentEntitySets(conversationHistory);
+  const namedEntity = /\b(under|inside|within)\b/.test(normalizedMessage)
+    ? null
+    : explicitlyNamedEntity(normalizedMessage, sets);
+  if (namedEntity) {
+    return {
+      kind: "resolved",
+      entities: [namedEntity],
+      isComparison: false,
+      hadEntityContext: true,
+    };
+  }
   if (!hasReferenceLanguage(normalizedMessage)) {
     return { kind: "none", entities: [], isComparison: false, hadEntityContext: false };
   }
 
   const type = requestedType(normalizedMessage);
-  const sets = recentEntitySets(conversationHistory);
-  const entitySet = selectEntitySet(sets, type);
+  const selection = selectEntitySet(sets, type, normalizedMessage);
+  const entitySet = selection.entities;
+  if (selection.ambiguousParents.length) {
+    return {
+      kind: "clarification",
+      entities: [],
+      isComparison: false,
+      hadEntityContext: true,
+      clarification: `Which parent list did you mean: ${formatEntityChoices(selection.ambiguousParents)}?`,
+    };
+  }
   if (!entitySet.length) {
     return {
       kind: "clarification",

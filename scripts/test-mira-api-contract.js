@@ -699,6 +699,16 @@ const modeCases = [
       "bill-audit-bill-pay",
       "technology-solutions-overview",
     ],
+    expectedConversationChildIds: {
+      "technology-solutions-overview": [
+        "healthcare-tpa-technology-services",
+        "claims-processing-services",
+        "ai-agentic-services",
+        "ibm-i-as400-services",
+        "enterprise-software-development",
+        "software-support-consolidation",
+      ],
+    },
   },
   {
     id: "structured-entities-third-reference",
@@ -744,7 +754,7 @@ const modeCases = [
     expectedConfidence: "low",
     expectedMatchedSourcesEmpty: true,
     expectedConversationEntityIds: [],
-    expectedAnswerIncludesAll: ["I listed 3 items", "Technology Solutions Overview"],
+    expectedAnswerIncludesAll: ["I listed 3 items", "Technology Solutions"],
   },
   {
     id: "structured-entities-current-safety-overrides-reference",
@@ -2531,6 +2541,19 @@ for (const modeCase of modeCases) {
     ) {
       fail(
         `${modeCase.id}: expected conversation entities [${modeCase.expectedConversationEntityIds}], got [${actualEntityIds}].`,
+      );
+    }
+  }
+  for (const [parentId, expectedChildIds] of Object.entries(
+    modeCase.expectedConversationChildIds || {},
+  )) {
+    const parent = (result.body.conversationEntities || []).find(
+      (entity) => entity.id === parentId,
+    );
+    const actualChildIds = (parent?.children || []).map((child) => child.id);
+    if (JSON.stringify(actualChildIds) !== JSON.stringify(expectedChildIds)) {
+      fail(
+        `${modeCase.id}: expected ${parentId} children [${expectedChildIds}], got [${actualChildIds}].`,
       );
     }
   }
