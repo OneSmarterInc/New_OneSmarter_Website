@@ -457,7 +457,7 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
           <p className="mt-2 max-w-xl leading-5 text-zinc-400">
             Mira's visual posture reflects the tone of the current conversation.
             Static artwork only; no camera, tracking, or live avatar processing
-            is active.
+            is active.......
           </p>
         </div>
         <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-200">
@@ -712,13 +712,13 @@ const MiraVoiceSamplesPanel = () => {
   };
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-5 text-black shadow-sm md:p-6">
-      <div className="grid gap-8">
+    <section className="bg-white px-5 py-16 text-black md:px-12">
+      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.78fr_1.22fr]">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
-            Scripted voice samples
+            Scripted voice sample
           </p>
-          <h3 className="text-2xl font-bold md:text-3xl">Hear Mira</h3>
+          <h2 className="text-2xl font-bold md:text-4xl">Hear Mira</h2>
           <p className="mt-4 leading-7 text-gray-700">
             Preview Mira's intended speaking style using preapproved scripted
             samples. No microphone or live voice processing is used.
@@ -997,15 +997,15 @@ const MiraConversationPanel = () => {
   const isSubmitDisabled = isLoading || !customQuestion.trim();
 
   return (
-    <section className="rounded-lg border border-white/10 bg-zinc-950 p-5 text-white shadow-sm md:p-6">
-      <div className="grid gap-8">
+    <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
+      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
-            Guided interaction
+            Guide interaction
           </p>
-          <h3 className="text-2xl font-bold md:text-3xl">
+          <h2 className="text-2xl font-bold md:text-4xl">
             Staging AI preview
-          </h3>
+          </h2>
           <p className="mt-4 leading-7 text-zinc-300">
             Mira can answer sample questions or a short typed question using
             approved OneSmarter content. This preview is grounded, controlled,
@@ -1417,27 +1417,9 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <section className="bg-[#f6f7f9] px-5 py-16 text-black md:px-12">
-        <div className="qa-container mx-auto rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
-          <div className="max-w-3xl">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
-              Mira experience
-            </p>
-            <h2 className="text-2xl font-bold md:text-4xl">
-              Mira voice and guided interaction
-            </h2>
-            <p className="mt-4 leading-7 text-gray-700">
-              Hear Mira's approved voice samples and continue with a guided,
-              grounded conversation preview.
-            </p>
-          </div>
+      <MiraVoiceSamplesPanel />
 
-          <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
-            <MiraVoiceSamplesPanel />
-            <MiraConversationPanel />
-          </div>
-        </div>
-      </section>
+      <MiraConversationPanel />
 
       <PersonaLayerPrototype />
 
