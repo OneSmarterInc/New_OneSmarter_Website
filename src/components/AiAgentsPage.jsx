@@ -870,6 +870,7 @@ const MiraConversationPanel = () => {
   const answerPanelRef = useRef(null);
   const guidanceTimeoutRef = useRef(null);
   const highlightTimeoutRef = useRef(null);
+  const copyStatusTimeoutRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [showSampleGuidance, setShowSampleGuidance] = useState(false);
   const [isAnswerHighlighted, setIsAnswerHighlighted] = useState(false);
@@ -880,6 +881,10 @@ const MiraConversationPanel = () => {
   const [currentPresentationMessage, setCurrentPresentationMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [copyStatus, setCopyStatus] = useState("idle");
+  const latestMiraAnswer = [...conversationTurns]
+    .reverse()
+    .find((turn) => turn.role === "assistant" && !turn.error)?.content;
   const formattedResponse = formatMiraResponse(miraResponse);
   const presentationState = deriveMiraPresentationState({
     response: miraResponse,
@@ -908,6 +913,7 @@ const MiraConversationPanel = () => {
     () => () => {
       window.clearTimeout(guidanceTimeoutRef.current);
       window.clearTimeout(highlightTimeoutRef.current);
+      window.clearTimeout(copyStatusTimeoutRef.current);
     },
     [],
   );
@@ -957,6 +963,8 @@ const MiraConversationPanel = () => {
       role: "user",
       content: message,
     };
+    window.clearTimeout(copyStatusTimeoutRef.current);
+    setCopyStatus("idle");
     setIsLoading(true);
     setErrorMessage("");
     setInputWarning("");
@@ -1048,6 +1056,7 @@ const MiraConversationPanel = () => {
     latestRequestId.current += 1;
     window.clearTimeout(guidanceTimeoutRef.current);
     window.clearTimeout(highlightTimeoutRef.current);
+    window.clearTimeout(copyStatusTimeoutRef.current);
     setSelectedIndex(null);
     setShowSampleGuidance(false);
     setIsAnswerHighlighted(false);
@@ -1058,6 +1067,24 @@ const MiraConversationPanel = () => {
     setErrorMessage("");
     setInputWarning("");
     setCustomQuestion("");
+    setCopyStatus("idle");
+  };
+
+  const handleCopyAnswer = async () => {
+    if (!latestMiraAnswer || isLoading) return;
+
+    window.clearTimeout(copyStatusTimeoutRef.current);
+
+    try {
+      await navigator.clipboard.writeText(latestMiraAnswer);
+      setCopyStatus("copied");
+      copyStatusTimeoutRef.current = window.setTimeout(
+        () => setCopyStatus("idle"),
+        2000,
+      );
+    } catch {
+      setCopyStatus("failed");
+    }
   };
 
   const isSubmitDisabled = isLoading || !customQuestion.trim();
@@ -1244,6 +1271,30 @@ const MiraConversationPanel = () => {
 
             <div ref={threadEndRef} />
           </div>
+
+          {latestMiraAnswer && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={handleCopyAnswer}
+                disabled={isLoading}
+                className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-red-500/50 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:text-zinc-600"
+              >
+                {copyStatus === "copied"
+                  ? "Copied"
+                  : copyStatus === "failed"
+                    ? "Copy failed"
+                    : "Copy answer"}
+              </button>
+              <span className="sr-only" aria-live="polite">
+                {copyStatus === "copied"
+                  ? "Mira's answer copied to the clipboard."
+                  : copyStatus === "failed"
+                    ? "Mira's answer could not be copied."
+                    : ""}
+              </span>
+            </div>
+          )}
 
           {miraResponse && !isLoading && !errorMessage && (
             <div className="mt-6 grid gap-4 rounded-md border border-white/10 bg-white/[0.04] p-4 text-xs leading-5 text-zinc-400">
