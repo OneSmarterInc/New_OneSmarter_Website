@@ -8,6 +8,7 @@ import {
 import { validateMiraModelOutput } from "../api/agents/mira/miraOutputValidator.js";
 import { readMiraRuntimeConfig } from "../api/agents/mira/miraRuntimeConfig.js";
 import { runOpenAiMiraAdapter } from "../api/agents/mira/openAiAdapter.js";
+import { resolveMiraConversationReference } from "../api/agents/mira/miraConversationReferences.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -725,6 +726,94 @@ validateCase({
   expectedViolationIncludes: ["handoff_required_for_insufficient_context"],
 });
 
+const platformEntities = [
+  {
+    id: "secure-ticketing-case-management",
+    label: "ignored client label",
+    type: "topic",
+    sourceIds: ["untrusted-source"],
+  },
+  { id: "bill-audit-bill-pay" },
+  { id: "technology-solutions-overview" },
+];
+const serviceEntities = [
+  { id: "technology-solutions-overview" },
+  { id: "claims-processing-services" },
+];
+const platformHistory = [
+  { role: "user", content: "What are your main platforms?" },
+  {
+    role: "assistant",
+    content: "Natural-language wording is not used for reference resolution.",
+    conversationEntities: platformEntities,
+  },
+];
+const mixedHistory = [
+  ...platformHistory,
+  { role: "user", content: "What services did you mention next?" },
+  {
+    role: "assistant",
+    content: "A newer grounded list was returned.",
+    conversationEntities: serviceEntities,
+  },
+];
+
+const referenceCases = [
+  ["ordinal-third", "Explain the third one.", platformHistory, ["technology-solutions-overview"]],
+  ["numeric-option", "Tell me more about option 2.", platformHistory, ["bill-audit-bill-pay"]],
+  ["last-item", "Explain the last one.", platformHistory, ["technology-solutions-overview"]],
+  [
+    "pair-comparison",
+    "Compare the first and second.",
+    platformHistory,
+    ["secure-ticketing-case-management", "bill-audit-bill-pay"],
+    true,
+  ],
+  ["typed-platform", "Explain the second platform.", mixedHistory, ["bill-audit-bill-pay"]],
+  ["latest-turn", "Explain the second one.", mixedHistory, ["claims-processing-services"]],
+  ["typo-third", "Explain therd one.", platformHistory, ["technology-solutions-overview"]],
+  ["typo-pair", "Compare frist and secnd.", platformHistory, ["secure-ticketing-case-management", "bill-audit-bill-pay"], true],
+  ["number-two", "Explain number two.", platformHistory, ["bill-audit-bill-pay"]],
+  ["latter", "Explain the latter.", platformHistory, ["bill-audit-bill-pay"]],
+  ["first-two", "Compare the first two.", platformHistory, ["secure-ticketing-case-management", "bill-audit-bill-pay"], true],
+];
+
+for (const [id, message, history, expectedIds, expectedComparison = false] of referenceCases) {
+  const result = resolveMiraConversationReference(message, history);
+  const actualIds = result.entities.map((entity) => entity.id);
+  if (result.kind !== "resolved") {
+    fail(`reference-${id}: expected resolved, got ${result.kind}.`);
+  }
+  if (JSON.stringify(actualIds) !== JSON.stringify(expectedIds)) {
+    fail(`reference-${id}: expected [${expectedIds}], got [${actualIds}].`);
+  }
+  if (Boolean(result.isComparison) !== expectedComparison) {
+    fail(`reference-${id}: comparison flag mismatch.`);
+  }
+}
+
+for (const [id, message, history, expectedText] of [
+  ["out-of-range", "Explain the fourth one.", platformHistory, "I listed 3 items"],
+  ["missing-context", "Explain the third one.", [], "Which item"],
+  ["ambiguous-singular", "Tell me more about that one.", platformHistory, "Did you mean"],
+]) {
+  const result = resolveMiraConversationReference(message, history);
+  if (result.kind !== "clarification" || !contains(result.clarification, expectedText)) {
+    fail(`reference-${id}: expected specific clarification containing ${expectedText}.`);
+  }
+}
+
+const canonicalizedReference = resolveMiraConversationReference(
+  "Explain the first one.",
+  platformHistory,
+);
+if (
+  canonicalizedReference.entities[0]?.label !== "Secure Ticketing and Case Management" ||
+  canonicalizedReference.entities[0]?.sourceIds?.[0] !== "secure-ticketing-case-management"
+) {
+  fail("reference-grounding: client labels and source IDs must be replaced with canonical KB data.");
+}
+
 if (failures.length) {
   console.error("Mira prompt contract tests failed:");
   for (const failure of failures) {
@@ -734,4 +823,4 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks and 18 mocked model output cases.");
+console.log("Ran prompt construction checks, 18 mocked model output cases, and 15 reference cases.");

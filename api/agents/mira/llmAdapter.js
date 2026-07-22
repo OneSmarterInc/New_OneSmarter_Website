@@ -2,6 +2,11 @@ import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalE
 import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
 import { buildMiraPromptPayload } from "./miraPromptContract.js";
 import { validateMiraModelOutput } from "./miraOutputValidator.js";
+import {
+  groundedConversationEntityForId,
+  matchedEntriesForConversationEntities,
+  resolveMiraConversationReference,
+} from "./miraConversationReferences.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -199,6 +204,63 @@ const answerSeedForEntries = (matchedEntries = []) => {
           .join(", ")}.`
       : "";
   return `${primary.approvedSummary} ${facts}${relatedText} ${primary.handoffGuidance}`.trim();
+};
+
+const comparisonAnswerSeedForEntries = (matchedEntries = []) =>
+  [
+    "Here is a grounded comparison of the selected OneSmarter offerings:",
+    ...matchedEntries.flatMap((entry) => [
+      "",
+      `${entry.title}:`,
+      `- ${entry.approvedSummary}`,
+      ...(entry.sourceFacts || []).slice(0, 2).map((fact) => `- ${fact}`),
+    ]),
+  ]
+    .filter((line, index) => line || index > 0)
+    .join("\n");
+
+const withResolvedConversationEntities = (
+  localResult,
+  referenceResolution,
+) => {
+  const matchedEntries = matchedEntriesForConversationEntities(
+    referenceResolution.entities,
+  );
+  if (!matchedEntries.length) return localResult;
+  return {
+    ...localResult,
+    confidence: "high",
+    matchedEntries,
+    answerSeed: referenceResolution.isComparison
+      ? comparisonAnswerSeedForEntries(matchedEntries)
+      : `${matchedEntries[0].title}: ${answerSeedForEntries(matchedEntries)}`,
+    suggestedFollowUps: matchedEntries
+      .flatMap((entry) => entry.relatedQuestions || [])
+      .slice(0, 3),
+    resolvedConversationEntities: referenceResolution.entities,
+  };
+};
+
+const withMainOfferingEntities = (localResult) => {
+  const entities = [
+    "secure-ticketing-case-management",
+    "bill-audit-bill-pay",
+    "technology-solutions-overview",
+  ]
+    .map(groundedConversationEntityForId)
+    .filter(Boolean);
+  const matchedEntries = matchedEntriesForConversationEntities(entities);
+  return {
+    ...localResult,
+    confidence: "high",
+    matchedEntries,
+    answerSeed: [
+      "OneSmarter's main platform and solutions areas are:",
+      ...matchedEntries.map((entry, index) => `${index + 1}. ${entry.title}`),
+      "",
+      ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
+    ].join("\n"),
+  };
 };
 
 const naturalHandoff =
@@ -410,6 +472,10 @@ export const runMiraResponseAdapter = async ({
     return unavailableResponse(message);
   }
 
+  const referenceResolution = resolveMiraConversationReference(
+    message,
+    conversationHistory,
+  );
   const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
   const comparisonIntent =
@@ -427,14 +493,33 @@ export const runMiraResponseAdapter = async ({
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
 
   if (
-    needsFollowUpClarification(message, conversationHistory) &&
+    referenceResolution.kind === "resolved" &&
+    !localResult.riskFlags.length
+  ) {
+    localResult = withResolvedConversationEntities(
+      localResult,
+      referenceResolution,
+    );
+  } else if (
+    referenceResolution.kind === "none" &&
+    /\b(main platforms|platforms do you offer|your platforms)\b/i.test(message)
+  ) {
+    localResult = withMainOfferingEntities(localResult);
+  }
+
+  if (
+    ((referenceResolution.kind === "clarification" &&
+      (referenceResolution.hadEntityContext || !conversationHistory.length)) ||
+      needsFollowUpClarification(message, conversationHistory)) &&
     !localResult.riskFlags.length
   ) {
     localResult = {
       ...localResult,
       confidence: "low",
       matchedEntries: [],
-      answerSeed: "Which platforms or services would you like me to compare?",
+      answerSeed:
+        referenceResolution.clarification ||
+        "Which platforms or services would you like me to compare?",
       handoffNeeded: false,
       handoffReason: "",
       suggestedFollowUps: [],
@@ -474,7 +559,11 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: comparisonIntent
+      responseGuidance: referenceResolution.isComparison
+        ? `Compare only these selected grounded entities: ${referenceResolution.entities
+            .map((entity) => entity.label)
+            .join(" and ")}. Use only the approved context supplied for them.`
+        : comparisonIntent
         ? [
             "Return a concise side-by-side comparison with headings for Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
             "Give each platform 2-4 bullets from approved context.",

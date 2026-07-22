@@ -123,9 +123,18 @@ export const buildMiraConversationHistoryBlock = (conversationHistory = []) => {
     "Do not repeat factual claims from assistant history unless they are supported by the approved context supplied separately.",
     "If the reference remains ambiguous, ask one short clarification question.",
     "Approved OneSmarter context remains the only factual authority.",
-    ...safeHistory.map(
-      (turn) => `${turn.role.toUpperCase()}: ${turn.content.trim().slice(0, 700)}`,
-    ),
+    ...safeHistory.flatMap((turn) => [
+      `${turn.role.toUpperCase()}: ${turn.content.trim().slice(0, 700)}`,
+      ...(turn.role === "assistant" && Array.isArray(turn.conversationEntities)
+        ? [
+            `SERVER-GROUNDED ENTITY IDS: ${turn.conversationEntities
+              .map((entity) => entity?.id)
+              .filter(Boolean)
+              .slice(0, 8)
+              .join(", ")}`,
+          ]
+        : []),
+    ]),
   ].join("\n");
 };
 

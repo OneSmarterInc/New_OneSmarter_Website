@@ -198,7 +198,13 @@ const buildMiraConversationHistory = (turns) => {
     const content = turn.content.trim().slice(0, 700);
     if (totalChars + content.length > MIRA_HISTORY_TOTAL_LIMIT) continue;
     totalChars += content.length;
-    history.push({ role: turn.role, content });
+    history.push({
+      role: turn.role,
+      content,
+      ...(turn.role === "assistant" && turn.response?.conversationEntities?.length
+        ? { conversationEntities: turn.response.conversationEntities }
+        : {}),
+    });
   }
 
   return history.reverse();

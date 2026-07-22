@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import { runMiraResponseAdapter } from "./llmAdapter.js";
 import { readMiraRuntimeConfig } from "./miraRuntimeConfig.js";
+import {
+  buildGroundedConversationEntities,
+  normalizeGroundedConversationEntities,
+} from "./miraConversationReferences.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -119,7 +123,17 @@ const normalizeConversationHistory = (conversationHistory) => {
       };
     }
 
-    history.push({ role, content });
+    history.push({
+      role,
+      content,
+      ...(role === "assistant"
+        ? {
+            conversationEntities: normalizeGroundedConversationEntities(
+              turn.conversationEntities,
+            ),
+          }
+        : {}),
+    });
   }
 
   return { ok: true, history };
@@ -447,6 +461,7 @@ export const handleMiraChatRequest = async ({
       handoffNeeded: result.handoffNeeded,
       handoffReason: result.handoffReason || null,
       matchedSources: compactSources(result.matchedEntries),
+      conversationEntities: buildGroundedConversationEntities(result.matchedEntries),
       suggestedFollowUps: result.suggestedFollowUps,
       disclaimer: disclaimerFor(result),
       privacyReminder: PRIVACY_REMINDER,

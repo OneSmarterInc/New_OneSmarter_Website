@@ -688,6 +688,82 @@ const modeCases = [
     forbiddenResponseTexts: ["Quantum Claims", "guaranteed outcomes"],
   },
   {
+    id: "structured-entities-main-offerings-response",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What are your main platforms?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+      "technology-solutions-overview",
+    ],
+  },
+  {
+    id: "structured-entities-third-reference",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain the third one.",
+    conversationHistory: [
+      { role: "user", content: "What are your main platforms?" },
+      {
+        role: "assistant",
+        content: "Assistant prose is reference-only, not factual evidence.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+          { id: "technology-solutions-overview" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "technology-solutions-overview",
+    expectedConversationEntityIds: ["technology-solutions-overview"],
+    expectedAnswerIncludes: "Technology Solutions Overview",
+  },
+  {
+    id: "structured-entities-out-of-range-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain the fourth one.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Three grounded entities were returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+          { id: "technology-solutions-overview" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConfidence: "low",
+    expectedMatchedSourcesEmpty: true,
+    expectedConversationEntityIds: [],
+    expectedAnswerIncludesAll: ["I listed 3 items", "Technology Solutions Overview"],
+  },
+  {
+    id: "structured-entities-current-safety-overrides-reference",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Can I upload patient records?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "A healthcare platform was discussed.",
+        conversationEntities: [{ id: "secure-ticketing-case-management" }],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedFetchCalls: 0,
+  },
+  {
     id: "mode-off-safe-unavailable",
     env: { MIRA_LLM_MODE: "off" },
     expectedMode: "off",
@@ -2443,6 +2519,19 @@ for (const modeCase of modeCases) {
   for (const sourceId of modeCase.expectedSourceIds || []) {
     if (!result.body.matchedSources?.some((source) => source.id === sourceId)) {
       fail(`${modeCase.id}: missing matched source ${sourceId}.`);
+    }
+  }
+  if (modeCase.expectedConversationEntityIds) {
+    const actualEntityIds = (result.body.conversationEntities || []).map(
+      (entity) => entity.id,
+    );
+    if (
+      JSON.stringify(actualEntityIds) !==
+      JSON.stringify(modeCase.expectedConversationEntityIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected conversation entities [${modeCase.expectedConversationEntityIds}], got [${actualEntityIds}].`,
+      );
     }
   }
   if (
