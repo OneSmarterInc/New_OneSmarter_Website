@@ -567,6 +567,127 @@ const modeCases = [
     expectedStatus: 200,
   },
   {
+    id: "followup-platform-comparison-uses-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Which one is better for healthcare teams?",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content:
+          "OneSmarter offers Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedSourceIds: ["secure-ticketing-case-management", "bill-audit-bill-pay"],
+    expectedAnswerIncludesAll: ["Secure Ticketing", "Bill Audit & Bill Pay", "Key difference"],
+  },
+  {
+    id: "followup-soc2-pronoun-uses-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Why does that matter?",
+    conversationHistory: [
+      { role: "user", content: "What does SOC 2 Type II Attested mean here?" },
+      {
+        role: "assistant",
+        content: "SOC 2 Type II Attested relates to reviewed security controls.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "soc2-attested",
+    expectedAnswerIncludes: "SOC 2 Type II Attested",
+  },
+  {
+    id: "followup-telecom-connects-to-bill-audit",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What about telecom expenses?",
+    conversationHistory: [
+      { role: "user", content: "Tell me about Bill Audit & Bill Pay." },
+      {
+        role: "assistant",
+        content: "Bill Audit & Bill Pay supports vendor bill review and payment workflows.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerIncludes: "telecom expense management",
+  },
+  {
+    id: "followup-second-option-reference-uses-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me more about the second one.",
+    conversationHistory: [
+      { role: "user", content: "What are your two platforms?" },
+      {
+        role: "assistant",
+        content:
+          "First is Secure Ticketing and Case Management; second is Bill Audit & Bill Pay.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerIncludes: "Bill Audit & Bill Pay",
+  },
+  {
+    id: "followup-unclear-reference-asks-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Which one is better?",
+    conversationHistory: [
+      { role: "user", content: "Hello." },
+      { role: "assistant", content: "How can I help?" },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConfidence: "low",
+    expectedMatchedSourcesEmpty: true,
+    expectedAnswerIncludes: "Which platforms or services would you like me to compare?",
+  },
+  {
+    id: "followup-current-message-safety-overrides-safe-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Can I paste patient records about that?",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content:
+          "OneSmarter offers Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedRiskFlags: ["phi_or_confidential_data"],
+  },
+  {
+    id: "followup-assistant-history-is-not-factual-evidence",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me more about that.",
+    conversationHistory: [
+      { role: "user", content: "What else do you sell?" },
+      {
+        role: "assistant",
+        content: "OneSmarter offers an invented Quantum Claims product with guaranteed outcomes.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConfidence: "low",
+    expectedMatchedSourcesEmpty: true,
+    expectedAnswerIncludes: "Which platforms or services would you like me to compare?",
+    forbiddenResponseTexts: ["Quantum Claims", "guaranteed outcomes"],
+  },
+  {
     id: "mode-off-safe-unavailable",
     env: { MIRA_LLM_MODE: "off" },
     expectedMode: "off",

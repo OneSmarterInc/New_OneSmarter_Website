@@ -112,24 +112,65 @@ const isComparisonIntent = (message = "") =>
 const isBroadPlatformQuestion = (message = "") =>
   isComparisonIntent(message) || /\b(two platforms|all platforms|platforms)\b/i.test(message);
 
+const historyHasPlatformOptions = (conversationHistory = []) => {
+  const history = recentHistoryText(conversationHistory);
+  return (
+    (/\bsecure ticketing\b|\bcase management\b/.test(history) &&
+      /\bbill audit\b|\bbill pay\b/.test(history)) ||
+    /\b(two|both) platforms?\b/.test(history)
+  );
+};
+
+const historyHasKnownApprovedTopic = (conversationHistory = []) =>
+  /\bsecure ticketing\b|\bcase management\b|\bbill audit\b|\bbill pay\b|\bsoc\s*2\b|\bsoc2\b|\bhipaa\b|\bclaims processing\b|\bai agentic\b|\bmira\b/.test(
+    recentHistoryText(conversationHistory),
+  );
+
+const referencesPriorContext = (message = "") =>
+  /\b(that|it|this|those|they|them|which one|the first one|the second one|first option|second option|tell me more|what about|why does that matter|how is that different|previous|above|same one)\b/i.test(
+    message,
+  );
+
+const needsFollowUpClarification = (message = "", conversationHistory = []) => {
+  const normalizedMessage = String(message).toLowerCase();
+  if (!referencesPriorContext(normalizedMessage)) return false;
+
+  const asksForOption =
+    /\b(which one|first one|second one|first option|second option|how is that different)\b/.test(
+      normalizedMessage,
+    );
+  if (asksForOption && !historyHasPlatformOptions(conversationHistory)) return true;
+
+  if (!conversationHistory.length && referencesPriorContext(normalizedMessage)) return true;
+  if (!historyHasKnownApprovedTopic(conversationHistory)) return true;
+  return false;
+};
+
 const resolveActiveSubject = (message = "", conversationHistory = []) => {
   const normalizedMessage = String(message).toLowerCase();
   const history = recentHistoryText(conversationHistory);
 
-  if (/\b(first one|first option|first platform)\b/.test(normalizedMessage)) {
+  if (
+    historyHasPlatformOptions(conversationHistory) &&
+    /\b(first one|first option|first platform)\b/.test(normalizedMessage)
+  ) {
     return "secure-ticketing-case-management";
   }
-  if (/\b(second one|second option|second platform|other platform)\b/.test(normalizedMessage)) {
+  if (
+    historyHasPlatformOptions(conversationHistory) &&
+    /\b(second one|second option|second platform|other platform)\b/.test(normalizedMessage)
+  ) {
     return "bill-audit-bill-pay";
   }
   if (isBroadPlatformQuestion(normalizedMessage)) return "";
-  if (!/\b(that|it|this|those|previous|above|same one)\b/.test(normalizedMessage)) {
+  if (!referencesPriorContext(normalizedMessage)) {
     return "";
   }
 
   const recentTurns = conversationHistory.slice(-4).reverse();
   for (const turn of recentTurns) {
     const content = String(turn?.content || "").toLowerCase();
+    if (/\bsoc\s*2\b|\bsoc2\b/.test(content)) return "soc2-attested";
     if (/\bbill audit\b|\bbill pay\b/.test(content)) {
       return "bill-audit-bill-pay";
     }
@@ -138,6 +179,7 @@ const resolveActiveSubject = (message = "", conversationHistory = []) => {
     }
   }
 
+  if (/\bsoc\s*2\b|\bsoc2\b/.test(history)) return "soc2-attested";
   if (/\bbill audit\b|\bbill pay\b/.test(history)) return "bill-audit-bill-pay";
   if (/\bsecure ticketing\b|\bcase management\b/.test(history)) {
     return "secure-ticketing-case-management";
@@ -235,16 +277,18 @@ const withActiveSubjectPriority = (localResult, activeSubject) => {
 
 const buildContextualRetrievalMessage = (message = "", conversationHistory = []) => {
   const normalizedMessage = String(message).toLowerCase();
-  const comparisonIntent = isComparisonIntent(normalizedMessage);
+  const comparisonIntent =
+    isComparisonIntent(normalizedMessage) ||
+    (historyHasPlatformOptions(conversationHistory) &&
+      /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/.test(
+        normalizedMessage,
+      ));
   if (!conversationHistory.length && !comparisonIntent) return message;
 
   const history = recentHistoryText(conversationHistory);
   const userHistory = recentUserHistoryText(conversationHistory);
   const hints = [];
-  const referencesHistory =
-    /\b(that|it|this|those|them|previous|above|do that|do it|continue|same question)\b/.test(
-      normalizedMessage,
-    );
+  const referencesHistory = referencesPriorContext(normalizedMessage);
   const currentHasSensitiveSubmissionIntent =
     SENSITIVE_SUBMISSION_INTENT_PATTERN.test(normalizedMessage);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
@@ -289,11 +333,13 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
     }
   }
 
-  if (/\b(that|it|this|those|them)\b/.test(normalizedMessage)) {
+  if (referencesHistory) {
     if (activeSubject === "bill-audit-bill-pay") {
       hints.push("Bill Audit & Bill Pay Bill Audit & Bill Pay vendor bills recurring expenses approvals healthcare organization");
     } else if (activeSubject === "secure-ticketing-case-management") {
       hints.push("Secure Ticketing and Case Management Secure Ticketing and Case Management HIPAA regulated workflows case management healthcare organization");
+    } else if (activeSubject === "soc2-attested") {
+      hints.push("SOC 2 Type II Attested Trust Center security operational controls");
     } else if (/\bbill audit\b|\bbill pay\b|\bvendor bill\b|\btelecom\b/.test(history)) {
       hints.push("Bill Audit & Bill Pay telecom expense management vendor bills");
     } else if (/\bsecure ticketing\b|\bcase management\b|\bphi\b|\bhipaa\b/.test(history)) {
@@ -366,18 +412,44 @@ export const runMiraResponseAdapter = async ({
 
   const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
+  const comparisonIntent =
+    isComparisonIntent(message) ||
+    (historyHasPlatformOptions(conversationHistory) &&
+      /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
+        message,
+      ));
   const initialLocalResult = {
     ...localHarness(retrievalMessage),
     question: message,
   };
-  const localResult = isComparisonIntent(message)
+  let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
+
+  if (
+    needsFollowUpClarification(message, conversationHistory) &&
+    !localResult.riskFlags.length
+  ) {
+    localResult = {
+      ...localResult,
+      confidence: "low",
+      matchedEntries: [],
+      answerSeed: "Which platforms or services would you like me to compare?",
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      clarificationNeeded: true,
+    };
+  }
 
   if (
     config?.mode === STAGING_LLM_MODE &&
     config?.provider === "openai"
   ) {
+    if (localResult.clarificationNeeded) {
+      return withFallbackMetadata(localResult, "follow_up_clarification");
+    }
+
     if (hasClaimBoundaryRisk(localResult.riskFlags)) {
       return withClaimBoundaryMetadata(localResult);
     }
@@ -402,7 +474,7 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: isComparisonIntent(message)
+      responseGuidance: comparisonIntent
         ? [
             "Return a concise side-by-side comparison with headings for Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
             "Give each platform 2-4 bullets from approved context.",
