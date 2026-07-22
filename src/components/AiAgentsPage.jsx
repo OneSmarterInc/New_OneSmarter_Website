@@ -369,7 +369,7 @@ const expressionGlyphs = {
 
 const MiraMoodSignalPanel = ({ presentationState }) => (
   <aside
-    className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-xs text-zinc-300"
+    className="min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-4 text-xs text-zinc-300 md:p-5"
     aria-label="Mira conversation posture"
   >
     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -409,10 +409,12 @@ const MiraMoodSignalPanel = ({ presentationState }) => (
         return (
           <div key={key}>
             <div className="mb-1 flex items-center justify-between gap-3">
-              <span className="font-semibold text-zinc-200">
+              <span className="shrink-0 whitespace-nowrap font-semibold text-zinc-200">
                 {moodSignalLabels[key]}
               </span>
-              <span className="text-zinc-500">{signalLevelLabel(value)}</span>
+              <span className="shrink-0 whitespace-nowrap text-zinc-500">
+                {signalLevelLabel(value)}
+              </span>
             </div>
             <div className="h-2 rounded-full bg-zinc-800" aria-hidden="true">
               <div
@@ -448,25 +450,23 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
 
   return (
     <aside
-      className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-xs text-zinc-300"
+      className="min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-4 text-xs text-zinc-300 md:p-5"
       aria-label="Mira static visual presence"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-white">Mira's live presence</p>
-          <p className="mt-2 max-w-xl leading-5 text-zinc-400">
-            Mira's visual posture reflects the tone of the current conversation.
-            Static artwork only; no camera, tracking, or live avatar processing
-            is active.......
-          </p>
-        </div>
-        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-200">
+      <div>
+        <p className="text-sm font-semibold text-white">Mira's live presence</p>
+        <p className="mt-2 max-w-2xl leading-5 text-zinc-400">
+          Mira's visual posture reflects the tone of the current conversation.
+          Static artwork only; no camera, tracking, or live avatar processing
+          is active.......
+        </p>
+        <span className="mt-3 inline-flex rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-200">
           {visualState.label}
         </span>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-[10rem_1fr] sm:items-center">
-        <div className="motion-safe:transition-opacity motion-safe:duration-300">
+      <div className="mt-4 grid min-w-0 gap-5 sm:grid-cols-[minmax(10rem,12rem)_minmax(0,1fr)] sm:items-start">
+        <div className="w-full motion-safe:transition-opacity motion-safe:duration-300">
           {hasApprovedAsset ? (
             <img
               src={visualState.assetPath}
@@ -712,24 +712,24 @@ const MiraVoiceSamplesPanel = () => {
   };
 
   return (
-    <section className="bg-white px-5 py-16 text-black md:px-12">
-      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.78fr_1.22fr]">
+    <section className="p-5 text-white md:p-8">
+      <div className="grid gap-8">
         <div>
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
-            Scripted voice sample
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
+            Scripted voice samples
           </p>
-          <h2 className="text-2xl font-bold md:text-4xl">Hear Mira</h2>
-          <p className="mt-4 leading-7 text-gray-700">
+          <h3 className="text-2xl font-bold md:text-3xl">Hear Mira</h3>
+          <p className="mt-4 leading-7 text-zinc-300">
             Preview Mira's intended speaking style using preapproved scripted
             samples. No microphone or live voice processing is used.
           </p>
-          <p className="mt-4 rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-950">
+          <p className="mt-4 rounded-md border border-red-500/30 bg-red-950/30 px-4 py-3 text-sm leading-6 text-red-100">
             These samples will use prerecorded audio. No microphone, speech
             recognition, or user audio processing is active.
           </p>
 
           <div className="mt-6">
-            <p className="text-sm font-semibold text-zinc-950">Voice style</p>
+            <p className="text-sm font-semibold text-white">Voice style</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {MIRA_ALLOWED_VOICE_STYLES.map((style) => (
                 <button
@@ -740,7 +740,7 @@ const MiraVoiceSamplesPanel = () => {
                   className={`rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 ${
                     voiceStyle === style
                       ? "border-red-600 bg-red-600 text-white"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-red-300"
+                      : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-red-400"
                   }`}
                 >
                   {style}
@@ -750,15 +750,15 @@ const MiraVoiceSamplesPanel = () => {
           </div>
 
           <div className="mt-6">
-            <p className="text-sm font-semibold text-zinc-950">Language demo</p>
+            <p className="text-sm font-semibold text-white">Language demo</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
               {MIRA_LANGUAGE_DEMOS.map((language) => (
                 <span
                   key={language.id}
                   className={`rounded-full border px-3 py-2 ${
                     language.status === "available"
-                      ? "border-gray-200 bg-gray-50 text-gray-700"
-                      : "border-dashed border-gray-300 bg-white text-gray-500"
+                      ? "border-white/10 bg-white/[0.04] text-zinc-200"
+                      : "border-dashed border-white/20 bg-transparent text-zinc-400"
                   }`}
                 >
                   {language.label}
@@ -769,7 +769,7 @@ const MiraVoiceSamplesPanel = () => {
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-[#f6f7f9] p-5 shadow-sm md:p-6">
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-5 md:p-6">
           <audio
             ref={audioRef}
             preload="none"
@@ -786,22 +786,22 @@ const MiraVoiceSamplesPanel = () => {
               return (
                 <article
                   key={sample.id}
-                  className={`rounded-lg border bg-white p-4 ${
-                    isActive ? "border-red-300 shadow-sm" : "border-gray-200"
+                  className={`rounded-lg border bg-white/[0.04] p-4 ${
+                    isActive ? "border-red-400" : "border-white/10"
                   }`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <h3 className="font-semibold text-zinc-950">{sample.label}</h3>
-                      <p className="mt-1 text-xs font-semibold text-red-600">
+                      <h4 className="font-semibold text-white">{sample.label}</h4>
+                      <p className="mt-1 text-xs font-semibold text-red-300">
                         {sample.posture}
                       </p>
                     </div>
-                    <span className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-950">
                       {stateLabel}
                     </span>
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-gray-700">
+                  <p className="mt-4 text-sm leading-6 text-zinc-300">
                     {sample.transcript}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -819,7 +819,7 @@ const MiraVoiceSamplesPanel = () => {
                       onClick={handlePause}
                       disabled={!isAvailable || !isActive || playbackState !== "playing"}
                       aria-label={`Pause ${sample.label} Mira voice sample`}
-                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                      className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-zinc-500"
                     >
                       Pause
                     </button>
@@ -828,7 +828,7 @@ const MiraVoiceSamplesPanel = () => {
                       onClick={handleStop}
                       disabled={!isAvailable || !isActive || playbackState === "idle"}
                       aria-label={`Stop ${sample.label} Mira voice sample`}
-                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                      className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-zinc-500"
                     >
                       Stop
                     </button>
@@ -837,7 +837,7 @@ const MiraVoiceSamplesPanel = () => {
                       onClick={() => handleRestart(sample)}
                       disabled={!isAvailable}
                       aria-label={`Restart ${sample.label} Mira voice sample`}
-                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                      className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:text-zinc-500"
                     >
                       Restart
                     </button>
@@ -846,7 +846,7 @@ const MiraVoiceSamplesPanel = () => {
               );
             })}
           </div>
-          <p className="mt-4 text-xs leading-5 text-gray-500">
+          <p className="mt-4 text-xs leading-5 text-zinc-400">
             Audio files are expected under <code>public/audio/mira/</code>.
             Until approved files are added, the transcripts remain available
             and playback controls stay disabled.
@@ -865,7 +865,14 @@ const MiraVoiceSamplesPanel = () => {
 const MiraConversationPanel = () => {
   const latestRequestId = useRef(0);
   const threadEndRef = useRef(null);
+  const conversationScrollRef = useRef(null);
+  const shouldAutoFollowRef = useRef(true);
+  const answerPanelRef = useRef(null);
+  const guidanceTimeoutRef = useRef(null);
+  const highlightTimeoutRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [showSampleGuidance, setShowSampleGuidance] = useState(false);
+  const [isAnswerHighlighted, setIsAnswerHighlighted] = useState(false);
   const [conversationTurns, setConversationTurns] = useState([]);
   const [customQuestion, setCustomQuestion] = useState("");
   const [inputWarning, setInputWarning] = useState("");
@@ -885,8 +892,61 @@ const MiraConversationPanel = () => {
     miraResponse?.privacyReminder && !responseText.includes("do not submit");
 
   useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ block: "nearest" });
+    const conversationScroll = conversationScrollRef.current;
+    if (!conversationScroll || !shouldAutoFollowRef.current) return;
+
+    conversationScroll.scrollTo({
+      top: conversationScroll.scrollHeight,
+      behavior:
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+    });
   }, [conversationTurns, isLoading, errorMessage]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(guidanceTimeoutRef.current);
+      window.clearTimeout(highlightTimeoutRef.current);
+    },
+    [],
+  );
+
+  const handleConversationScroll = () => {
+    const conversationScroll = conversationScrollRef.current;
+    if (!conversationScroll) return;
+
+    const distanceFromBottom =
+      conversationScroll.scrollHeight -
+      conversationScroll.scrollTop -
+      conversationScroll.clientHeight;
+    shouldAutoFollowRef.current = distanceFromBottom < 80;
+  };
+
+  const guideToAnswerPanel = () => {
+    window.clearTimeout(guidanceTimeoutRef.current);
+    window.clearTimeout(highlightTimeoutRef.current);
+    setShowSampleGuidance(true);
+    setIsAnswerHighlighted(true);
+
+    window.requestAnimationFrame(() => {
+      answerPanelRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "start",
+      });
+    });
+
+    highlightTimeoutRef.current = window.setTimeout(
+      () => setIsAnswerHighlighted(false),
+      1400,
+    );
+    guidanceTimeoutRef.current = window.setTimeout(
+      () => setShowSampleGuidance(false),
+      3200,
+    );
+  };
 
   const requestMiraAnswer = async (message) => {
     const requestId = latestRequestId.current + 1;
@@ -943,7 +1003,9 @@ const MiraConversationPanel = () => {
 
   const handleQuestionClick = async (example, index) => {
     setSelectedIndex(index);
-    await requestMiraAnswer(example.question);
+    const answerRequest = requestMiraAnswer(example.question);
+    guideToAnswerPanel();
+    await answerRequest;
   };
 
   const handleCustomQuestionChange = (event) => {
@@ -984,7 +1046,11 @@ const MiraConversationPanel = () => {
 
   const handleStartNewConversation = () => {
     latestRequestId.current += 1;
+    window.clearTimeout(guidanceTimeoutRef.current);
+    window.clearTimeout(highlightTimeoutRef.current);
     setSelectedIndex(null);
+    setShowSampleGuidance(false);
+    setIsAnswerHighlighted(false);
     setConversationTurns([]);
     setMiraResponse(null);
     setCurrentPresentationMessage("");
@@ -997,15 +1063,15 @@ const MiraConversationPanel = () => {
   const isSubmitDisabled = isLoading || !customQuestion.trim();
 
   return (
-    <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
-      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
+    <section className="border-t border-white/10 p-5 text-white md:p-8 xl:border-l xl:border-t-0">
+      <div className="grid gap-8">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
-            Guide interaction
+            Guided interaction
           </p>
-          <h2 className="text-2xl font-bold md:text-4xl">
+          <h3 className="text-2xl font-bold md:text-3xl">
             Staging AI preview
-          </h2>
+          </h3>
           <p className="mt-4 leading-7 text-zinc-300">
             Mira can answer sample questions or a short typed question using
             approved OneSmarter content. This preview is grounded, controlled,
@@ -1041,6 +1107,14 @@ const MiraConversationPanel = () => {
               </button>
             ))}
           </div>
+          {showSampleGuidance && (
+            <p
+              className="mt-3 rounded-md border border-red-500/20 bg-red-950/20 px-3 py-2 text-sm text-red-100"
+              role="status"
+            >
+              Your selected question has been sent to Mira.
+            </p>
+          )}
           <form className="mt-6 rounded-lg border border-white/10 bg-white/[0.04] p-4" onSubmit={handleCustomQuestionSubmit}>
             <label htmlFor="mira-question" className="text-sm font-semibold text-white">
               Ask Mira a question
@@ -1082,14 +1156,21 @@ const MiraConversationPanel = () => {
           </form>
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-[#090909] p-5 shadow-2xl shadow-black/40 md:p-6">
+        <div
+          ref={answerPanelRef}
+          className={`scroll-mt-24 rounded-lg border bg-[#090909] p-5 shadow-2xl shadow-black/40 transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none md:p-6 ${
+            isAnswerHighlighted
+              ? "border-red-500/70 shadow-red-950/40"
+              : "border-white/10"
+          }`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white">
                 MV
               </div>
               <div>
-                <h3 className="font-semibold text-white">Mira Vale</h3>
+                <h4 className="font-semibold text-white">Mira Vale</h4>
                 <p className="text-sm text-zinc-400">staged grounded response path</p>
                 <p className="mt-1 text-xs text-zinc-500">
                   AI-generated response - verify important information.
@@ -1109,10 +1190,15 @@ const MiraConversationPanel = () => {
             </button>
           </div>
 
-          <div className="mt-6 grid max-h-[34rem] gap-5 overflow-y-auto pr-1" aria-live="polite">
+          <div
+            ref={conversationScrollRef}
+            onScroll={handleConversationScroll}
+            className="mt-6 grid min-h-[clamp(16rem,34vh,22rem)] max-h-[clamp(22rem,52vh,34rem)] gap-5 overflow-y-auto overflow-x-hidden pr-1"
+            aria-live="polite"
+          >
             {conversationTurns.length === 0 && (
-              <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-5 py-4 text-sm leading-6 text-zinc-200">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
+              <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-white/10 bg-zinc-900 px-4 py-2.5 text-sm leading-6 text-zinc-200">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-300">
                   Mira
                 </p>
                 Choose a sample question or type a short question to start.
@@ -1144,7 +1230,15 @@ const MiraConversationPanel = () => {
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-300">
                   Mira
                 </p>
-                Checking the approved OneSmarter knowledge base...
+                <div className="flex items-center gap-3">
+                  <span>Checking the approved OneSmarter knowledge base...</span>
+                  <span className="flex shrink-0 items-center gap-1" aria-hidden="true">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-300 motion-safe:animate-bounce" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-300 motion-safe:animate-bounce [animation-delay:120ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-300 motion-safe:animate-bounce [animation-delay:240ms]" />
+                  </span>
+                  <span className="sr-only">Mira is typing.</span>
+                </div>
               </div>
             )}
 
@@ -1215,7 +1309,7 @@ const MiraConversationPanel = () => {
             </div>
           )}
 
-          <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="mt-6 grid items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
             <MiraVisualPresencePanel presentationState={presentationState} />
             <MiraMoodSignalPanel presentationState={presentationState} />
           </div>
@@ -1417,9 +1511,19 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <MiraVoiceSamplesPanel />
-
-      <MiraConversationPanel />
+      <section className="bg-zinc-950 px-4 py-16 sm:px-6 md:px-8 xl:px-10">
+        <div className="qa-container-wide mx-auto overflow-hidden rounded-xl border border-white/10 bg-[#090909] shadow-sm">
+          <div className="border-b border-white/10 px-5 py-6 text-white md:px-8 md:py-8">
+            <h2 className="text-2xl font-bold md:text-4xl">
+              Mira voice and guided interaction
+            </h2>
+          </div>
+          <div className="grid items-start xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+            <MiraVoiceSamplesPanel />
+            <MiraConversationPanel />
+          </div>
+        </div>
+      </section>
 
       <PersonaLayerPrototype />
 
