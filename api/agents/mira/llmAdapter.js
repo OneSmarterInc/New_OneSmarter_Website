@@ -7,6 +7,7 @@ import {
   matchedEntriesForConversationEntities,
   resolveMiraConversationReference,
 } from "./miraConversationReferences.js";
+import { resolveMiraRecommendation } from "./miraRecommendations.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -498,6 +499,10 @@ export const runMiraResponseAdapter = async ({
     ...localHarness(retrievalMessage),
     question: message,
   };
+  const recommendationResolution = resolveMiraRecommendation(
+    message,
+    conversationHistory,
+  );
   let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
@@ -515,13 +520,37 @@ export const runMiraResponseAdapter = async ({
     /\b(main platforms|platforms do you offer|your platforms)\b/i.test(message)
   ) {
     localResult = withMainOfferingEntities(localResult);
+  } else if (
+    recommendationResolution &&
+    referenceResolution.kind !== "resolved" &&
+    !localResult.riskFlags.length
+  ) {
+    localResult = {
+      ...localResult,
+      confidence:
+        recommendationResolution.recommendation.status === "recommended"
+          ? "high"
+          : "low",
+      matchedEntries: recommendationResolution.matchedEntries,
+      answerSeed: recommendationResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      recommendation: recommendationResolution.recommendation,
+      resolvedConversationEntities: recommendationResolution.entities,
+      recommendationHandled: true,
+      clarificationNeeded:
+        recommendationResolution.recommendation.status ===
+        "needs_clarification",
+    };
   }
 
   if (
     ((referenceResolution.kind === "clarification" &&
       (referenceResolution.hadEntityContext || !conversationHistory.length)) ||
       needsFollowUpClarification(message, conversationHistory)) &&
-    !localResult.riskFlags.length
+    !localResult.riskFlags.length &&
+    !localResult.recommendationHandled
   ) {
     localResult = {
       ...localResult,
@@ -569,7 +598,9 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: referenceResolution.isComparison
+      responseGuidance: localResult.recommendation
+        ? "Provide only the grounded recommendation represented by the supplied approved context. Do not invent features, pricing, timelines, integrations, guarantees, or compliance claims."
+        : referenceResolution.isComparison
         ? `Compare only these selected grounded entities: ${referenceResolution.entities
             .map((entity) => entity.label)
             .join(" and ")}. Use only the approved context supplied for them.`

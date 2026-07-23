@@ -13,6 +13,7 @@ import {
   normalizeGroundedConversationEntities,
   resolveMiraConversationReference,
 } from "../api/agents/mira/miraConversationReferences.js";
+import { resolveMiraRecommendation } from "../api/agents/mira/miraRecommendations.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -22,6 +23,49 @@ const failures = [];
 const aiAgentsPageSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 
 const fail = (message) => failures.push(message);
+
+const recommendationCases = [
+  ["broad clarification", "Which platform should I use?", [], "needs_clarification", null],
+  ["healthcare case", "What is best for healthcare case intake and audit tracking?", [], "recommended", "secure-ticketing-case-management"],
+  ["vendor bill", "What would you recommend for vendor bills, approvals, and payment workflow?", [], "recommended", "bill-audit-bill-pay"],
+  ["telecom", "We want to reduce telecom expenses.", [], "recommended", "bill-audit-bill-pay"],
+  ["AI", "Which service should we use for AI workflow automation?", [], "recommended", "ai-agentic-services"],
+  ["IBM i", "What do you recommend for IBM i / AS400 support?", [], "recommended", "ibm-i-as400-services"],
+  ["multi-turn", "Case intake, assignment, and audit tracking.", [{ role: "user", content: "We are a healthcare administrator." }, { role: "assistant", content: "What process are you trying to improve?" }], "recommended", "secure-ticketing-case-management"],
+  ["typo", "Wihch platfrom do you recomend for telecom bills?", [], "recommended", "bill-audit-bill-pay"],
+  ["no match", "We need payroll software.", [], "no_match", null],
+];
+
+for (const [name, message, history, status, primaryId] of recommendationCases) {
+  const result = resolveMiraRecommendation(message, history);
+  if (result?.recommendation?.status !== status) {
+    fail(`recommendation ${name}: expected ${status}.`);
+  }
+  if ((result?.recommendation?.primaryOption?.id || null) !== primaryId) {
+    fail(`recommendation ${name}: expected primary option ${primaryId}.`);
+  }
+}
+
+const mixedRecommendation = resolveMiraRecommendation(
+  "We need case management and telecom bill control.",
+);
+if (
+  mixedRecommendation?.recommendation?.primaryOption?.id !==
+    "secure-ticketing-case-management" ||
+  !mixedRecommendation?.recommendation?.alternatives?.some(
+    (option) => option.id === "bill-audit-bill-pay",
+  )
+) {
+  fail("recommendation mixed needs: expected both grounded offerings.");
+}
+
+if (
+  /price|timeline|integration|guarantee/i.test(
+    JSON.stringify(mixedRecommendation?.recommendation || {}),
+  )
+) {
+  fail("recommendation grounding: returned an unsupported claim.");
+}
 
 const contains = (text, expected) =>
   String(text).toLowerCase().includes(String(expected).toLowerCase());
