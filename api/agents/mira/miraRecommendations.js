@@ -5,6 +5,11 @@ import {
 
 const BROAD_RECOMMENDATION =
   /\b(recommend|recomend|right for (?:me|us)|best for|which (?:platform|service)|what (?:platform|service) should|help (?:us |our company )?(?:improv|with)|we need|we want)\b/i;
+const CURRENT_GOAL =
+  /\b(?:we|i|our company|our team) (?:also )?(?:need|want|are trying|would like)\b/i;
+const CONTINUATION = /\b(?:also|additionally|too|as well|along with)\b/i;
+const REFINEMENT = /\b(?:specifically|in particular|more precisely|for that|within that)\b/i;
+const COMPARISON = /\b(?:compare|versus|vs\.?|difference between|which is better)\b/i;
 
 const NEEDS = [
   {
@@ -20,7 +25,12 @@ const NEEDS = [
   {
     id: "vendor-bill-audit-payment",
     optionId: "bill-audit-bill-pay",
-    patterns: [/\bvendor bills?\b/i, /\bbill (?:audit|processing|approval|payment)\b/i, /\bpayment workflow\b/i],
+    patterns: [
+      /\bvendor bills?\b/i,
+      /\bbill (?:audit|processing|approval|payment)\b/i,
+      /\bpayment workflow\b/i,
+      /\bapproval tracking\b/i,
+    ],
     reason: "The need involves vendor-bill review, approvals, or payment workflow.",
   },
   {
@@ -74,16 +84,71 @@ const normalizedText = (value = "") =>
     .replace(/\bwihch\b/g, "which")
     .replace(/\brecomend(?:ation)?\b/g, "recommend");
 
-const recentUserGoalText = (message, history = []) =>
-  [
-    ...history
-      .slice(-6)
-      .filter((turn) => turn?.role === "user")
-      .map((turn) => turn.content),
-    message,
-  ]
-    .map(normalizedText)
-    .join(" ");
+const topicIdsForText = (text = "") => {
+  const normalized = normalizedText(text);
+  return [
+    ...NEEDS.filter((need) =>
+      need.patterns.some((pattern) => pattern.test(normalized)),
+    ).map((need) => need.id),
+    ...(/\bwhat does onesmarter do\b|\babout onesmarter\b|\bcompany (?:overview|information)\b/i.test(
+      normalized,
+    )
+      ? ["general-company-information"]
+      : []),
+  ];
+};
+
+const latestRelevantUserTurn = (history = []) =>
+  [...history]
+    .reverse()
+    .find(
+      (turn) =>
+        turn?.role === "user" &&
+        (topicIdsForText(turn.content).length ||
+          BROAD_RECOMMENDATION.test(normalizedText(turn.content))),
+    );
+
+export const classifyMiraTopicShift = (message = "", conversationHistory = []) => {
+  const current = normalizedText(message);
+  const currentTopics = topicIdsForText(current);
+  const previousTurn = latestRelevantUserTurn(conversationHistory);
+  const previousTopics = topicIdsForText(previousTurn?.content || "");
+  const sharedTopics = currentTopics.filter((topic) =>
+    previousTopics.includes(topic),
+  );
+
+  let relationToPreviousTurn = "unclear";
+  if (COMPARISON.test(current)) {
+    relationToPreviousTurn = "comparison";
+  } else if (currentTopics.length && previousTopics.length) {
+    relationToPreviousTurn = sharedTopics.length
+      ? REFINEMENT.test(current)
+        ? "refinement"
+        : "continuation"
+      : "new_goal";
+  } else if (
+    previousTopics.length &&
+    !currentTopics.length &&
+    (CONTINUATION.test(current) || REFINEMENT.test(current))
+  ) {
+    relationToPreviousTurn = REFINEMENT.test(current)
+      ? "refinement"
+      : "continuation";
+  } else if (currentTopics.length || CURRENT_GOAL.test(current)) {
+    relationToPreviousTurn = "new_goal";
+  }
+
+  return {
+    relationToPreviousTurn,
+    currentTopics,
+    previousTopics,
+    retainedTopics: ["continuation", "refinement", "comparison"].includes(
+      relationToPreviousTurn,
+    )
+      ? previousTopics
+      : [],
+  };
+};
 
 const optionFor = (optionId, position) => {
   const isNested = [
@@ -100,7 +165,7 @@ const optionFor = (optionId, position) => {
 
 export const resolveMiraRecommendation = (message = "", conversationHistory = []) => {
   const current = normalizedText(message);
-  const historyGoal = recentUserGoalText(message, conversationHistory);
+  const topicShift = classifyMiraTopicShift(message, conversationHistory);
   const explicitIntent = BROAD_RECOMMENDATION.test(current);
   const continuesGoalCollection = conversationHistory
     .slice(-2)
@@ -109,23 +174,25 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
         turn?.role === "assistant" &&
         /\bwhat (?:process|workflow|type of workflow)\b/i.test(turn.content),
     );
-  const statesCurrentGoal =
-    /\b(?:we|i|our company|our team) (?:need|want|are trying|would like)\b/i.test(
-      current,
-    );
+  const statesCurrentGoal = CURRENT_GOAL.test(current);
+  const continuesRecognizedGoal = ["continuation", "refinement"].includes(
+    topicShift.relationToPreviousTurn,
+  );
+  const effectiveTopicIds = [
+    ...new Set([...topicShift.currentTopics, ...topicShift.retainedTopics]),
+  ];
   const matchedNeeds = NEEDS.filter((need) =>
-    need.patterns.some((pattern) => pattern.test(historyGoal)),
+    effectiveTopicIds.includes(need.id),
   );
   const healthcareOnly =
-    /\bhealthcare\b|\btpa\b/i.test(historyGoal) &&
-    !matchedNeeds.some((need) =>
-      ["secure-case-management", "claims-processing"].includes(need.id),
-    );
+    /\bhealthcare\b|\btpa\b/i.test(current) &&
+    matchedNeeds.length === 0;
   const noMatch = /\bpayroll(?: software| system| platform)?\b/i.test(current);
 
   if (
     !explicitIntent &&
     !continuesGoalCollection &&
+    !continuesRecognizedGoal &&
     !statesCurrentGoal &&
     !noMatch
   ) {
@@ -145,6 +212,7 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
       matchedEntries: [],
       answer:
         "The approved OneSmarter content does not establish a payroll product. Would you like help with another workflow?",
+      topicShift,
     };
   }
 
@@ -162,6 +230,7 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
       answer: healthcareOnly
         ? "What process are you trying to improve?"
         : "What type of workflow are you trying to improve: case management, bill processing, telecom expenses, claims operations, or something else?",
+      topicShift,
     };
   }
 
@@ -198,6 +267,7 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     entities,
     matchedEntries,
     answer,
+    topicShift,
   };
 };
 

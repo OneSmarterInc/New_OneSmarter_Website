@@ -13,7 +13,10 @@ import {
   normalizeGroundedConversationEntities,
   resolveMiraConversationReference,
 } from "../api/agents/mira/miraConversationReferences.js";
-import { resolveMiraRecommendation } from "../api/agents/mira/miraRecommendations.js";
+import {
+  classifyMiraTopicShift,
+  resolveMiraRecommendation,
+} from "../api/agents/mira/miraRecommendations.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -65,6 +68,108 @@ if (
   )
 ) {
   fail("recommendation grounding: returned an unsupported claim.");
+}
+
+const recommendationHistory = (user, assistant) => [
+  { role: "user", content: user },
+  { role: "assistant", content: assistant },
+];
+const topicShiftCases = [
+  {
+    name: "vendor bill to AI",
+    message: "We want to automate repetitive business workflows using AI agents.",
+    history: recommendationHistory(
+      "We need to review vendor bills, track discrepancies, approve invoices, and manage payments.",
+      "Recommended: Bill Audit & Bill Pay.",
+    ),
+    relation: "new_goal",
+    primaryId: "ai-agentic-services",
+    excludedId: "bill-audit-bill-pay",
+  },
+  {
+    name: "case management to IBM i",
+    message: "We need IBM i modernization.",
+    history: recommendationHistory(
+      "We need healthcare case management and audit tracking.",
+      "Recommended: Secure Ticketing and Case Management.",
+    ),
+    relation: "new_goal",
+    primaryId: "ibm-i-as400-services",
+    excludedId: "secure-ticketing-case-management",
+  },
+  {
+    name: "vendor approval continuation",
+    message: "We also need approval tracking.",
+    history: recommendationHistory(
+      "We need vendor bill review.",
+      "Recommended: Bill Audit & Bill Pay.",
+    ),
+    relation: "continuation",
+    primaryId: "bill-audit-bill-pay",
+  },
+  {
+    name: "AI healthcare refinement",
+    message: "Specifically for repetitive healthcare operations.",
+    history: recommendationHistory(
+      "We want AI automation for repetitive workflows.",
+      "Recommended: AI Agentic Services.",
+    ),
+    relation: "refinement",
+    primaryId: "ai-agentic-services",
+  },
+  {
+    name: "mixed new goal",
+    message: "We need vendor bill review and AI automation.",
+    history: recommendationHistory(
+      "We need healthcare case tracking.",
+      "Recommended: Secure Ticketing and Case Management.",
+    ),
+    relation: "new_goal",
+    primaryId: "bill-audit-bill-pay",
+    alternativeId: "ai-agentic-services",
+    excludedId: "secure-ticketing-case-management",
+  },
+];
+
+for (const testCase of topicShiftCases) {
+  const shift = classifyMiraTopicShift(testCase.message, testCase.history);
+  const result = resolveMiraRecommendation(testCase.message, testCase.history);
+  if (shift.relationToPreviousTurn !== testCase.relation) {
+    fail(
+      `topic shift ${testCase.name}: expected ${testCase.relation}, got ${shift.relationToPreviousTurn}.`,
+    );
+  }
+  if (result?.recommendation?.primaryOption?.id !== testCase.primaryId) {
+    fail(`topic shift ${testCase.name}: wrong primary recommendation.`);
+  }
+  if (
+    testCase.alternativeId &&
+    !result?.recommendation?.alternatives?.some(
+      (option) => option.id === testCase.alternativeId,
+    )
+  ) {
+    fail(`topic shift ${testCase.name}: missing expected alternative.`);
+  }
+  if (
+    testCase.excludedId &&
+    result?.entities?.some((entity) => entity.id === testCase.excludedId)
+  ) {
+    fail(`topic shift ${testCase.name}: stale entity was retained.`);
+  }
+}
+
+const companyTopicShift = classifyMiraTopicShift(
+  "What does OneSmarter do?",
+  recommendationHistory(
+    "We need vendor bill review.",
+    "Recommended: Bill Audit & Bill Pay.",
+  ),
+);
+if (
+  companyTopicShift.relationToPreviousTurn !== "new_goal" ||
+  companyTopicShift.retainedTopics.length
+) {
+  fail("topic shift company overview: stale recommendation context was retained.");
 }
 
 const contains = (text, expected) =>
