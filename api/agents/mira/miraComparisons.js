@@ -7,6 +7,12 @@ import {
 
 const COMPARISON_INTENT =
   /\b(?:compare|side[- ]by[- ]side comparison|comparison (?:between|of)|difference(?:s)?(?: between)?|different from|versus|vs\.?|which (?:one|option|platform|service|offering) is better|which is better|pros and cons|one or both|first (?:one )?compared with (?:the )?second|how (?:is|are) .+ different from)\b/i;
+const EXPLORATORY_COMPARISON =
+  /\b(?:compare|side[- ]by[- ]side|difference(?:s)?(?: between)?|different from|versus|vs\.?|pros and cons|one or both|how (?:is|are) .+ different)\b/i;
+const SELECTION_LANGUAGE =
+  /\b(?:which (?:one|option|platform|service|offering)? ?is (?:better|best|right)|which of those is (?:better|best|right)|which (?:platform|service|option) (?:fits|should)|what should (?:i|we) use|best fit)\b/i;
+const EXPLICIT_HISTORY_REFERENCE =
+  /\b(?:those two|the first and second|first (?:versus|and|compared with) second|between them|which of those|which one|the two|one or both|previous option)\b/i;
 const knowledgeById = new Map(
   onesmarterPublicKnowledgeBase.map((entry) => [entry.id, entry]),
 );
@@ -66,6 +72,12 @@ const requirementSignals = (message = "") => {
   const text = normalize(message);
   const signals = [];
   const add = (optionId, reason) => signals.push({ optionId, reason });
+  if (/\bcase intake|case tracking|case management|role based access|audit history|secure communication\b/.test(text)) {
+    add(
+      "secure-ticketing-case-management",
+      "Secure case intake, role-based access, audit history, controlled communication, and workflow tracking align with Secure Ticketing and Case Management.",
+    );
+  }
   if (/\btelecom|contract and rate|usage analysis|cost control\b/.test(text)) {
     add(
       "bill-audit-bill-pay",
@@ -78,19 +90,13 @@ const requirementSignals = (message = "") => {
       "Vendor bill review, discrepancy tracking, approvals, and payment workflows are approved Bill Audit & Bill Pay capabilities.",
     );
   }
-  if (/\bcase intake|case tracking|case management|role based access|audit history|secure communication\b/.test(text)) {
-    add(
-      "secure-ticketing-case-management",
-      "Secure case intake, role-based access, audit history, controlled communication, and workflow tracking align with Secure Ticketing and Case Management.",
-    );
-  }
   if (/\bclaims? processing|claims? workflow|claims? operations\b/.test(text)) {
     add(
       "claims-processing-services",
       "Claims workflow modernization and claims technology support align with Claims Processing Services.",
     );
   }
-  if (/\bai agent|ai automation|automate|controlled automation|document workflow|human in the loop\b/.test(text)) {
+  if (/\bai agent|ai (?:workflow )?automation|automate|controlled automation|document workflow|human in the loop\b/.test(text)) {
     add(
       "ai-agentic-services",
       "Controlled automation, document workflows, decision support, and human-in-the-loop review align with AI Agentic Services.",
@@ -140,8 +146,119 @@ const answerForComparison = (comparison) =>
 export const isMiraComparisonIntent = (message = "") =>
   COMPARISON_INTENT.test(normalize(message));
 
+export const classifyMiraDecisionIntent = (
+  message = "",
+  conversationHistory = [],
+) => {
+  const normalizedMessage = normalize(message);
+  const signals = requirementSignals(message);
+  const optionIds = [...new Set(signals.map((signal) => signal.optionId))];
+  const reference = resolveMiraConversationReference(
+    message,
+    conversationHistory,
+  );
+  const hasTwoResolvedOptions =
+    reference.kind === "resolved" && reference.entities.length > 1;
+  if (optionIds.length > 1 && SELECTION_LANGUAGE.test(normalizedMessage)) {
+    return { decisionIntent: "multi_need", signals, reference };
+  }
+  if (SELECTION_LANGUAGE.test(normalizedMessage) && optionIds.length === 1) {
+    return { decisionIntent: "select_for_requirement", signals, reference };
+  }
+  if (SELECTION_LANGUAGE.test(normalizedMessage) && optionIds.length === 0) {
+    return { decisionIntent: "ambiguous_selection", signals, reference };
+  }
+  if (
+    EXPLORATORY_COMPARISON.test(normalizedMessage) &&
+    (explicitlyNamedEntities(message).length >= 2 ||
+      hasTwoResolvedOptions ||
+      EXPLICIT_HISTORY_REFERENCE.test(normalizedMessage))
+  ) {
+    return { decisionIntent: "compare_options", signals, reference };
+  }
+  if (EXPLORATORY_COMPARISON.test(normalizedMessage)) {
+    return { decisionIntent: "compare_options", signals, reference };
+  }
+  return { decisionIntent: "none", signals, reference };
+};
+
+const selectionAnswer = (entities, signals) => {
+  if (entities.length > 1) {
+    return [
+      "Your requirements map to more than one grounded OneSmarter offering:",
+      ...entities.map((entity) => {
+        const signal = signals.find((candidate) => candidate.optionId === entity.id);
+        return `- ${entity.label}: ${signal?.reason || "This offering matches part of the stated need."}`;
+      }),
+      "Both offerings are relevant because the current request includes distinct workflows.",
+    ].join("\n");
+  }
+  const entity = entities[0];
+  const entry = matchedEntriesForConversationEntities([entity])[0];
+  const signal = signals.find((candidate) => candidate.optionId === entity.id);
+  return [
+    "Recommended option:",
+    entity.label,
+    "",
+    "Why it fits:",
+    `- ${signal?.reason || entry?.approvedSummary || ""}`,
+    ...(entry?.allowedClaims || []).slice(0, 3).map((claim) => `- ${claim}`),
+  ].join("\n");
+};
+
+export const resolveMiraDecisionRequest = (
+  message = "",
+  conversationHistory = [],
+) => {
+  const classification = classifyMiraDecisionIntent(
+    message,
+    conversationHistory,
+  );
+  if (
+    !["select_for_requirement", "multi_need"].includes(
+      classification.decisionIntent,
+    )
+  ) {
+    return null;
+  }
+  const entities = uniqueEntities(
+    classification.signals
+      .map((signal) =>
+        groundedConversationEntityForId(signal.optionId, {
+          level: nestedIds.has(signal.optionId) ? 1 : 0,
+        }),
+      )
+      .filter(Boolean),
+  );
+  const matchedEntries = matchedEntriesForConversationEntities(entities);
+  const options = entities.map(({ id, label, type }) => ({ id, label, type }));
+  return {
+    decisionIntent: classification.decisionIntent,
+    recommendation: {
+      status: "recommended",
+      primaryOption: options[0] || null,
+      reasons: classification.signals.map((signal) => signal.reason),
+      alternatives: options.slice(1),
+      missingInformation: [],
+    },
+    entities,
+    matchedEntries,
+    answer: selectionAnswer(entities, classification.signals),
+  };
+};
+
 export const resolveMiraComparison = (message = "", conversationHistory = []) => {
-  if (!isMiraComparisonIntent(message)) return null;
+  const classification = classifyMiraDecisionIntent(
+    message,
+    conversationHistory,
+  );
+  if (
+    !["compare_options", "ambiguous_selection"].includes(
+      classification.decisionIntent,
+    )
+  ) {
+    return null;
+  }
   if (
     /\b(?:salesforce|microsoft dynamics|servicenow|zendesk|sap|oracle)\b/i.test(
       message,
@@ -164,16 +281,13 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
     };
   }
 
-  const reference = resolveMiraConversationReference(
-    message,
-    conversationHistory,
-  );
+  const reference = classification.reference;
   const named = explicitlyNamedEntities(message);
   const referenced =
     reference.kind === "resolved" && reference.entities.length > 1
       ? reference.entities
       : [];
-  const signals = requirementSignals(message);
+  const signals = classification.signals;
   let entities = uniqueEntities(named.length >= 2 ? named : referenced);
   const historyText = conversationHistory
     .slice(-4)
@@ -183,7 +297,7 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
     /secure ticketing/i.test(historyText) && /bill audit/i.test(historyText);
   const asksForPlatformPair =
     /\b(?:both platforms|the two|one or both)\b/i.test(message) ||
-    historyHasBothPlatforms;
+    (historyHasBothPlatforms && EXPLICIT_HISTORY_REFERENCE.test(message));
 
   if (!entities.length && asksForPlatformPair) {
     entities = [

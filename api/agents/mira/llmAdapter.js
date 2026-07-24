@@ -12,8 +12,10 @@ import {
   resolveMiraRecommendation,
 } from "./miraRecommendations.js";
 import {
+  classifyMiraDecisionIntent,
   isMiraComparisonIntent,
   resolveMiraComparison,
+  resolveMiraDecisionRequest,
 } from "./miraComparisons.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
@@ -591,11 +593,31 @@ export const runMiraResponseAdapter = async ({
     message,
     conversationHistory,
   );
+  const decisionResolution = resolveMiraDecisionRequest(
+    message,
+    conversationHistory,
+  );
   let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
 
-  if (comparisonResolution && !localResult.riskFlags.length) {
+  if (decisionResolution && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence: "high",
+      matchedEntries: decisionResolution.matchedEntries,
+      answerSeed: decisionResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      recommendation: decisionResolution.recommendation,
+      resolvedConversationEntities: decisionResolution.entities,
+      recommendationHandled: true,
+      clarificationNeeded: false,
+      answerStructureKind: "recommendation",
+      decisionIntent: decisionResolution.decisionIntent,
+    };
+  } else if (comparisonResolution && !localResult.riskFlags.length) {
     localResult = {
       ...localResult,
       confidence:
@@ -608,6 +630,10 @@ export const runMiraResponseAdapter = async ({
       comparison: comparisonResolution.comparison,
       resolvedConversationEntities: comparisonResolution.entities,
       comparisonHandled: true,
+      decisionIntent: classifyMiraDecisionIntent(
+        message,
+        conversationHistory,
+      ).decisionIntent,
       clarificationNeeded:
         comparisonResolution.comparison.status === "needs_clarification",
       answerStructureKind:

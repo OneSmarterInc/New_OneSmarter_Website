@@ -18,7 +18,11 @@ import {
   classifyMiraTopicShift,
   resolveMiraRecommendation,
 } from "../api/agents/mira/miraRecommendations.js";
-import { resolveMiraComparison } from "../api/agents/mira/miraComparisons.js";
+import {
+  classifyMiraDecisionIntent,
+  resolveMiraComparison,
+  resolveMiraDecisionRequest,
+} from "../api/agents/mira/miraComparisons.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -1298,16 +1302,6 @@ const comparisonCases = [
     status: "complete",
   },
   {
-    id: "clear-telecom-decision",
-    message: "Which is better for telecom expenses?",
-    expectedIds: [
-      "secure-ticketing-case-management",
-      "bill-audit-bill-pay",
-    ],
-    decisionIncludes: "Bill Audit & Bill Pay is the stronger grounded match",
-    status: "complete",
-  },
-  {
     id: "ambiguous-better",
     message: "Which is better?",
     expectedIds: [],
@@ -1392,6 +1386,96 @@ if (
   )
 ) {
   fail("comparison-grounding: returned an unsupported comparison claim.");
+}
+
+const decisionCases = [
+  {
+    id: "financial",
+    message:
+      "Which is better for vendor bill discrepancies and approval workflows?",
+    intent: "select_for_requirement",
+    expectedIds: ["bill-audit-bill-pay"],
+  },
+  {
+    id: "case-management",
+    message:
+      "Which is better for healthcare case intake, role-based access, and audit history?",
+    intent: "select_for_requirement",
+    expectedIds: ["secure-ticketing-case-management"],
+  },
+  {
+    id: "explicit-history-reference",
+    message: "Which of those is better for audit history?",
+    history: platformOnlyHistory,
+    intent: "select_for_requirement",
+    expectedIds: ["secure-ticketing-case-management"],
+  },
+  {
+    id: "mixed-needs",
+    message:
+      "We need healthcare case tracking and vendor bill approvals. Which is better?",
+    intent: "multi_need",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "telecom",
+    message:
+      "Which platform is best for telecom bills, contract rates, usage analysis, and cost reporting?",
+    intent: "select_for_requirement",
+    expectedIds: ["bill-audit-bill-pay"],
+  },
+  {
+    id: "ai-automation",
+    message: "Which service is best for AI workflow automation?",
+    intent: "select_for_requirement",
+    expectedIds: ["ai-agentic-services"],
+  },
+];
+
+for (const testCase of decisionCases) {
+  const classification = classifyMiraDecisionIntent(
+    testCase.message,
+    testCase.history || [],
+  );
+  const result = resolveMiraDecisionRequest(
+    testCase.message,
+    testCase.history || [],
+  );
+  const actualIds = result?.entities?.map((entity) => entity.id) || [];
+  if (classification.decisionIntent !== testCase.intent) {
+    fail(
+      `decision-${testCase.id}: expected intent ${testCase.intent}, got ${classification.decisionIntent}.`,
+    );
+  }
+  if (JSON.stringify(actualIds) !== JSON.stringify(testCase.expectedIds)) {
+    fail(
+      `decision-${testCase.id}: expected [${testCase.expectedIds}], got [${actualIds}].`,
+    );
+  }
+  if (resolveMiraComparison(testCase.message, testCase.history || [])) {
+    fail(`decision-${testCase.id}: selection was intercepted by comparison.`);
+  }
+}
+
+const firstDecision = resolveMiraDecisionRequest(
+  "Which is better for vendor bill discrepancies and approval workflows?",
+);
+const secondDecision = resolveMiraDecisionRequest(
+  "Which is better for healthcare case intake, role-based access, and audit history?",
+  [
+    { role: "user", content: "Which is better for vendor bill discrepancies and approval workflows?" },
+    { role: "assistant", content: firstDecision?.answer || "" },
+  ],
+);
+if (
+  firstDecision?.recommendation?.primaryOption?.id !== "bill-audit-bill-pay" ||
+  secondDecision?.recommendation?.primaryOption?.id !==
+    "secure-ticketing-case-management"
+) {
+  fail("decision-topic-change: current-message criteria must replace the prior selection.");
 }
 
 if (failures.length) {

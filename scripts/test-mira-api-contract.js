@@ -598,6 +598,48 @@ const modeCases = [
     ],
   },
   {
+    id: "criterion-selection-financial-current-message",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Which is better for vendor bill discrepancies and approval workflows?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedDecisionPrimaryId: "bill-audit-bill-pay",
+    expectedAnswerIncludesAll: ["Recommended option:", "Bill Audit & Bill Pay"],
+    expectedAnswerExcludesAll: [
+      "Here is a grounded comparison",
+      "Which platforms or services",
+    ],
+  },
+  {
+    id: "criterion-selection-case-current-message",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Which is better for healthcare case intake, role-based access, and audit history?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Recommended option: Bill Audit & Bill Pay",
+        conversationEntities: [{ id: "bill-audit-bill-pay" }],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "secure-ticketing-case-management",
+    expectedDecisionPrimaryId: "secure-ticketing-case-management",
+    expectedAnswerIncludesAll: [
+      "Recommended option:",
+      "Secure Ticketing and Case Management",
+    ],
+    expectedAnswerExcludesAll: [
+      "Here is a grounded comparison",
+      "Which platforms or services",
+    ],
+  },
+  {
     id: "followup-soc2-pronoun-uses-history",
     env: { MIRA_LLM_MODE: "mock" },
     message: "Why does that matter?",
@@ -2802,6 +2844,15 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected readiness status ${modeCase.expectedRecommendationReadinessStatus}.`,
+    );
+  }
+  if (
+    modeCase.expectedDecisionPrimaryId &&
+    result.body.recommendation?.primaryOption?.id !==
+      modeCase.expectedDecisionPrimaryId
+  ) {
+    fail(
+      `${modeCase.id}: expected decision primary option ${modeCase.expectedDecisionPrimaryId}.`,
     );
   }
   if (
