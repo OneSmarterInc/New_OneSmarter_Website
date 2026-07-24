@@ -6,6 +6,7 @@ import {
   buildGroundedConversationEntities,
   normalizeGroundedConversationEntities,
 } from "./miraConversationReferences.js";
+import { buildMiraAnswerStructure } from "./miraAnswerStructure.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -452,6 +453,10 @@ export const handleMiraChatRequest = async ({
     const responseConversationEntities = result.resolvedConversationEntities?.length
       ? normalizeGroundedConversationEntities(result.resolvedConversationEntities)
       : buildGroundedConversationEntities(result.matchedEntries);
+    const answerStructure = buildMiraAnswerStructure({
+      result,
+      conversationEntities: responseConversationEntities,
+    });
     const responseBody = {
       requestId,
       timestamp,
@@ -459,6 +464,7 @@ export const handleMiraChatRequest = async ({
       mode: result.mode || MODE,
       conversationId: normalizedConversationId,
       answer: buildAnswer(result),
+      ...(answerStructure ? { answerStructure } : {}),
       answerSeed: result.answerSeed,
       confidence: result.confidence,
       riskFlags: result.riskFlags,

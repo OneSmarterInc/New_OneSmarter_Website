@@ -45,6 +45,15 @@ if (
 ) {
   fail("answer-formatter: expected Important note to remain a separate block.");
 }
+const unstructuredAnswerBlocks = formatMiraAnswerBlocks(
+  "This is an older plain-text Mira response.",
+);
+if (
+  unstructuredAnswerBlocks.length !== 1 ||
+  unstructuredAnswerBlocks[0].type !== "paragraph"
+) {
+  fail("answer-formatter: expected unstructured answers to retain paragraph fallback.");
+}
 
 const baseResponse = {
   mode: "staging_llm",

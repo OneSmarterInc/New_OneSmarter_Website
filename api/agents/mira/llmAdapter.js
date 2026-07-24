@@ -278,6 +278,11 @@ const withResolvedConversationEntities = (
       .flatMap((entry) => entry.relatedQuestions || [])
       .slice(0, 3),
     resolvedConversationEntities: referenceResolution.entities,
+    answerStructureKind: referenceResolution.isComparison
+      ? "comparison"
+      : referenceResolution.isList
+        ? "list"
+        : "",
   };
 };
 
@@ -306,6 +311,8 @@ const withMainOfferingEntities = (localResult) => {
       ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
     ].join("\n"),
     resolvedConversationEntities: entities,
+    answerStructureKind: "offering-list",
+    answerStructureIntroduction: "OneSmarter's main offerings are:",
   };
 };
 
@@ -335,6 +342,12 @@ const withPlatformEntities = (localResult) => {
       ),
     ].join("\n"),
     resolvedConversationEntities: entities,
+    answerStructureKind: "platform-list",
+    answerStructureIntroduction: "OneSmarter offers two purpose-built platforms.",
+    answerStructureImportantNote:
+      "Broader services are also available under Technology Solutions.",
+    answerStructureFollowUpQuestion:
+      "Would you like help choosing between these two platforms?",
   };
 };
 
@@ -384,6 +397,7 @@ const withPlatformComparisonContext = (localResult) => {
       "Tell me more about Bill Audit & Bill Pay.",
       "How should I contact OneSmarter?",
     ],
+    answerStructureKind: "comparison",
   };
 };
 
@@ -620,6 +634,10 @@ export const runMiraResponseAdapter = async ({
       clarificationNeeded:
         recommendationResolution.recommendation.status ===
         "needs_clarification",
+      answerStructureKind:
+        recommendationResolution.recommendation.status === "recommended"
+          ? "recommendation"
+          : "",
     };
   }
 

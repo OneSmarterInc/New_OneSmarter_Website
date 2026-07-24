@@ -268,7 +268,7 @@ const getMiraAnswerBlocks = (content) => {
     : formatMiraAnswerBlocks(content);
 };
 
-const MiraAnswerContent = ({ content }) => (
+const MiraFallbackAnswerContent = ({ content }) => (
   <div className="grid gap-3">
     {getMiraAnswerBlocks(content).map((block, index) => {
       const key = `${block.type}-${index}`;
@@ -339,6 +339,90 @@ const MiraAnswerContent = ({ content }) => (
     })}
   </div>
 );
+
+const miraEntityTypeLabel = (entityType) =>
+  String(entityType || "offering").replaceAll("_", " ");
+
+const MiraStructuredSection = ({ section, nested = false }) => (
+  <section
+    className={
+      nested
+        ? "ml-4 grid gap-2 border-l border-white/15 pl-4"
+        : "grid gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-4"
+    }
+  >
+    <div className="flex items-start gap-3">
+      {!nested && section.number ? (
+        <span
+          className="flex h-7 min-w-7 items-center justify-center rounded-full bg-red-600 px-2 text-xs font-bold text-white"
+          aria-hidden="true"
+        >
+          {section.number}
+        </span>
+      ) : null}
+      <div className="min-w-0">
+        <h3 className="text-base font-bold leading-6 text-white">
+          {section.heading}
+        </h3>
+        {section.entityType ? (
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-red-200">
+            {miraEntityTypeLabel(section.entityType)}
+          </p>
+        ) : null}
+      </div>
+    </div>
+    {section.summary ? (
+      <p className={nested ? "text-sm text-zinc-300" : "ml-10 text-zinc-200"}>
+        {section.summary}
+      </p>
+    ) : null}
+    {section.bullets?.length ? (
+      <ul
+        className={`${nested ? "ml-4" : "ml-14"} list-disc space-y-1.5 text-zinc-200`}
+      >
+        {section.bullets.map((bullet) => (
+          <li key={bullet}>{bullet}</li>
+        ))}
+      </ul>
+    ) : null}
+    {section.children?.length ? (
+      <div className="grid gap-3 pt-1">
+        {section.children.map((child) => (
+          <MiraStructuredSection key={child.id} section={child} nested />
+        ))}
+      </div>
+    ) : null}
+  </section>
+);
+
+const MiraStructuredAnswerContent = ({ structure }) => (
+  <div className="grid gap-4">
+    {structure.introduction ? <p>{structure.introduction}</p> : null}
+    {structure.sections.map((section) => (
+      <MiraStructuredSection key={section.id} section={section} />
+    ))}
+    {structure.importantNote ? (
+      <aside className="rounded-lg border border-amber-300/25 bg-amber-400/10 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">
+          Important note
+        </p>
+        <p className="mt-2 text-zinc-200">{structure.importantNote}</p>
+      </aside>
+    ) : null}
+    {structure.followUpQuestion ? (
+      <p className="rounded-lg border border-red-400/20 bg-red-950/20 p-4 font-medium text-red-100">
+        {structure.followUpQuestion}
+      </p>
+    ) : null}
+  </div>
+);
+
+const MiraAnswerContent = ({ content, structure }) =>
+  structure?.sections?.length ? (
+    <MiraStructuredAnswerContent structure={structure} />
+  ) : (
+    <MiraFallbackAnswerContent content={content} />
+  );
 
 const formatMiraResponse = (response) => {
   if (!response?.answer) {
@@ -1295,7 +1379,10 @@ const MiraConversationPanel = () => {
                 >
                   {turn.role === "user" ? "You" : "Mira"}
                 </p>
-                <MiraAnswerContent content={turn.content} />
+                <MiraAnswerContent
+                  content={turn.content}
+                  structure={turn.response?.answerStructure}
+                />
               </div>
             ))}
 

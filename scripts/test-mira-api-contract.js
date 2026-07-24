@@ -701,6 +701,14 @@ const modeCases = [
     expectedConversationEntityTypes: ["platform", "platform"],
     expectedConversationGroupIds: ["platforms"],
     forbiddenSourceIds: ["technology-solutions-overview"],
+    expectedAnswerStructureKind: "platform-list",
+    expectedAnswerStructureSectionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedStructuredSectionsWithBullets: 2,
+    expectedStructuredImportantNote: true,
+    expectedStructuredFollowUp: true,
   },
   {
     id: "structured-entities-main-offerings-response",
@@ -730,6 +738,22 @@ const modeCases = [
       ],
     },
     expectedConversationGroupIds: ["main-offerings"],
+    expectedAnswerStructureKind: "offering-list",
+    expectedAnswerStructureSectionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+      "technology-solutions-overview",
+    ],
+    expectedStructuredChildIds: {
+      "technology-solutions-overview": [
+        "healthcare-tpa-technology-services",
+        "claims-processing-services",
+        "ai-agentic-services",
+        "ibm-i-as400-services",
+        "enterprise-software-development",
+        "software-support-consolidation",
+      ],
+    },
   },
   {
     id: "structured-platform-first-last-comparison",
@@ -760,6 +784,7 @@ const modeCases = [
     ],
     forbiddenSourceIds: ["technology-solutions-overview"],
     expectedAnswerIncludesAll: ["(Platform)", "Key difference"],
+    expectedAnswerStructureKind: "comparison",
   },
   {
     id: "structured-offering-first-last-mixed-comparison",
@@ -794,6 +819,7 @@ const modeCases = [
       "(Service category)",
       "Key difference",
     ],
+    expectedAnswerStructureKind: "comparison",
   },
   {
     id: "structured-entities-third-reference",
@@ -2667,6 +2693,7 @@ const modeCases = [
     expectedRequirementReady: true,
     expectedRecommendationReadinessStatus: "ready",
     expectedMissingRequirements: [],
+    expectedAnswerStructureKind: "recommendation",
   },
   {
     id: "requirements-insufficient-asks-one-clarification",
@@ -2793,6 +2820,60 @@ for (const modeCase of modeCases) {
       fail(
         `${modeCase.id}: expected conversation entity types [${modeCase.expectedConversationEntityTypes}], got [${actualEntityTypes}].`,
       );
+    }
+  }
+  if (
+    modeCase.expectedAnswerStructureKind &&
+    result.body.answerStructure?.kind !==
+      modeCase.expectedAnswerStructureKind
+  ) {
+    fail(
+      `${modeCase.id}: expected answer structure kind ${modeCase.expectedAnswerStructureKind}.`,
+    );
+  }
+  if (modeCase.expectedAnswerStructureSectionIds) {
+    const actualSectionIds = (result.body.answerStructure?.sections || []).map(
+      (section) => section.id,
+    );
+    if (
+      JSON.stringify(actualSectionIds) !==
+      JSON.stringify(modeCase.expectedAnswerStructureSectionIds)
+    ) {
+      fail(`${modeCase.id}: unexpected structured answer section IDs.`);
+    }
+  }
+  if (modeCase.expectedStructuredSectionsWithBullets) {
+    const sectionsWithBullets = (
+      result.body.answerStructure?.sections || []
+    ).filter((section) => section.bullets?.length).length;
+    if (
+      sectionsWithBullets !==
+      modeCase.expectedStructuredSectionsWithBullets
+    ) {
+      fail(`${modeCase.id}: expected each structured section to have bullets.`);
+    }
+  }
+  if (
+    modeCase.expectedStructuredImportantNote &&
+    !result.body.answerStructure?.importantNote
+  ) {
+    fail(`${modeCase.id}: expected a separate structured important note.`);
+  }
+  if (
+    modeCase.expectedStructuredFollowUp &&
+    !result.body.answerStructure?.followUpQuestion
+  ) {
+    fail(`${modeCase.id}: expected a separate structured follow-up question.`);
+  }
+  for (const [parentId, expectedChildIds] of Object.entries(
+    modeCase.expectedStructuredChildIds || {},
+  )) {
+    const parent = (result.body.answerStructure?.sections || []).find(
+      (section) => section.id === parentId,
+    );
+    const actualChildIds = (parent?.children || []).map((child) => child.id);
+    if (JSON.stringify(actualChildIds) !== JSON.stringify(expectedChildIds)) {
+      fail(`${modeCase.id}: structured child hierarchy was flattened.`);
     }
   }
   for (const [parentId, expectedChildIds] of Object.entries(
