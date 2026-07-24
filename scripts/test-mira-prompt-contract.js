@@ -1085,6 +1085,17 @@ const platformHistory = [
     conversationEntities: platformEntities,
   },
 ];
+const platformOnlyHistory = [
+  { role: "user", content: "What platforms do you offer?" },
+  {
+    role: "assistant",
+    content: "Two grounded platforms were returned.",
+    conversationEntities: [
+      { id: "secure-ticketing-case-management" },
+      { id: "bill-audit-bill-pay" },
+    ],
+  },
+];
 const mixedHistory = [
   ...platformHistory,
   { role: "user", content: "What services did you mention next?" },
@@ -1143,6 +1154,20 @@ const referenceCases = [
   ["retained-platform-group", "Explain the second platform.", retainedPlatformHistory, ["bill-audit-bill-pay"]],
   ["retained-offering-group", "Explain the second offering.", retainedPlatformHistory, ["bill-audit-bill-pay"]],
   ["nested-latest-group", "Explain the third one.", technologyServiceHistory, ["ai-agentic-services"]],
+  [
+    "platform-first-last",
+    "Compare first and last.",
+    platformOnlyHistory,
+    ["secure-ticketing-case-management", "bill-audit-bill-pay"],
+    true,
+  ],
+  [
+    "offering-first-last",
+    "Compare first and last.",
+    platformHistory,
+    ["secure-ticketing-case-management", "technology-solutions-overview"],
+    true,
+  ],
 ];
 
 for (const [id, message, history, expectedIds, expectedComparison = false] of referenceCases) {
@@ -1187,7 +1212,9 @@ if (
   normalizedHierarchy.length !== 3 ||
   technologySolutionsEntity?.level !== 0 ||
   technologySolutionsEntity?.position !== 3 ||
+  technologySolutionsEntity?.type !== "service_category" ||
   technologySolutionsEntity?.children?.[2]?.id !== "ai-agentic-services" ||
+  technologySolutionsEntity?.children?.[2]?.type !== "service" ||
   technologySolutionsEntity?.children?.[2]?.level !== 1 ||
   technologySolutionsEntity?.children?.[2]?.position !== 3
 ) {

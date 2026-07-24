@@ -207,15 +207,36 @@ const answerSeedForEntries = (matchedEntries = []) => {
   return `${primary.approvedSummary} ${facts}${relatedText} ${primary.handoffGuidance}`.trim();
 };
 
-const comparisonAnswerSeedForEntries = (matchedEntries = []) =>
+const entityTypeLabel = (type = "entity") =>
+  ({
+    platform: "Platform",
+    service: "Service",
+    service_category: "Service category",
+    use_case: "Use case",
+    capability: "Capability",
+    industry: "Industry",
+  })[type] || "Offering";
+
+const comparisonAnswerSeedForEntities = (entities = [], matchedEntries = []) =>
   [
     "Here is a grounded comparison of the selected OneSmarter offerings:",
-    ...matchedEntries.flatMap((entry) => [
+    ...entities.flatMap((entity) => {
+      const entry = matchedEntries.find((candidate) =>
+        entity.sourceIds?.includes(candidate.id),
+      );
+      if (!entry) return [];
+      return [
       "",
-      `${entry.title}:`,
-      `- ${entry.approvedSummary}`,
+      `${entity.label} (${entityTypeLabel(entity.type)}):`,
+      `- Purpose: ${entry.approvedSummary}`,
       ...(entry.sourceFacts || []).slice(0, 2).map((fact) => `- ${fact}`),
-    ]),
+      `- Suitable when the visitor's needs align with this ${entityTypeLabel(entity.type).toLowerCase()}'s approved purpose and capabilities.`,
+      ];
+    }),
+    "",
+    `Key difference: ${entities
+      .map((entity) => `${entity.label} is a ${entityTypeLabel(entity.type).toLowerCase()}`)
+      .join("; ")}.`,
   ]
     .filter((line, index) => line || index > 0)
     .join("\n");
@@ -223,7 +244,12 @@ const comparisonAnswerSeedForEntries = (matchedEntries = []) =>
 const listAnswerSeedForEntities = (entities = [], matchedEntries = []) =>
   [
     "The grounded items in that group are:",
-    ...entities.map((entity, index) => `${index + 1}. ${entity.label}`),
+    ...entities.flatMap((entity, index) => [
+      `${index + 1}. ${entity.label} (${entityTypeLabel(entity.type)})`,
+      ...(entity.children || []).map(
+        (child) => `   - ${child.label} (${entityTypeLabel(child.type)})`,
+      ),
+    ]),
     "",
     ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
   ].join("\n");
@@ -243,7 +269,10 @@ const withResolvedConversationEntities = (
     answerSeed: referenceResolution.isList
       ? listAnswerSeedForEntities(referenceResolution.entities, matchedEntries)
       : referenceResolution.isComparison
-      ? comparisonAnswerSeedForEntries(matchedEntries)
+      ? comparisonAnswerSeedForEntities(
+          referenceResolution.entities,
+          matchedEntries,
+        )
       : `${matchedEntries[0].title}: ${answerSeedForEntries(matchedEntries)}`,
     suggestedFollowUps: matchedEntries
       .flatMap((entry) => entry.relatedQuestions || [])
@@ -266,11 +295,46 @@ const withMainOfferingEntities = (localResult) => {
     confidence: "high",
     matchedEntries,
     answerSeed: [
-      "OneSmarter's main platform and solutions areas are:",
-      ...matchedEntries.map((entry, index) => `${index + 1}. ${entry.title}`),
+      "OneSmarter's main offerings are:",
+      ...entities.flatMap((entity, index) => [
+        `${index + 1}. ${entity.label} (${entityTypeLabel(entity.type)})`,
+        ...(entity.children || []).map(
+          (child) => `   - ${child.label} (${entityTypeLabel(child.type)})`,
+        ),
+      ]),
       "",
       ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
     ].join("\n"),
+    resolvedConversationEntities: entities,
+  };
+};
+
+const withPlatformEntities = (localResult) => {
+  const entities = [
+    "secure-ticketing-case-management",
+    "bill-audit-bill-pay",
+  ]
+    .map(groundedConversationEntityForId)
+    .filter(Boolean);
+  const matchedEntries = matchedEntriesForConversationEntities(entities);
+  return {
+    ...localResult,
+    confidence: "high",
+    matchedEntries,
+    answerSeed: [
+      "OneSmarter offers two platforms:",
+      ...entities.map(
+        (entity, index) =>
+          `${index + 1}. ${entity.label} (${entityTypeLabel(entity.type)})`,
+      ),
+      "",
+      "Broader services are also available under Technology Solutions.",
+      "",
+      ...matchedEntries.map(
+        (entry) => `${entry.title}: ${entry.approvedSummary}`,
+      ),
+    ].join("\n"),
+    resolvedConversationEntities: entities,
   };
 };
 
@@ -518,6 +582,13 @@ export const runMiraResponseAdapter = async ({
   } else if (
     referenceResolution.kind === "none" &&
     /\b(main platforms|platforms do you offer|your platforms)\b/i.test(message)
+  ) {
+    localResult = withPlatformEntities(localResult);
+  } else if (
+    referenceResolution.kind === "none" &&
+    /\b(main offerings|offerings do you have|offerings do you offer|your offerings)\b/i.test(
+      message,
+    )
   ) {
     localResult = withMainOfferingEntities(localResult);
   } else if (

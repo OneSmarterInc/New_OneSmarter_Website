@@ -688,7 +688,7 @@ const modeCases = [
     forbiddenResponseTexts: ["Quantum Claims", "guaranteed outcomes"],
   },
   {
-    id: "structured-entities-main-offerings-response",
+    id: "structured-entities-platform-only-response",
     env: { MIRA_LLM_MODE: "mock" },
     message: "What are your main platforms?",
     expectedMode: "local_harness_mock",
@@ -697,7 +697,27 @@ const modeCases = [
     expectedConversationEntityIds: [
       "secure-ticketing-case-management",
       "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedConversationGroupIds: ["platforms"],
+    forbiddenSourceIds: ["technology-solutions-overview"],
+  },
+  {
+    id: "structured-entities-main-offerings-response",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What offerings do you have?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
       "technology-solutions-overview",
+    ],
+    expectedConversationEntityTypes: [
+      "platform",
+      "platform",
+      "service_category",
     ],
     expectedConversationChildIds: {
       "technology-solutions-overview": [
@@ -710,6 +730,70 @@ const modeCases = [
       ],
     },
     expectedConversationGroupIds: ["main-offerings"],
+  },
+  {
+    id: "structured-platform-first-last-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare first and last.",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content: "Two grounded platforms were returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedSourceIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    forbiddenSourceIds: ["technology-solutions-overview"],
+    expectedAnswerIncludesAll: ["(Platform)", "Key difference"],
+  },
+  {
+    id: "structured-offering-first-last-mixed-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare first and last.",
+    conversationHistory: [
+      { role: "user", content: "What offerings do you have?" },
+      {
+        role: "assistant",
+        content: "Three grounded offerings were returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+          { id: "technology-solutions-overview" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "technology-solutions-overview",
+    ],
+    expectedConversationEntityTypes: ["platform", "service_category"],
+    expectedSourceIds: [
+      "secure-ticketing-case-management",
+      "technology-solutions-overview",
+    ],
+    expectedAnswerIncludesAll: [
+      "(Platform)",
+      "(Service category)",
+      "Key difference",
+    ],
   },
   {
     id: "structured-entities-third-reference",
@@ -2695,6 +2779,19 @@ for (const modeCase of modeCases) {
     ) {
       fail(
         `${modeCase.id}: expected conversation entities [${modeCase.expectedConversationEntityIds}], got [${actualEntityIds}].`,
+      );
+    }
+  }
+  if (modeCase.expectedConversationEntityTypes) {
+    const actualEntityTypes = (result.body.conversationEntities || []).map(
+      (entity) => entity.type,
+    );
+    if (
+      JSON.stringify(actualEntityTypes) !==
+      JSON.stringify(modeCase.expectedConversationEntityTypes)
+    ) {
+      fail(
+        `${modeCase.id}: expected conversation entity types [${modeCase.expectedConversationEntityTypes}], got [${actualEntityTypes}].`,
       );
     }
   }

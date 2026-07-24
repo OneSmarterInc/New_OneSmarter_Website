@@ -11,7 +11,7 @@ const knowledgeById = new Map(
 const ENTITY_DEFINITIONS = {
   "technology-solutions-overview": {
     label: "Technology Solutions Overview",
-    type: "service-category",
+    type: "service_category",
     children: [
       {
         id: "healthcare-tpa-technology-services",
@@ -144,16 +144,24 @@ const MAIN_OFFERING_IDS = [
   "bill-audit-bill-pay",
   "technology-solutions-overview",
 ];
+const PLATFORM_IDS = [
+  "secure-ticketing-case-management",
+  "bill-audit-bill-pay",
+];
 
 const groupForEntities = (entities, sourceTurnId = "") => {
   const ids = entities.map((entity) => entity.id);
   const isMainOfferings =
     MAIN_OFFERING_IDS.every((id) => ids.includes(id)) && ids.length === 3;
+  const isPlatforms =
+    PLATFORM_IDS.every((id) => ids.includes(id)) && ids.length === 2;
   const parentIds = [...new Set(entities.map((entity) => entity.parentId).filter(Boolean))];
   const isSingleParentChildGroup =
     entities.length > 0 && parentIds.length === 1 && entities.every((entity) => entity.level === 1);
   const groupId = isMainOfferings
     ? "main-offerings"
+    : isPlatforms
+      ? "platforms"
     : isSingleParentChildGroup
       ? `${parentIds[0]}-services`
       : `entities:${ids.join("|")}`;
@@ -161,6 +169,8 @@ const groupForEntities = (entities, sourceTurnId = "") => {
     groupId,
     type: isMainOfferings
       ? "offering"
+      : isPlatforms
+        ? "platform"
       : isSingleParentChildGroup
         ? "service"
         : entities[0]?.type || "entity",
@@ -230,8 +240,11 @@ const ordinalIndex = (value = "") => {
 };
 
 const requestedType = (message = "") => {
-  const match = message.match(/\b(platform|service|industry|topic|offering)s?\b/);
-  return match?.[1] || "";
+  if (/\bservice categor(?:y|ies)\b/.test(message)) return "service_category";
+  const match = message.match(
+    /\b(platform|service|industry|topic|offering|capability|use case)s?\b/,
+  );
+  return match?.[1] === "use case" ? "use_case" : match?.[1] || "";
 };
 
 const hasReferenceLanguage = (message = "") =>
@@ -358,6 +371,13 @@ const resolveIndexes = (message, entityCount) => {
     const value = match[2] || match[3] || match[1];
     const index = ordinalIndex(value);
     if (index >= 0 && !references.includes(index)) references.push(index);
+  }
+  if (
+    /\blast\b/.test(message) &&
+    entityCount > 0 &&
+    !references.includes(entityCount - 1)
+  ) {
+    references.push(entityCount - 1);
   }
   return references;
 };
