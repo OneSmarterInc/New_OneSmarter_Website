@@ -473,6 +473,13 @@ export const handleMiraChatRequest = async ({
       ),
       suggestedFollowUps: result.suggestedFollowUps,
       ...(result.recommendation ? { recommendation: result.recommendation } : {}),
+      ...(result.requirementState
+        ? {
+            requirementState: result.requirementState,
+            missingRequirements: result.missingRequirements,
+            recommendationReady: result.recommendationReady,
+          }
+        : {}),
       disclaimer: disclaimerFor(result),
       privacyReminder: PRIVACY_REMINDER,
       requestContext: {

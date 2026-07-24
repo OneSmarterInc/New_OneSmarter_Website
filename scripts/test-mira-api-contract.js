@@ -2561,6 +2561,40 @@ const modeCases = [
     expectedHandoff: false,
     expectedStatus: 200,
   },
+  {
+    id: "requirements-three-turn-recommendation-ready",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need role-based access and audit tracking.",
+    conversationHistory: [
+      { role: "user", content: "We are a healthcare TPA." },
+      { role: "assistant", content: "What process are you trying to improve?" },
+      { role: "user", content: "We need case management." },
+      {
+        role: "assistant",
+        content:
+          "Which case-management capabilities matter most: intake, assignment, role-based access, audit history, or something else?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "secure-ticketing-case-management",
+    expectedRequirementIndustry: "healthcare/TPA",
+    expectedRequirementReady: true,
+    expectedMissingRequirements: [],
+  },
+  {
+    id: "requirements-insufficient-asks-one-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need a better system.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConfidence: "low",
+    expectedRequirementReady: false,
+    expectedMissingRequirements: ["workflow"],
+    expectedAnswerIncludes: "What workflow are you trying to improve",
+  },
 ];
 
 for (const modeCase of modeCases) {
@@ -2597,6 +2631,30 @@ for (const modeCase of modeCases) {
   }
   if (modeCase.expectedConfidence && result.body.confidence !== modeCase.expectedConfidence) {
     fail(`${modeCase.id}: expected confidence ${modeCase.expectedConfidence}, got ${result.body.confidence}.`);
+  }
+  if (
+    typeof modeCase.expectedRequirementReady === "boolean" &&
+    result.body.recommendationReady !== modeCase.expectedRequirementReady
+  ) {
+    fail(
+      `${modeCase.id}: expected recommendationReady=${modeCase.expectedRequirementReady}.`,
+    );
+  }
+  if (
+    modeCase.expectedRequirementIndustry &&
+    result.body.requirementState?.industry !==
+      modeCase.expectedRequirementIndustry
+  ) {
+    fail(
+      `${modeCase.id}: expected requirement industry ${modeCase.expectedRequirementIndustry}.`,
+    );
+  }
+  if (
+    modeCase.expectedMissingRequirements &&
+    JSON.stringify(result.body.missingRequirements) !==
+      JSON.stringify(modeCase.expectedMissingRequirements)
+  ) {
+    fail(`${modeCase.id}: unexpected missing requirements.`);
   }
   if (result.body.handoffNeeded !== modeCase.expectedHandoff) {
     fail(`${modeCase.id}: expected handoffNeeded=${modeCase.expectedHandoff}.`);

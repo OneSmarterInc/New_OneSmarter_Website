@@ -14,6 +14,7 @@ import {
   resolveMiraConversationReference,
 } from "../api/agents/mira/miraConversationReferences.js";
 import {
+  buildMiraRequirementState,
   classifyMiraTopicShift,
   resolveMiraRecommendation,
 } from "../api/agents/mira/miraRecommendations.js";
@@ -26,6 +27,8 @@ const failures = [];
 const aiAgentsPageSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 
 const fail = (message) => failures.push(message);
+const contains = (text, expected) =>
+  String(text).toLowerCase().includes(String(expected).toLowerCase());
 
 const recommendationCases = [
   ["broad clarification", "Which platform should I use?", [], "needs_clarification", null],
@@ -172,8 +175,119 @@ if (
   fail("topic shift company overview: stale recommendation context was retained.");
 }
 
-const contains = (text, expected) =>
-  String(text).toLowerCase().includes(String(expected).toLowerCase());
+const threeTurnHistory = [
+  { role: "user", content: "We are a healthcare TPA." },
+  { role: "assistant", content: "What process are you trying to improve?" },
+  { role: "user", content: "We need case management." },
+  {
+    role: "assistant",
+    content:
+      "Which case-management capabilities matter most: intake, assignment, role-based access, audit history, or something else?",
+  },
+];
+const threeTurnRecommendation = resolveMiraRecommendation(
+  "We need role-based access and audit tracking.",
+  threeTurnHistory,
+);
+if (
+  threeTurnRecommendation?.requirementState?.industry !== "healthcare/TPA" ||
+  !threeTurnRecommendation?.requirementState?.securityNeeds?.includes(
+    "role-based access",
+  ) ||
+  threeTurnRecommendation?.recommendationReady !== true ||
+  threeTurnRecommendation?.recommendation?.primaryOption?.id !==
+    "secure-ticketing-case-management"
+) {
+  fail("requirements three-turn collection: expected a ready healthcare case recommendation.");
+}
+
+const noRepeatedClarification = resolveMiraRecommendation(
+  "We need case management.",
+  [
+    { role: "user", content: "We are a healthcare TPA." },
+    { role: "assistant", content: "What process are you trying to improve?" },
+  ],
+);
+if (
+  noRepeatedClarification?.recommendation?.status !== "needs_clarification" ||
+  !contains(noRepeatedClarification?.answer, "case-management capabilities") ||
+  contains(noRepeatedClarification?.answer, "industry")
+) {
+  fail("requirements clarification: repeated known industry or asked the wrong question.");
+}
+
+const correctedRequirements = buildMiraRequirementState(
+  "Actually, this is about telecom bills.",
+  [
+    { role: "user", content: "We need claims support." },
+    { role: "assistant", content: "Tell me more about the claims workflow." },
+  ],
+);
+if (
+  !correctedRequirements.workflows.includes("telecom-expense-management") ||
+  correctedRequirements.workflows.includes("claims-processing")
+) {
+  fail("requirements correction: old claims workflow was not replaced.");
+}
+
+const resetRequirements = buildMiraRequirementState(
+  "We now need IBM i modernization.",
+  [
+    { role: "user", content: "We need vendor bill approval." },
+    { role: "assistant", content: "Recommended: Bill Audit & Bill Pay." },
+  ],
+);
+if (
+  !resetRequirements.workflows.includes("ibm-i-as400-support") ||
+  resetRequirements.workflows.includes("vendor-bill-audit-payment")
+) {
+  fail("requirements new-goal reset: stale vendor-bill state was retained.");
+}
+
+const multipleRequirements = resolveMiraRecommendation(
+  "We need case management and vendor bill controls.",
+);
+if (
+  multipleRequirements?.recommendationReady !== true ||
+  multipleRequirements?.entities?.length !== 2
+) {
+  fail("requirements multiple needs: expected two ready grounded recommendations.");
+}
+
+const insufficientRequirements = resolveMiraRecommendation(
+  "We need a better system.",
+);
+if (
+  insufficientRequirements?.recommendationReady !== false ||
+  insufficientRequirements?.missingRequirements?.[0] !== "workflow" ||
+  !contains(insufficientRequirements?.answer, "What workflow")
+) {
+  fail("requirements insufficient information: expected one workflow clarification.");
+}
+
+const typoRequirements = buildMiraRequirementState(
+  "We nede to reduce teelcom costs and review inovices.",
+);
+if (
+  typoRequirements.desiredOutcome !== "telecom cost control" ||
+  !typoRequirements.workflows.includes("telecom-expense-management")
+) {
+  fail("requirements typo normalization: telecom goal was not extracted.");
+}
+
+const uncontaminatedRequirements = buildMiraRequirementState(
+  "We need AI automation for repetitive workflows.",
+  [
+    { role: "user", content: "We process vendor invoices." },
+    { role: "assistant", content: "Recommended: Bill Audit & Bill Pay." },
+  ],
+);
+if (
+  !uncontaminatedRequirements.workflows.includes("ai-workflow-automation") ||
+  uncontaminatedRequirements.workflows.includes("vendor-bill-audit-payment")
+) {
+  fail("requirements contamination: stale vendor requirements were retained.");
+}
 
 const companyRetrieval = retrieveMiraContext("What does OneSmarter do?");
 const companyHarness = runMiraLocalHarness("What does OneSmarter do?");
