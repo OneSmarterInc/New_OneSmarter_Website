@@ -5,10 +5,46 @@ import {
   MIRA_MOOD_SIGNAL_KEYS,
   deriveMiraPresentationState,
 } from "../src/data/agentPresentation/miraPresentationState.js";
+import { formatMiraAnswerBlocks } from "../src/data/agentPresentation/miraAnswerFormatter.js";
 
 const failures = [];
 
 const fail = (message) => failures.push(message);
+
+const platformAnswerBlocks = formatMiraAnswerBlocks(
+  [
+    "1. Secure Ticketing and Case Management",
+    "- Built for HIPAA-regulated workflows",
+    "- Supports role-based access",
+    "2. Bill Audit & Bill Pay",
+    "- Supports vendor bill review",
+    "- Supports approval and payment workflows",
+    "Important note:",
+    "Broader services are available under Technology Solutions.",
+  ].join("\n"),
+);
+const platformSections = platformAnswerBlocks.filter(
+  (block) => block.type === "entity-section",
+);
+if (
+  platformSections.length !== 2 ||
+  platformSections[0].heading !== "Secure Ticketing and Case Management" ||
+  platformSections[0].items.length !== 2 ||
+  platformSections[1].heading !== "Bill Audit & Bill Pay" ||
+  platformSections[1].items.length !== 2
+) {
+  fail("answer-formatter: expected two platform headings with separate feature lists.");
+}
+if (
+  !platformAnswerBlocks.some(
+    (block) =>
+      block.type === "important-note" &&
+      block.text ===
+        "Broader services are available under Technology Solutions.",
+  )
+) {
+  fail("answer-formatter: expected Important note to remain a separate block.");
+}
 
 const baseResponse = {
   mode: "staging_llm",

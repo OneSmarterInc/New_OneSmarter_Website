@@ -3,6 +3,7 @@ import {
   MIRA_MOOD_SIGNAL_KEYS,
   deriveMiraPresentationState,
 } from "../data/agentPresentation/miraPresentationState.js";
+import { formatMiraAnswerBlocks as formatStructuredMiraAnswerBlocks } from "../data/agentPresentation/miraAnswerFormatter.js";
 import {
   MIRA_ALLOWED_VOICE_STYLES,
   MIRA_LANGUAGE_DEMOS,
@@ -260,9 +261,16 @@ const formatMiraAnswerBlocks = (text) => {
   return blocks.length ? blocks : [{ type: "paragraph", text }];
 };
 
+const getMiraAnswerBlocks = (content) => {
+  const structuredBlocks = formatStructuredMiraAnswerBlocks(content);
+  return structuredBlocks.length
+    ? structuredBlocks
+    : formatMiraAnswerBlocks(content);
+};
+
 const MiraAnswerContent = ({ content }) => (
   <div className="grid gap-3">
-    {formatMiraAnswerBlocks(content).map((block, index) => {
+    {getMiraAnswerBlocks(content).map((block, index) => {
       const key = `${block.type}-${index}`;
       if (block.type === "heading") {
         return (
@@ -278,6 +286,53 @@ const MiraAnswerContent = ({ content }) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
+        );
+      }
+      if (block.type === "entity-section") {
+        return (
+          <section
+            key={key}
+            className="grid gap-2 rounded-lg border border-white/10 bg-white/[0.04] p-4"
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className="flex h-7 min-w-7 items-center justify-center rounded-full bg-red-600 px-2 text-xs font-bold text-white"
+                aria-hidden="true"
+              >
+                {block.number}
+              </span>
+              <h3 className="pt-0.5 text-base font-bold leading-6 text-white">
+                {block.heading}
+              </h3>
+            </div>
+            {block.items.length ? (
+              <ul className="ml-10 list-disc space-y-1.5 text-zinc-200">
+                {block.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        );
+      }
+      if (block.type === "important-note") {
+        return (
+          <aside
+            key={key}
+            className="mt-1 rounded-lg border border-amber-300/25 bg-amber-400/10 p-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">
+              {block.heading}
+            </p>
+            {block.text ? <p className="mt-2 text-zinc-200">{block.text}</p> : null}
+            {block.items.length ? (
+              <ul className="mt-2 ml-4 list-disc space-y-1 text-zinc-200">
+                {block.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </aside>
         );
       }
       return <p key={key}>{block.text}</p>;
