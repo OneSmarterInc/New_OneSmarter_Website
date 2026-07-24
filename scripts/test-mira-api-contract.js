@@ -2581,6 +2581,7 @@ const modeCases = [
     expectedPrimarySourceId: "secure-ticketing-case-management",
     expectedRequirementIndustry: "healthcare/TPA",
     expectedRequirementReady: true,
+    expectedRecommendationReadinessStatus: "ready",
     expectedMissingRequirements: [],
   },
   {
@@ -2592,6 +2593,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedConfidence: "low",
     expectedRequirementReady: false,
+    expectedRecommendationReadinessStatus: "needs_clarification",
     expectedMissingRequirements: ["workflow"],
     expectedAnswerIncludes: "What workflow are you trying to improve",
   },
@@ -2638,6 +2640,15 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected recommendationReady=${modeCase.expectedRequirementReady}.`,
+    );
+  }
+  if (
+    modeCase.expectedRecommendationReadinessStatus &&
+    result.body.recommendationReadiness?.status !==
+      modeCase.expectedRecommendationReadinessStatus
+  ) {
+    fail(
+      `${modeCase.id}: expected readiness status ${modeCase.expectedRecommendationReadinessStatus}.`,
     );
   }
   if (

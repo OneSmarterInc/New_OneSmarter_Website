@@ -478,6 +478,7 @@ export const handleMiraChatRequest = async ({
             requirementState: result.requirementState,
             missingRequirements: result.missingRequirements,
             recommendationReady: result.recommendationReady,
+            recommendationReadiness: result.recommendationReadiness,
           }
         : {}),
       disclaimer: disclaimerFor(result),

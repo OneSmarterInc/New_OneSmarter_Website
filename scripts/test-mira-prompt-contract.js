@@ -34,11 +34,11 @@ const recommendationCases = [
   ["broad clarification", "Which platform should I use?", [], "needs_clarification", null],
   ["healthcare case", "What is best for healthcare case intake and audit tracking?", [], "recommended", "secure-ticketing-case-management"],
   ["vendor bill", "What would you recommend for vendor bills, approvals, and payment workflow?", [], "recommended", "bill-audit-bill-pay"],
-  ["telecom", "We want to reduce telecom expenses.", [], "recommended", "bill-audit-bill-pay"],
-  ["AI", "Which service should we use for AI workflow automation?", [], "recommended", "ai-agentic-services"],
+  ["telecom", "We want to reduce telecom expenses.", [], "needs_clarification", null],
+  ["AI", "Which service should we use for AI workflow automation?", [], "needs_clarification", null],
   ["IBM i", "What do you recommend for IBM i / AS400 support?", [], "recommended", "ibm-i-as400-services"],
   ["multi-turn", "Case intake, assignment, and audit tracking.", [{ role: "user", content: "We are a healthcare administrator." }, { role: "assistant", content: "What process are you trying to improve?" }], "recommended", "secure-ticketing-case-management"],
-  ["typo", "Wihch platfrom do you recomend for telecom bills?", [], "recommended", "bill-audit-bill-pay"],
+  ["typo", "Wihch platfrom do you recomend for telecom bills?", [], "needs_clarification", null],
   ["no match", "We need payroll software.", [], "no_match", null],
 ];
 
@@ -53,7 +53,7 @@ for (const [name, message, history, status, primaryId] of recommendationCases) {
 }
 
 const mixedRecommendation = resolveMiraRecommendation(
-  "We need case management and telecom bill control.",
+  "We need case intake with role-based access and telecom bills with contract and rate comparison and telecom cost control.",
 );
 if (
   mixedRecommendation?.recommendation?.primaryOption?.id !==
@@ -102,7 +102,7 @@ const topicShiftCases = [
   },
   {
     name: "vendor approval continuation",
-    message: "We also need approval tracking.",
+    message: "We also need approval tracking and payment workflows.",
     history: recommendationHistory(
       "We need vendor bill review.",
       "Recommended: Bill Audit & Bill Pay.",
@@ -122,7 +122,8 @@ const topicShiftCases = [
   },
   {
     name: "mixed new goal",
-    message: "We need vendor bill review and AI automation.",
+    message:
+      "We need vendor bill discrepancies with approval workflows and AI automation for repetitive workflows.",
     history: recommendationHistory(
       "We need healthcare case tracking.",
       "Recommended: Secure Ticketing and Case Management.",
@@ -210,7 +211,7 @@ const noRepeatedClarification = resolveMiraRecommendation(
 );
 if (
   noRepeatedClarification?.recommendation?.status !== "needs_clarification" ||
-  !contains(noRepeatedClarification?.answer, "case-management capabilities") ||
+  !contains(noRepeatedClarification?.answer, "capabilities matter most") ||
   contains(noRepeatedClarification?.answer, "industry")
 ) {
   fail("requirements clarification: repeated known industry or asked the wrong question.");
@@ -245,7 +246,7 @@ if (
 }
 
 const multipleRequirements = resolveMiraRecommendation(
-  "We need case management and vendor bill controls.",
+  "We need case intake with audit history and vendor bill discrepancy tracking with approvals.",
 );
 if (
   multipleRequirements?.recommendationReady !== true ||
@@ -287,6 +288,75 @@ if (
   uncontaminatedRequirements.workflows.includes("vendor-bill-audit-payment")
 ) {
   fail("requirements contamination: stale vendor requirements were retained.");
+}
+
+const readinessCases = [
+  {
+    name: "broad industry",
+    message: "We are a healthcare administrator.",
+    status: "needs_clarification",
+    confidence: "low",
+  },
+  {
+    name: "broad workflow",
+    message: "We need case management.",
+    status: "needs_clarification",
+    confidence: "low",
+  },
+  {
+    name: "one capability",
+    message: "We are a healthcare administrator handling case intake.",
+    status: "needs_clarification",
+    confidence: "low",
+    answerIncludes: "What capabilities matter most",
+  },
+  {
+    name: "enough case evidence",
+    message:
+      "We need healthcare case intake with role-based access and audit history.",
+    status: "ready",
+    confidence: "high",
+    primaryId: "secure-ticketing-case-management",
+  },
+  {
+    name: "full vendor requirement",
+    message:
+      "We review vendor bills, track discrepancies, approve invoices, and manage payments.",
+    status: "ready",
+    confidence: "high",
+    primaryId: "bill-audit-bill-pay",
+  },
+];
+
+for (const testCase of readinessCases) {
+  const result = resolveMiraRecommendation(testCase.message);
+  if (result?.recommendationReadiness?.status !== testCase.status) {
+    fail(`readiness ${testCase.name}: expected status ${testCase.status}.`);
+  }
+  if (result?.recommendationReadiness?.confidence !== testCase.confidence) {
+    fail(
+      `readiness ${testCase.name}: expected confidence ${testCase.confidence}.`,
+    );
+  }
+  if (
+    testCase.primaryId &&
+    result?.recommendation?.primaryOption?.id !== testCase.primaryId
+  ) {
+    fail(`readiness ${testCase.name}: wrong grounded recommendation.`);
+  }
+  if (
+    testCase.answerIncludes &&
+    !contains(result?.answer, testCase.answerIncludes)
+  ) {
+    fail(`readiness ${testCase.name}: missing focused clarification.`);
+  }
+}
+
+if (
+  multipleRequirements?.recommendationReadiness?.status !==
+  "multiple_matches"
+) {
+  fail("readiness multiple matches: expected multiple_matches status.");
 }
 
 const companyRetrieval = retrieveMiraContext("What does OneSmarter do?");

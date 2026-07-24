@@ -126,16 +126,24 @@ const extractRequirements = (message = "") => {
     )
       ? ["vendor bill review"]
       : []),
-    ...(/\bapprov(?:al|e|ing)(?: invoices?| tracking| workflow)?\b/i.test(text)
+    ...(/\bapprov(?:als?|e|ing)(?: invoices?| tracking| workflow)?\b/i.test(text)
       ? ["approval workflow"]
       : []),
-    ...(/\bmanage payments?\b|\bpayment workflow\b/i.test(text)
+    ...(/\bmanage payments?\b|\bpayment workflows?\b/i.test(text)
       ? ["payment workflow"]
       : []),
     ...(/\bcontract (?:and |\/ )?rate comparison\b|\bcompare (?:contracts|rates)\b/i.test(
       text,
     )
       ? ["contract and rate comparison"]
+      : []),
+    ...(/\b(?:usage|utilization) (?:analysis|review|tracking)\b|\banaly(?:ze|sis) (?:telecom )?usage\b/i.test(
+      text,
+    )
+      ? ["usage analysis"]
+      : []),
+    ...(/\brecurring expense (?:analysis|review|tracking)\b/i.test(text)
+      ? ["recurring expense analysis"]
       : []),
     ...(/\btelecom (?:bills?|expenses?)\b/i.test(text)
       ? ["telecom bill analysis"]
@@ -144,6 +152,9 @@ const extractRequirements = (message = "") => {
       text,
     )
       ? ["repetitive workflows"]
+      : []),
+    ...(/\bsecure communication\b/i.test(text)
+      ? ["secure communication"]
       : []),
     ...(/\bmoderniz(?:e|ation|ing)\b/i.test(text) ? ["modernization"] : []),
     ...(/\bsupport\b/i.test(text) ? ["support"] : []),
@@ -215,51 +226,95 @@ const mergeRequirementState = (state, extracted) => ({
 
 const readinessFor = (state) => {
   const has = (value) => state.needs.includes(value);
+  const evidenceByWorkflow = new Map();
   const readyWorkflows = state.workflows.filter((workflow) => {
-    if (state.workflows.length > 1) return true;
+    let evidence = [];
     if (workflow === "secure-case-management") {
-      return (
-        has("case intake") ||
-        has("assignment tracking") ||
-        has("audit history") ||
-        state.securityNeeds.includes("role-based access")
+      evidence = [
+        "case intake",
+        "assignment tracking",
+        "audit history",
+        "secure communication",
+        "role-based access",
+      ].filter(
+        (item) =>
+          has(item) ||
+          (item === "role-based access" &&
+            state.securityNeeds.includes("role-based access")),
       );
+      evidenceByWorkflow.set(workflow, evidence);
+      return evidence.length >= 2;
     }
     if (workflow === "vendor-bill-audit-payment") {
-      return (
-        has("discrepancy tracking") ||
-        has("vendor bill review") ||
-        has("approval workflow") ||
-        has("payment workflow")
-      );
+      evidence = [
+        "discrepancy tracking",
+        "approval workflow",
+        "payment workflow",
+        "recurring expense analysis",
+      ].filter(has);
+      evidenceByWorkflow.set(workflow, evidence);
+      return evidence.length >= 2;
     }
     if (workflow === "telecom-expense-management") {
-      return (
-        has("contract and rate comparison") ||
-        has("telecom bill analysis") ||
-        state.desiredOutcome === "telecom cost control"
-      );
+      evidence = [
+        ...(has("contract and rate comparison")
+          ? ["contract and rate comparison"]
+          : []),
+        ...(has("usage analysis") ? ["usage analysis"] : []),
+        ...(state.desiredOutcome === "telecom cost control"
+          ? ["telecom cost control"]
+          : []),
+      ];
+      evidenceByWorkflow.set(workflow, evidence);
+      return evidence.length >= 2;
     }
     if (workflow === "ai-workflow-automation") {
-      return (
-        has("repetitive workflows") ||
-        state.desiredOutcome === "workflow automation"
-      );
+      evidence = has("repetitive workflows") ? ["repetitive workflows"] : [];
+      evidenceByWorkflow.set(workflow, evidence);
+      return evidence.length >= 1;
     }
     if (workflow === "ibm-i-as400-support") {
-      return has("modernization") || has("support");
+      evidence = ["modernization", "support"].filter(has);
+      evidenceByWorkflow.set(workflow, evidence);
+      return evidence.length >= 1;
     }
-    return true;
+    evidence = state.needs;
+    evidenceByWorkflow.set(workflow, evidence);
+    return evidence.length >= 1;
   });
   const recommendationReady =
     readyWorkflows.length > 0 &&
     readyWorkflows.length === state.workflows.length;
+  const evidence = unique(
+    [...evidenceByWorkflow.values()].flat(),
+  );
   const missingRequirements = recommendationReady
     ? []
     : !state.workflows.length
       ? ["workflow"]
-      : ["workflow details"];
-  return { recommendationReady, missingRequirements };
+      : state.workflows
+          .filter((workflow) => !readyWorkflows.includes(workflow))
+          .map((workflow) => `concrete capabilities for ${workflow}`);
+  const status = recommendationReady
+    ? state.workflows.length > 1
+      ? "multiple_matches"
+      : "ready"
+    : "needs_clarification";
+  const confidence = !recommendationReady
+    ? "low"
+    : evidence.length >= 3
+      ? "high"
+      : "medium";
+  return {
+    recommendationReady,
+    missingRequirements,
+    recommendationReadiness: {
+      status,
+      confidence,
+      evidence,
+      missingInformation: missingRequirements,
+    },
+  };
 };
 
 export const buildMiraRequirementState = (
@@ -301,6 +356,7 @@ export const buildMiraRequirementState = (
     ...state,
     recommendationReady: readiness.recommendationReady,
     missingRequirements: readiness.missingRequirements,
+    recommendationReadiness: readiness.recommendationReadiness,
   };
 };
 
@@ -425,6 +481,12 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
       requirementState,
       missingRequirements: requirementState.missingRequirements,
       recommendationReady: false,
+      recommendationReadiness: {
+        status: "no_match",
+        confidence: "low",
+        evidence: requirementState.recommendationReadiness.evidence,
+        missingInformation: ["A supported OneSmarter workflow or service need"],
+      },
     };
   }
 
@@ -434,14 +496,30 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     !requirementState.recommendationReady
   ) {
     const workflow = requirementState.workflows[0];
+    const remaining = (options) =>
+      options.filter(
+        (option) =>
+          !requirementState.needs.includes(option) &&
+          !requirementState.securityNeeds.includes(option),
+      );
     const clarification = healthcareOnly
       ? "What process are you trying to improve?"
       : !workflow
         ? "What workflow are you trying to improve: case management, bill processing, telecom expenses, claims operations, or something else?"
         : workflow === "secure-case-management"
-          ? "Which case-management capabilities matter most: intake, assignment, role-based access, audit history, or something else?"
+          ? `What capabilities matter most for that workflow: ${remaining([
+              "assignment tracking",
+              "role-based access",
+              "secure communication",
+              "audit history",
+            ]).join(", ")}, or something else?`
           : workflow === "vendor-bill-audit-payment"
-            ? "Which bill-processing capabilities matter most: discrepancy tracking, approvals, payment workflow, or something else?"
+            ? `Do you mainly need ${remaining([
+                "discrepancy tracking",
+                "approval workflow",
+                "payment workflow",
+                "recurring expense analysis",
+              ]).join(", ")}, or a combination?`
             : workflow === "telecom-expense-management"
               ? "Is your telecom goal contract and rate comparison, cost reduction, or something else?"
               : workflow === "ai-workflow-automation"
@@ -462,6 +540,7 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
       requirementState,
       missingRequirements: requirementState.missingRequirements,
       recommendationReady: false,
+      recommendationReadiness: requirementState.recommendationReadiness,
     };
   }
 
@@ -502,6 +581,7 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     requirementState,
     missingRequirements: [],
     recommendationReady: true,
+    recommendationReadiness: requirementState.recommendationReadiness,
   };
 };
 
