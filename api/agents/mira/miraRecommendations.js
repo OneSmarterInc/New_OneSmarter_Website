@@ -17,6 +17,8 @@ const EXPLICIT_MULTIPLE_GOALS =
   /\b(?:both|also|as well|along with|in addition|still need|keep(?:ing)? .+ too)\b/i;
 const EXPLICIT_COMPARISON =
   /\b(?:compare|versus|vs\.?|difference(?:s)?(?: between)?|which (?:one|platform|service|offering) is better|first (?:one )?and (?:the )?second|first and second|(?:side-by-side|side by side) comparison|comparison (?:between|of))\b/i;
+const NEW_GOAL_CUE =
+  /\b(?:now we need|new goal|different (?:goal|need|workflow)|separate(?:ly)?|switch(?:ing)? to)\b/i;
 
 const NEEDS = [
   {
@@ -34,6 +36,7 @@ const NEEDS = [
     optionId: "bill-audit-bill-pay",
     patterns: [
       /\bvendor bills?\b/i,
+      /\bvendor invoices?\b/i,
       /\bbill (?:audit|processing|approval|payment)\b/i,
       /\bpayment workflow\b/i,
       /\bapproval tracking\b/i,
@@ -55,7 +58,10 @@ const NEEDS = [
   {
     id: "ai-workflow-automation",
     optionId: "ai-agentic-services",
-    patterns: [/\bai (?:workflow|automation|agentic|agents?)\b/i, /\bautomate (?:a |our )?(?:business )?(?:process|workflow)/i],
+    patterns: [
+      /\bai (?:workflow|automation|agentic|agents?)\b/i,
+      /\bautomate (?:a |our )?(?:business )?(?:process|workflow|repetitive work|repetitive tasks?)/i,
+    ],
     reason: "The need involves AI-assisted business-process automation.",
   },
   {
@@ -91,8 +97,10 @@ const normalizedText = (value = "") =>
     .replace(/\bwihch\b/g, "which")
     .replace(/\brecomend(?:ation)?\b/g, "recommend")
     .replace(/\bnede\b/g, "need")
+    .replace(/\bproces\b/g, "process")
+    .replace(/\bvender\b/g, "vendor")
     .replace(/\bteelcom\b/g, "telecom")
-    .replace(/\binovices\b/g, "invoices");
+    .replace(/\b(?:inovices|invoises)\b/g, "invoices");
 
 const unique = (values = []) => [...new Set(values.filter(Boolean))];
 
@@ -137,7 +145,7 @@ const extractRequirements = (message = "") => {
     ...(/\bmanage payments?\b|\bpayment workflows?\b/i.test(text)
       ? ["payment workflow"]
       : []),
-    ...(/\bcontract (?:and |\/ )?rate comparison\b|\bcompare (?:contracts|rates)\b/i.test(
+    ...(/\bcontract (?:(?:and |\/ )?rate )?comparison\b|\bcompare (?:contracts|rates)\b/i.test(
       text,
     )
       ? ["contract and rate comparison"]
@@ -158,6 +166,11 @@ const extractRequirements = (message = "") => {
     )
       ? ["repetitive workflows"]
       : []),
+    ...(/\bclaims?[- ]related (?:operational )?(?:work|tasks?|operations?)\b/i.test(
+      text,
+    )
+      ? ["claims-related operational tasks"]
+      : []),
     ...(/\bsecure communication\b/i.test(text)
       ? ["secure communication"]
       : []),
@@ -175,7 +188,7 @@ const extractRequirements = (message = "") => {
   const industry = /\bhealthcare\b|\btpa\b/i.test(text)
     ? "healthcare/TPA"
     : null;
-  const desiredOutcome = /\b(?:reduce|lower|control|cut)\b.*\btelecom (?:costs?|expenses?)\b|\btelecom cost control\b/i.test(
+  const desiredOutcome = /\b(?:reduce|lower|control|cut)\b.*\btelecom (?:costs?|expenses?)\b|\btelecom cost control\b|\b(?:mainly )?telecom costs?\b/i.test(
     text,
   )
     ? "telecom cost control"
@@ -200,13 +213,19 @@ const extractRequirements = (message = "") => {
   };
 };
 
-const emptyRequirementState = () => ({
+const emptyRequirementState = (goalId = "goal-1") => ({
+  goalId,
   industry: null,
   workflows: [],
   needs: [],
   currentProblem: null,
   desiredOutcome: null,
+  desiredOutcomes: [],
+  constraints: [],
   securityNeeds: [],
+  evidenceTurns: [],
+  pendingClarification: null,
+  status: "collecting",
   recommendationReady: false,
 });
 
@@ -221,14 +240,146 @@ const shouldResetRequirements = (state, extracted, message, relation) => {
   );
 };
 
-const mergeRequirementState = (state, extracted) => ({
+const mergeRequirementState = (state, extracted, evidenceTurn = null) => ({
+  ...state,
   industry: extracted.industry || state.industry,
   workflows: unique([...state.workflows, ...extracted.workflows]),
   needs: unique([...state.needs, ...extracted.needs]),
   currentProblem: extracted.currentProblem || state.currentProblem,
   desiredOutcome: extracted.desiredOutcome || state.desiredOutcome,
+  desiredOutcomes: unique([
+    ...state.desiredOutcomes,
+    extracted.desiredOutcome,
+  ]),
   securityNeeds: unique([...state.securityNeeds, ...extracted.securityNeeds]),
+  evidenceTurns: evidenceTurn
+    ? [...state.evidenceTurns, evidenceTurn]
+    : state.evidenceTurns,
+  pendingClarification: null,
   recommendationReady: false,
+});
+
+const clarificationMetadataFor = (question = "", goalId = "goal-1") => {
+  const normalized = normalizedText(question);
+  const field = /\bwhat (?:process|workflow|type of workflow)\b/.test(normalized)
+    ? "workflow"
+    : /\bindustry\b|\bhealthcare teams?\b/.test(normalized)
+      ? "industry"
+      : /\bgoal\b|\boutcome\b/.test(normalized)
+        ? "outcome"
+        : /\bcapabilit|\bdo you mainly need\b|\brepetitive workflow\b/.test(
+              normalized,
+            )
+          ? "needs"
+          : "scope";
+  const options = [
+    ...(/\bcase management\b/.test(normalized) ? ["case management"] : []),
+    ...(/\bbill processing\b/.test(normalized) ? ["bill processing"] : []),
+    ...(/\btelecom expenses\b/.test(normalized) ? ["telecom expenses"] : []),
+    ...(/\bclaims operations\b/.test(normalized) ? ["claims operations"] : []),
+    ...(/\bdiscrepancy tracking\b/.test(normalized)
+      ? ["discrepancy tracking"]
+      : []),
+    ...(/\bapproval workflows?\b|\bapprovals\b/.test(normalized)
+      ? ["approval workflow"]
+      : []),
+    ...(/\bpayment workflows?\b/.test(normalized) ? ["payment workflow"] : []),
+    ...(/\baudit history\b/.test(normalized) ? ["audit history"] : []),
+  ];
+  return {
+    field,
+    questionId: `${field}-${normalized.replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
+    options: unique(options),
+    sourceGoalId: goalId,
+  };
+};
+
+const pendingClarificationFromHistory = (turn, state) =>
+  turn?.role === "assistant" && turn.pendingClarification?.field
+    ? {
+        field: turn.pendingClarification.field,
+        questionId: turn.pendingClarification.questionId,
+        options: unique(turn.pendingClarification.options || []),
+        sourceGoalId: turn.pendingClarification.sourceGoalId || state.goalId,
+      }
+    : turn?.role === "assistant" &&
+  /\?/.test(turn.content || "") &&
+  /\b(?:what (?:process|workflow|type of workflow|outcome|capabilities)|which .+ matter|do you mainly need|is your .+ goal|what repetitive workflow|or something else)\b/i.test(
+    turn.content,
+  )
+    ? clarificationMetadataFor(turn.content, state.goalId)
+    : null;
+
+const mergePendingClarificationAnswer = (
+  extracted,
+  message,
+  pendingClarification,
+) => {
+  if (!pendingClarification) return extracted;
+  const normalized = normalizedText(message);
+  const selectedNeeds = pendingClarification.options.filter((option) => {
+    if (normalized.includes(option)) return true;
+    if (option === "discrepancy tracking") return /\btracking\b/.test(normalized);
+    if (option === "approval workflow") return /\bapprov/.test(normalized);
+    if (option === "payment workflow") return /\bpayments?\b/.test(normalized);
+    if (option === "audit history") return /\baudit\b/.test(normalized);
+    return false;
+  });
+  const allOptions =
+    /\ball (?:three|of them|of those)\b/.test(normalized) &&
+    pendingClarification.field === "needs"
+      ? pendingClarification.options
+      : [];
+  const ordinalMatch = normalized.match(
+    /\b(first|second|third|fourth)\b/,
+  )?.[1];
+  const ordinalIndex = {
+    first: 0,
+    second: 1,
+    third: 2,
+    fourth: 3,
+  }[ordinalMatch];
+  const ordinalOption =
+    Number.isInteger(ordinalIndex) &&
+    pendingClarification.options[ordinalIndex]
+      ? pendingClarification.options[ordinalIndex]
+      : "";
+  const selectedWorkflowOptions =
+    pendingClarification.field === "workflow"
+      ? unique([
+          ordinalOption,
+          ...pendingClarification.options.filter((option) => {
+            const optionWords = option.split(/\s+/).filter((word) => word.length > 3);
+            return optionWords.some((word) => normalized.includes(word));
+          }),
+        ])
+      : [];
+  const workflowIds = selectedWorkflowOptions.flatMap((option) => {
+    if (/case management/i.test(option)) return ["secure-case-management"];
+    if (/bill processing/i.test(option)) {
+      return ["vendor-bill-audit-payment"];
+    }
+    if (/telecom/i.test(option)) return ["telecom-expense-management"];
+    if (/claims/i.test(option)) return ["claims-processing"];
+    return [];
+  });
+  return {
+    ...extracted,
+    workflows: unique([...extracted.workflows, ...workflowIds]),
+    needs: unique([...extracted.needs, ...selectedNeeds, ...allOptions]),
+  };
+};
+
+const evidenceTurnFor = (content, index, extracted) => ({
+  turnId: `user-${index + 1}`,
+  content: String(content).slice(0, 240),
+  fields: unique([
+    ...(extracted.workflows.length ? ["workflow"] : []),
+    ...(extracted.industry ? ["industry"] : []),
+    ...(extracted.needs.length ? ["needs"] : []),
+    ...(extracted.desiredOutcome ? ["outcome"] : []),
+    ...(extracted.securityNeeds.length ? ["securityNeeds"] : []),
+  ]),
 });
 
 const readinessFor = (state) => {
@@ -281,7 +432,12 @@ const readinessFor = (state) => {
       );
     }
     if (workflow === "ai-workflow-automation") {
-      evidence = has("repetitive workflows") ? ["repetitive workflows"] : [];
+      evidence = [
+        ...(has("repetitive workflows") ? ["repetitive workflows"] : []),
+        ...(has("claims-related operational tasks")
+          ? ["claims-related operational tasks"]
+          : []),
+      ];
       evidenceByWorkflow.set(workflow, evidence);
       return evidence.length >= 1;
     }
@@ -333,39 +489,106 @@ export const buildMiraRequirementState = (
   message = "",
   conversationHistory = [],
 ) => {
-  let state = emptyRequirementState();
-  const priorTurns = [];
-  const userMessages = [
-    ...conversationHistory
-      .slice(-6)
-      .filter((turn) => turn?.role === "user")
-      .map((turn) => turn.content),
-    message,
+  let goalNumber = 1;
+  let state = emptyRequirementState(`goal-${goalNumber}`);
+  let pendingClarification = null;
+  const priorUserTurns = [];
+  const turns = [
+    ...conversationHistory.slice(-6),
+    { role: "user", content: message },
   ];
 
-  for (const userMessage of userMessages) {
-    const extracted = extractRequirements(userMessage);
+  for (const [turnIndex, turn] of turns.entries()) {
+    if (turn?.role === "assistant") {
+      pendingClarification =
+        pendingClarificationFromHistory(turn, state) || pendingClarification;
+      continue;
+    }
+    if (turn?.role !== "user" || typeof turn.content !== "string") continue;
+
+    const userMessage = turn.content;
+    let extracted = extractRequirements(userMessage);
     const { relationToPreviousTurn } = classifyMiraTopicShift(
       userMessage,
-      priorTurns,
+      priorUserTurns,
     );
+
+    const explicitlyStartsNewGoal =
+      NEW_GOAL_CUE.test(userMessage) &&
+      extracted.workflows.some(
+        (workflow) => !state.workflows.includes(workflow),
+      );
+    const answersPendingClarification =
+      Boolean(pendingClarification) && !explicitlyStartsNewGoal;
+
+    if (answersPendingClarification) {
+      extracted = mergePendingClarificationAnswer(
+        extracted,
+        userMessage,
+        pendingClarification,
+      );
+    }
+
     if (
+      answersPendingClarification &&
+      pendingClarification.field !== "workflow" &&
+      state.workflows.includes("ai-workflow-automation") &&
+      extracted.workflows.includes("claims-processing")
+    ) {
+      extracted = {
+        ...extracted,
+        workflows: extracted.workflows.filter(
+          (workflow) => workflow !== "claims-processing",
+        ),
+      };
+    }
+
+    const effectiveRelation = answersPendingClarification
+      ? "continuation"
+      : relationToPreviousTurn;
+    if (
+      explicitlyStartsNewGoal ||
       shouldResetRequirements(
         state,
         extracted,
         userMessage,
-        relationToPreviousTurn,
+        effectiveRelation,
       )
     ) {
-      state = emptyRequirementState();
+      goalNumber += 1;
+      state = emptyRequirementState(`goal-${goalNumber}`);
     }
-    state = mergeRequirementState(state, extracted);
-    priorTurns.push({ role: "user", content: userMessage });
+
+    state = mergeRequirementState(
+      state,
+      extracted,
+      evidenceTurnFor(userMessage, turnIndex, extracted),
+    );
+    pendingClarification = null;
+    priorUserTurns.push({ role: "user", content: userMessage });
   }
 
   const readiness = readinessFor(state);
+  const status = readiness.recommendationReady ? "ready" : "collecting";
+  const activeGoal = {
+    goalId: state.goalId,
+    topic: state.workflows[0] || null,
+    workflow: state.workflows[0] || null,
+    workflows: state.workflows,
+    industry: state.industry,
+    needs: state.needs,
+    desiredOutcomes: state.desiredOutcomes,
+    constraints: state.constraints,
+    securityNeeds: state.securityNeeds,
+    evidenceTurns: state.evidenceTurns,
+    missingInformation: readiness.missingRequirements,
+    status,
+  };
   return {
     ...state,
+    status,
+    activeGoal,
+    pendingClarification,
     recommendationReady: readiness.recommendationReady,
     missingRequirements: readiness.missingRequirements,
     recommendationReadiness: readiness.recommendationReadiness,
@@ -450,13 +673,12 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     conversationHistory,
   );
   const explicitIntent = BROAD_RECOMMENDATION.test(current);
-  const continuesGoalCollection = conversationHistory
-    .slice(-2)
-    .some(
-      (turn) =>
-        turn?.role === "assistant" &&
-        /\bwhat (?:process|workflow|type of workflow)\b/i.test(turn.content),
-    );
+  const latestAssistantTurn = [...conversationHistory]
+    .reverse()
+    .find((turn) => turn?.role === "assistant");
+  const continuesGoalCollection = Boolean(
+    pendingClarificationFromHistory(latestAssistantTurn, requirementState),
+  );
   const statesCurrentGoal =
     CURRENT_GOAL.test(current) ||
     REQUIREMENT_STATEMENT.test(current) ||
@@ -544,6 +766,20 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
               : workflow === "ai-workflow-automation"
                 ? "What repetitive workflow are you trying to automate?"
                 : "What outcome are you trying to achieve with this workflow?";
+    const pendingClarification = clarificationMetadataFor(
+      clarification,
+      requirementState.goalId,
+    );
+    const collectingRequirementState = {
+      ...requirementState,
+      pendingClarification,
+      status: "collecting",
+      activeGoal: {
+        ...requirementState.activeGoal,
+        status: "collecting",
+        missingInformation: requirementState.missingRequirements,
+      },
+    };
     return {
       recommendation: {
         status: "needs_clarification",
@@ -556,8 +792,10 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
       matchedEntries: [],
       answer: clarification,
       topicShift,
-      requirementState,
-      missingRequirements: requirementState.missingRequirements,
+      requirementState: collectingRequirementState,
+      activeGoal: collectingRequirementState.activeGoal,
+      pendingClarification,
+      missingRequirements: collectingRequirementState.missingRequirements,
       recommendationReady: false,
       recommendationReadiness: requirementState.recommendationReadiness,
     };
@@ -584,6 +822,16 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     ),
     ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
   ].join("\n");
+  const recommendedRequirementState = {
+    ...requirementState,
+    status: "recommended",
+    pendingClarification: null,
+    activeGoal: {
+      ...requirementState.activeGoal,
+      status: "recommended",
+      missingInformation: [],
+    },
+  };
 
   return {
     recommendation: {
@@ -597,7 +845,9 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     matchedEntries,
     answer,
     topicShift,
-    requirementState,
+    requirementState: recommendedRequirementState,
+    activeGoal: recommendedRequirementState.activeGoal,
+    pendingClarification: null,
     missingRequirements: [],
     recommendationReady: true,
     recommendationReadiness: requirementState.recommendationReadiness,

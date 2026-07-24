@@ -205,6 +205,9 @@ const buildMiraConversationHistory = (turns) => {
       ...(turn.role === "assistant" && turn.response?.conversationEntities?.length
         ? { conversationEntities: turn.response.conversationEntities }
         : {}),
+      ...(turn.role === "assistant" && turn.response?.pendingClarification
+        ? { pendingClarification: turn.response.pendingClarification }
+        : {}),
     });
   }
 

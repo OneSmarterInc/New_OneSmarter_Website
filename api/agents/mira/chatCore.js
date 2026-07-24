@@ -57,6 +57,42 @@ const normalizeConversationId = (conversationId) => {
   return crypto.randomUUID();
 };
 
+const normalizePendingClarification = (pendingClarification) => {
+  if (!pendingClarification || typeof pendingClarification !== "object") {
+    return null;
+  }
+  const allowedFields = new Set([
+    "workflow",
+    "needs",
+    "industry",
+    "outcome",
+    "scope",
+  ]);
+  const field = allowedFields.has(pendingClarification.field)
+    ? pendingClarification.field
+    : "";
+  const questionId =
+    typeof pendingClarification.questionId === "string"
+      ? pendingClarification.questionId.trim().slice(0, 100)
+      : "";
+  const sourceGoalId =
+    typeof pendingClarification.sourceGoalId === "string"
+      ? pendingClarification.sourceGoalId.trim().slice(0, 100)
+      : "";
+  if (!field || !questionId || !sourceGoalId) return null;
+  return {
+    field,
+    questionId,
+    sourceGoalId,
+    options: Array.isArray(pendingClarification.options)
+      ? pendingClarification.options
+          .filter((option) => typeof option === "string" && option.trim())
+          .map((option) => option.trim().slice(0, 100))
+          .slice(0, 8)
+      : [],
+  };
+};
+
 const normalizeConversationHistory = (conversationHistory) => {
   if (conversationHistory === undefined || conversationHistory === null) {
     return { ok: true, history: [] };
@@ -132,6 +168,9 @@ const normalizeConversationHistory = (conversationHistory) => {
         ? {
             conversationEntities: normalizeGroundedConversationEntities(
               turn.conversationEntities,
+            ),
+            pendingClarification: normalizePendingClarification(
+              turn.pendingClarification,
             ),
           }
         : {}),
@@ -485,6 +524,11 @@ export const handleMiraChatRequest = async ({
             missingRequirements: result.missingRequirements,
             recommendationReady: result.recommendationReady,
             recommendationReadiness: result.recommendationReadiness,
+            activeGoal: result.activeGoal || result.requirementState.activeGoal,
+            pendingClarification:
+              result.pendingClarification ||
+              result.requirementState.pendingClarification ||
+              null,
           }
         : {}),
       disclaimer: disclaimerFor(result),

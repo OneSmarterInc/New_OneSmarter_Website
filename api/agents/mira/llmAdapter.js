@@ -630,6 +630,8 @@ export const runMiraResponseAdapter = async ({
       recommendationReady: recommendationResolution.recommendationReady,
       recommendationReadiness:
         recommendationResolution.recommendationReadiness,
+      activeGoal: recommendationResolution.activeGoal,
+      pendingClarification: recommendationResolution.pendingClarification,
       resolvedConversationEntities: recommendationResolution.entities,
       recommendationHandled: true,
       clarificationNeeded:
@@ -696,7 +698,20 @@ export const runMiraResponseAdapter = async ({
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
       responseGuidance: localResult.recommendation
-        ? "Provide only the grounded recommendation represented by the supplied approved context. Do not invent features, pricing, timelines, integrations, guarantees, or compliance claims."
+        ? [
+            "Provide only the grounded recommendation represented by the supplied approved context. Do not invent features, pricing, timelines, integrations, guarantees, or compliance claims.",
+            localResult.activeGoal
+              ? `Active visitor goal: ${JSON.stringify({
+                  workflow: localResult.activeGoal.workflow,
+                  industry: localResult.activeGoal.industry,
+                  needs: localResult.activeGoal.needs,
+                  desiredOutcomes: localResult.activeGoal.desiredOutcomes,
+                  status: localResult.activeGoal.status,
+                })}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
         : referenceResolution.isComparison
         ? `Compare only these selected grounded entities: ${referenceResolution.entities
             .map((entity) => entity.label)

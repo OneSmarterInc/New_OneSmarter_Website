@@ -217,6 +217,196 @@ if (
   fail("requirements clarification: repeated known industry or asked the wrong question.");
 }
 
+const vendorFirstTurn = resolveMiraRecommendation("We process vendor invoices.");
+if (
+  vendorFirstTurn?.recommendation?.status !== "needs_clarification" ||
+  !vendorFirstTurn?.requirementState?.workflows?.includes(
+    "vendor-bill-audit-payment",
+  ) ||
+  vendorFirstTurn?.pendingClarification?.field !== "needs" ||
+  !contains(vendorFirstTurn?.answer, "Do you mainly need") ||
+  contains(vendorFirstTurn?.answer, "What workflow")
+) {
+  fail("active goal vendor first turn: workflow was not retained for a specific clarification.");
+}
+
+const exactMultiTurnCases = [
+  {
+    name: "vendor invoices",
+    message: "We need discrepancy tracking, approvals, and payment workflows.",
+    history: [
+      { role: "user", content: "We process vendor invoices." },
+      {
+        role: "assistant",
+        content:
+          "Do you mainly need discrepancy tracking, approvals, payment workflows, recurring expense analysis, or a combination?",
+      },
+    ],
+    primaryId: "bill-audit-bill-pay",
+    workflow: "vendor-bill-audit-payment",
+    needs: [
+      "discrepancy tracking",
+      "approval workflow",
+      "payment workflow",
+    ],
+  },
+  {
+    name: "healthcare case",
+    message: "We need role-based access and audit history.",
+    history: [
+      { role: "user", content: "We are a healthcare administrator." },
+      { role: "assistant", content: "What process are you trying to improve?" },
+      { role: "user", content: "We handle case intake." },
+      {
+        role: "assistant",
+        content:
+          "What capabilities matter most for that workflow: assignment tracking, role-based access, secure communication, audit history, or something else?",
+      },
+    ],
+    primaryId: "secure-ticketing-case-management",
+    workflow: "secure-case-management",
+    industry: "healthcare/TPA",
+    needs: ["case intake", "audit history"],
+    securityNeeds: ["role-based access", "audit history"],
+  },
+  {
+    name: "telecom expenses",
+    message: "We need contract comparison and usage analysis.",
+    history: [
+      { role: "user", content: "We want to reduce telecom costs." },
+      {
+        role: "assistant",
+        content:
+          "Is your telecom goal contract and rate comparison, cost reduction, or something else?",
+      },
+    ],
+    primaryId: "bill-audit-bill-pay",
+    workflow: "telecom-expense-management",
+    desiredOutcome: "telecom cost control",
+    needs: ["contract and rate comparison", "usage analysis"],
+  },
+  {
+    name: "AI automation",
+    message: "Claims-related operational tasks.",
+    history: [
+      { role: "user", content: "We want to automate repetitive work." },
+      {
+        role: "assistant",
+        content: "What repetitive workflow are you trying to automate?",
+      },
+    ],
+    primaryId: "ai-agentic-services",
+    workflow: "ai-workflow-automation",
+    needs: ["claims-related operational tasks"],
+  },
+  {
+    name: "IBM i",
+    message: "We need modernization and support.",
+    history: [
+      { role: "user", content: "We run IBM i systems." },
+      {
+        role: "assistant",
+        content: "What outcome are you trying to achieve with this workflow?",
+      },
+    ],
+    primaryId: "ibm-i-as400-services",
+    workflow: "ibm-i-as400-support",
+    needs: ["modernization", "support"],
+  },
+];
+
+for (const testCase of exactMultiTurnCases) {
+  const result = resolveMiraRecommendation(testCase.message, testCase.history);
+  if (result?.recommendation?.primaryOption?.id !== testCase.primaryId) {
+    fail(`active goal ${testCase.name}: wrong recommendation.`);
+  }
+  if (!result?.activeGoal || result.activeGoal.status !== "recommended") {
+    fail(`active goal ${testCase.name}: structured recommended goal missing.`);
+  }
+  if (!result.activeGoal.workflows.includes(testCase.workflow)) {
+    fail(`active goal ${testCase.name}: workflow was not merged.`);
+  }
+  for (const need of testCase.needs || []) {
+    if (!result.activeGoal.needs.includes(need)) {
+      fail(`active goal ${testCase.name}: missing need ${need}.`);
+    }
+  }
+  for (const need of testCase.securityNeeds || []) {
+    if (!result.activeGoal.securityNeeds.includes(need)) {
+      fail(`active goal ${testCase.name}: missing security need ${need}.`);
+    }
+  }
+  if (
+    testCase.industry &&
+    result.activeGoal.industry !== testCase.industry
+  ) {
+    fail(`active goal ${testCase.name}: industry was not retained.`);
+  }
+  if (
+    testCase.desiredOutcome &&
+    !result.activeGoal.desiredOutcomes.includes(testCase.desiredOutcome)
+  ) {
+    fail(`active goal ${testCase.name}: desired outcome was not retained.`);
+  }
+  if (result.pendingClarification) {
+    fail(`active goal ${testCase.name}: resolved clarification remained pending.`);
+  }
+}
+
+const shortPendingAnswer = resolveMiraRecommendation("All three.", [
+  { role: "user", content: "We process vendor invoices." },
+  {
+    role: "assistant",
+    content:
+      "Do you mainly need discrepancy tracking, approval workflows, or payment workflows?",
+  },
+]);
+if (
+  shortPendingAnswer?.recommendation?.primaryOption?.id !==
+    "bill-audit-bill-pay" ||
+  shortPendingAnswer?.activeGoal?.needs?.length < 3
+) {
+  fail("pending clarification: short all-three answer did not fill requested needs.");
+}
+
+const typoVendorRequirements = buildMiraRequirementState(
+  "We proces vender invoises.",
+);
+if (
+  !typoVendorRequirements.workflows.includes("vendor-bill-audit-payment")
+) {
+  fail("active goal typo tolerance: vendor invoice workflow was not recognized.");
+}
+
+const ordinalCorrection = buildMiraRequirementState(
+  "I meant the second workflow.",
+  [
+    { role: "user", content: "We need a better system." },
+    {
+      role: "assistant",
+      content:
+        "What workflow are you trying to improve: case management, bill processing, telecom expenses, or claims operations?",
+      pendingClarification: {
+        field: "workflow",
+        questionId: "workflow-choice",
+        options: [
+          "case management",
+          "bill processing",
+          "telecom expenses",
+          "claims operations",
+        ],
+        sourceGoalId: "goal-1",
+      },
+    },
+  ],
+);
+if (
+  ordinalCorrection.workflows.length !== 1 ||
+  ordinalCorrection.workflows[0] !== "vendor-bill-audit-payment"
+) {
+  fail("active goal correction: ordinal workflow replacement was not resolved.");
+}
+
 const correctedRequirements = buildMiraRequirementState(
   "Actually, this is about telecom bills.",
   [
@@ -754,6 +944,7 @@ for (const expectedUiText of [
   "Mira may make mistakes. Responses are grounded in approved",
   "formatMiraAnswerBlocks",
   "list-disc",
+  "pendingClarification",
 ]) {
   if (!contains(aiAgentsPageSource, expectedUiText)) {
     fail(`ui-source: missing expected Mira disclaimer/formatting text: ${expectedUiText}.`);
