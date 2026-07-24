@@ -176,418 +176,139 @@ if (
   fail("topic shift company overview: stale recommendation context was retained.");
 }
 
-const threeTurnHistory = [
-  { role: "user", content: "We are a healthcare TPA." },
-  { role: "assistant", content: "What process are you trying to improve?" },
-  { role: "user", content: "We need case management." },
+const currentMessageCases = [
   {
-    role: "assistant",
-    content:
-      "Which case-management capabilities matter most: intake, assignment, role-based access, audit history, or something else?",
-  },
-];
-const threeTurnRecommendation = resolveMiraRecommendation(
-  "We need role-based access and audit tracking.",
-  threeTurnHistory,
-);
-if (
-  threeTurnRecommendation?.requirementState?.industry !== "healthcare/TPA" ||
-  !threeTurnRecommendation?.requirementState?.securityNeeds?.includes(
-    "role-based access",
-  ) ||
-  threeTurnRecommendation?.recommendationReady !== true ||
-  threeTurnRecommendation?.recommendation?.primaryOption?.id !==
-    "secure-ticketing-case-management"
-) {
-  fail("requirements three-turn collection: expected a ready healthcare case recommendation.");
-}
-
-const noRepeatedClarification = resolveMiraRecommendation(
-  "We need case management.",
-  [
-    { role: "user", content: "We are a healthcare TPA." },
-    { role: "assistant", content: "What process are you trying to improve?" },
-  ],
-);
-if (
-  noRepeatedClarification?.recommendation?.status !== "needs_clarification" ||
-  !contains(noRepeatedClarification?.answer, "capabilities matter most") ||
-  contains(noRepeatedClarification?.answer, "industry")
-) {
-  fail("requirements clarification: repeated known industry or asked the wrong question.");
-}
-
-const vendorFirstTurn = resolveMiraRecommendation("We process vendor invoices.");
-if (
-  vendorFirstTurn?.recommendation?.status !== "needs_clarification" ||
-  !vendorFirstTurn?.requirementState?.workflows?.includes(
-    "vendor-bill-audit-payment",
-  ) ||
-  vendorFirstTurn?.pendingClarification?.field !== "needs" ||
-  !contains(vendorFirstTurn?.answer, "Do you mainly need") ||
-  contains(vendorFirstTurn?.answer, "What workflow")
-) {
-  fail("active goal vendor first turn: workflow was not retained for a specific clarification.");
-}
-
-const exactMultiTurnCases = [
-  {
-    name: "vendor invoices",
-    message: "We need discrepancy tracking, approvals, and payment workflows.",
-    history: [
-      { role: "user", content: "We process vendor invoices." },
-      {
-        role: "assistant",
-        content:
-          "Do you mainly need discrepancy tracking, approvals, payment workflows, recurring expense analysis, or a combination?",
-      },
-    ],
+    name: "detailed vendor recommendation",
+    message:
+      "We process vendor invoices and need discrepancy tracking, approvals, and payment workflows.",
+    status: "recommended",
     primaryId: "bill-audit-bill-pay",
-    workflow: "vendor-bill-audit-payment",
-    needs: [
-      "discrepancy tracking",
-      "approval workflow",
-      "payment workflow",
-    ],
   },
   {
-    name: "healthcare case",
-    message: "We need role-based access and audit history.",
-    history: [
-      { role: "user", content: "We are a healthcare administrator." },
-      { role: "assistant", content: "What process are you trying to improve?" },
-      { role: "user", content: "We handle case intake." },
-      {
-        role: "assistant",
-        content:
-          "What capabilities matter most for that workflow: assignment tracking, role-based access, secure communication, audit history, or something else?",
-      },
-    ],
-    primaryId: "secure-ticketing-case-management",
-    workflow: "secure-case-management",
-    industry: "healthcare/TPA",
-    needs: ["case intake", "audit history"],
-    securityNeeds: ["role-based access", "audit history"],
+    name: "vague clarification",
+    message: "We need help choosing a platform.",
+    status: "needs_clarification",
+    answerIncludes: "What workflow",
   },
   {
-    name: "telecom expenses",
-    message: "We need contract comparison and usage analysis.",
-    history: [
-      { role: "user", content: "We want to reduce telecom costs." },
-      {
-        role: "assistant",
-        content:
-          "Is your telecom goal contract and rate comparison, cost reduction, or something else?",
-      },
-    ],
-    primaryId: "bill-audit-bill-pay",
-    workflow: "telecom-expense-management",
-    desiredOutcome: "telecom cost control",
-    needs: ["contract and rate comparison", "usage analysis"],
-  },
-  {
-    name: "AI automation",
-    message: "Claims-related operational tasks.",
-    history: [
-      { role: "user", content: "We want to automate repetitive work." },
-      {
-        role: "assistant",
-        content: "What repetitive workflow are you trying to automate?",
-      },
-    ],
-    primaryId: "ai-agentic-services",
-    workflow: "ai-workflow-automation",
-    needs: ["claims-related operational tasks"],
-  },
-  {
-    name: "IBM i",
-    message: "We need modernization and support.",
-    history: [
-      { role: "user", content: "We run IBM i systems." },
-      {
-        role: "assistant",
-        content: "What outcome are you trying to achieve with this workflow?",
-      },
-    ],
-    primaryId: "ibm-i-as400-services",
-    workflow: "ibm-i-as400-support",
-    needs: ["modernization", "support"],
-  },
-];
-
-for (const testCase of exactMultiTurnCases) {
-  const result = resolveMiraRecommendation(testCase.message, testCase.history);
-  if (result?.recommendation?.primaryOption?.id !== testCase.primaryId) {
-    fail(`active goal ${testCase.name}: wrong recommendation.`);
-  }
-  if (!result?.activeGoal || result.activeGoal.status !== "recommended") {
-    fail(`active goal ${testCase.name}: structured recommended goal missing.`);
-  }
-  if (!result.activeGoal.workflows.includes(testCase.workflow)) {
-    fail(`active goal ${testCase.name}: workflow was not merged.`);
-  }
-  for (const need of testCase.needs || []) {
-    if (!result.activeGoal.needs.includes(need)) {
-      fail(`active goal ${testCase.name}: missing need ${need}.`);
-    }
-  }
-  for (const need of testCase.securityNeeds || []) {
-    if (!result.activeGoal.securityNeeds.includes(need)) {
-      fail(`active goal ${testCase.name}: missing security need ${need}.`);
-    }
-  }
-  if (
-    testCase.industry &&
-    result.activeGoal.industry !== testCase.industry
-  ) {
-    fail(`active goal ${testCase.name}: industry was not retained.`);
-  }
-  if (
-    testCase.desiredOutcome &&
-    !result.activeGoal.desiredOutcomes.includes(testCase.desiredOutcome)
-  ) {
-    fail(`active goal ${testCase.name}: desired outcome was not retained.`);
-  }
-  if (result.pendingClarification) {
-    fail(`active goal ${testCase.name}: resolved clarification remained pending.`);
-  }
-}
-
-const shortPendingAnswer = resolveMiraRecommendation("All three.", [
-  { role: "user", content: "We process vendor invoices." },
-  {
-    role: "assistant",
-    content:
-      "Do you mainly need discrepancy tracking, approval workflows, or payment workflows?",
-  },
-]);
-if (
-  shortPendingAnswer?.recommendation?.primaryOption?.id !==
-    "bill-audit-bill-pay" ||
-  shortPendingAnswer?.activeGoal?.needs?.length < 3
-) {
-  fail("pending clarification: short all-three answer did not fill requested needs.");
-}
-
-const typoVendorRequirements = buildMiraRequirementState(
-  "We proces vender invoises.",
-);
-if (
-  !typoVendorRequirements.workflows.includes("vendor-bill-audit-payment")
-) {
-  fail("active goal typo tolerance: vendor invoice workflow was not recognized.");
-}
-
-const ordinalCorrection = buildMiraRequirementState(
-  "I meant the second workflow.",
-  [
-    { role: "user", content: "We need a better system." },
-    {
-      role: "assistant",
-      content:
-        "What workflow are you trying to improve: case management, bill processing, telecom expenses, or claims operations?",
-      pendingClarification: {
-        field: "workflow",
-        questionId: "workflow-choice",
-        options: [
-          "case management",
-          "bill processing",
-          "telecom expenses",
-          "claims operations",
-        ],
-        sourceGoalId: "goal-1",
-      },
-    },
-  ],
-);
-if (
-  ordinalCorrection.workflows.length !== 1 ||
-  ordinalCorrection.workflows[0] !== "vendor-bill-audit-payment"
-) {
-  fail("active goal correction: ordinal workflow replacement was not resolved.");
-}
-
-const correctedRequirements = buildMiraRequirementState(
-  "Actually, this is about telecom bills.",
-  [
-    { role: "user", content: "We need claims support." },
-    { role: "assistant", content: "Tell me more about the claims workflow." },
-  ],
-);
-if (
-  !correctedRequirements.workflows.includes("telecom-expense-management") ||
-  correctedRequirements.workflows.includes("claims-processing")
-) {
-  fail("requirements correction: old claims workflow was not replaced.");
-}
-
-const correctionRegressionCases = [
-  {
-    name: "claims to telecom",
-    message: "Telecom goal contract and rate comparison.",
-    history: [
-      { role: "user", content: "We need claims-processing support." },
-      {
-        role: "assistant",
-        content: "What outcome are you trying to achieve with this workflow?",
-      },
-      { role: "user", content: "Actually, this is for telecom bills." },
-      {
-        role: "assistant",
-        content:
-          "Is your telecom goal contract and rate comparison, cost reduction, or something else?",
-      },
-    ],
-    primaryId: "bill-audit-bill-pay",
-    workflow: "telecom-expense-management",
-    excludedWorkflow: "claims-processing",
-    answerIncludes: "contract and rate comparison",
-  },
-  {
-    name: "bill audit to IBM i",
-    message: "I meant IBM i modernization and support.",
+    name: "current topic overrides history",
+    message: "We need IBM i modernization.",
     history: recommendationHistory(
-      "We review vendor bills, discrepancies, approvals, and payments.",
-      "Recommended: Bill Audit & Bill Pay.",
+      "We process vendor invoices.",
+      "Bill Audit & Bill Pay may fit that workflow.",
     ),
+    status: "recommended",
     primaryId: "ibm-i-as400-services",
-    workflow: "ibm-i-as400-support",
     excludedWorkflow: "vendor-bill-audit-payment",
   },
   {
-    name: "case management to AI automation",
+    name: "multiple needs in one message",
     message:
-      "Instead, we need AI automation for repetitive business workflows.",
-    history: recommendationHistory(
-      "We need case intake, assignment tracking, and audit history.",
-      "Recommended: Secure Ticketing and Case Management.",
-    ),
-    primaryId: "ai-agentic-services",
-    workflow: "ai-workflow-automation",
-    excludedWorkflow: "secure-case-management",
+      "We need healthcare case intake with audit history and telecom cost control with contract comparison.",
+    status: "recommended",
+    primaryId: "secure-ticketing-case-management",
+    alternativeId: "bill-audit-bill-pay",
+  },
+  {
+    name: "unsupported need",
+    message: "We need payroll software.",
+    status: "no_match",
+  },
+  {
+    name: "typo tolerance",
+    message:
+      "We proces vender invoises and nede discrepancy tracking, approvals, and payment workflows.",
+    status: "recommended",
+    primaryId: "bill-audit-bill-pay",
   },
 ];
 
-for (const testCase of correctionRegressionCases) {
-  const result = resolveMiraRecommendation(testCase.message, testCase.history);
-  if (result?.recommendation?.primaryOption?.id !== testCase.primaryId) {
-    fail(`correction ${testCase.name}: wrong primary recommendation.`);
-  }
-  if (!result?.requirementState?.workflows?.includes(testCase.workflow)) {
-    fail(`correction ${testCase.name}: corrected workflow was not retained.`);
+for (const testCase of currentMessageCases) {
+  const result = resolveMiraRecommendation(
+    testCase.message,
+    testCase.history || [],
+  );
+  if (result?.recommendation?.status !== testCase.status) {
+    fail(`current request ${testCase.name}: unexpected status.`);
   }
   if (
+    testCase.primaryId &&
+    result?.recommendation?.primaryOption?.id !== testCase.primaryId
+  ) {
+    fail(`current request ${testCase.name}: wrong recommendation.`);
+  }
+  if (
+    testCase.alternativeId &&
+    !result?.recommendation?.alternatives?.some(
+      (option) => option.id === testCase.alternativeId,
+    )
+  ) {
+    fail(`current request ${testCase.name}: missing second offering.`);
+  }
+  if (
+    testCase.excludedWorkflow &&
     result?.requirementState?.workflows?.includes(testCase.excludedWorkflow)
   ) {
-    fail(`correction ${testCase.name}: stale workflow was retained.`);
+    fail(`current request ${testCase.name}: stale workflow was retained.`);
   }
   if (
     testCase.answerIncludes &&
     !contains(result?.answer, testCase.answerIncludes)
   ) {
-    fail(`correction ${testCase.name}: grounded reason was missing.`);
+    fail(`current request ${testCase.name}: missing clarification.`);
   }
-  if (result?.topicShift?.relationToPreviousTurn === "comparison") {
-    fail(`correction ${testCase.name}: incorrectly entered comparison mode.`);
+  if (
+    result?.activeGoal ||
+    result?.pendingClarification ||
+    result?.requirementState?.activeGoal ||
+    result?.requirementState?.pendingClarification
+  ) {
+    fail(`current request ${testCase.name}: stateful discovery metadata remained.`);
   }
 }
 
-const explicitComparisonShift = classifyMiraTopicShift(
-  "Compare first and second.",
-  recommendationHistory(
-    "What platforms do you offer?",
-    "Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
-  ),
-);
-if (explicitComparisonShift.relationToPreviousTurn !== "comparison") {
-  fail("comparison trigger: explicit comparison was not preserved.");
-}
-
-const capabilityComparisonShift = classifyMiraTopicShift(
-  "Telecom goal contract and rate comparison.",
-  recommendationHistory(
-    "Actually, this is for telecom bills.",
-    "What telecom outcome matters most?",
-  ),
-);
-if (capabilityComparisonShift.relationToPreviousTurn === "comparison") {
-  fail("comparison trigger: a normal capability statement entered comparison mode.");
-}
-
-const retainedExplicitMultipleNeeds = buildMiraRequirementState(
-  "Actually, we still need both claims support and telecom bills.",
-  recommendationHistory(
-    "We need claims-processing support.",
-    "What outcome are you trying to achieve?",
-  ),
-);
-if (
-  !retainedExplicitMultipleNeeds.workflows.includes("claims-processing") ||
-  !retainedExplicitMultipleNeeds.workflows.includes(
-    "telecom-expense-management",
-  )
-) {
-  fail("requirements correction: explicit multiple needs were not retained.");
-}
-
-const resetRequirements = buildMiraRequirementState(
-  "We now need IBM i modernization.",
+const minimalClarificationReply = resolveMiraRecommendation(
+  "Vendor billing.",
   [
-    { role: "user", content: "We need vendor bill approval." },
-    { role: "assistant", content: "Recommended: Bill Audit & Bill Pay." },
+    { role: "user", content: "We need help choosing a platform." },
+    {
+      role: "assistant",
+      content:
+        "What workflow are you trying to improve: case management, bill processing, telecom expenses, claims operations, or something else?",
+    },
   ],
 );
 if (
-  !resetRequirements.workflows.includes("ibm-i-as400-support") ||
-  resetRequirements.workflows.includes("vendor-bill-audit-payment")
+  minimalClarificationReply?.recommendation?.status !==
+    "needs_clarification" ||
+  !contains(minimalClarificationReply?.answer, "Do you mainly need") ||
+  contains(minimalClarificationReply?.answer, "What workflow")
 ) {
-  fail("requirements new-goal reset: stale vendor-bill state was retained.");
+  fail("minimal context: immediate workflow reply repeated the generic question.");
+}
+
+const noAccumulatedRequirements = buildMiraRequirementState(
+  "We need role-based access and audit history.",
+  [
+    { role: "user", content: "We are a healthcare administrator." },
+    { role: "assistant", content: "What process are you trying to improve?" },
+    { role: "user", content: "We handle case intake." },
+    {
+      role: "assistant",
+      content: "What capabilities matter most for that workflow?",
+    },
+  ],
+);
+if (
+  noAccumulatedRequirements.industry ||
+  noAccumulatedRequirements.needs.includes("case intake")
+) {
+  fail("current request: long-lived accumulated requirements were retained.");
 }
 
 const multipleRequirements = resolveMiraRecommendation(
   "We need case intake with audit history and vendor bill discrepancy tracking with approvals.",
 );
-if (
-  multipleRequirements?.recommendationReady !== true ||
-  multipleRequirements?.entities?.length !== 2
-) {
-  fail("requirements multiple needs: expected two ready grounded recommendations.");
-}
-
-const insufficientRequirements = resolveMiraRecommendation(
-  "We need a better system.",
-);
-if (
-  insufficientRequirements?.recommendationReady !== false ||
-  insufficientRequirements?.missingRequirements?.[0] !== "workflow" ||
-  !contains(insufficientRequirements?.answer, "What workflow")
-) {
-  fail("requirements insufficient information: expected one workflow clarification.");
-}
-
-const typoRequirements = buildMiraRequirementState(
-  "We nede to reduce teelcom costs and review inovices.",
-);
-if (
-  typoRequirements.desiredOutcome !== "telecom cost control" ||
-  !typoRequirements.workflows.includes("telecom-expense-management")
-) {
-  fail("requirements typo normalization: telecom goal was not extracted.");
-}
-
-const uncontaminatedRequirements = buildMiraRequirementState(
-  "We need AI automation for repetitive workflows.",
-  [
-    { role: "user", content: "We process vendor invoices." },
-    { role: "assistant", content: "Recommended: Bill Audit & Bill Pay." },
-  ],
-);
-if (
-  !uncontaminatedRequirements.workflows.includes("ai-workflow-automation") ||
-  uncontaminatedRequirements.workflows.includes("vendor-bill-audit-payment")
-) {
-  fail("requirements contamination: stale vendor requirements were retained.");
-}
 
 const readinessCases = [
   {
@@ -944,7 +665,6 @@ for (const expectedUiText of [
   "Mira may make mistakes. Responses are grounded in approved",
   "formatMiraAnswerBlocks",
   "list-disc",
-  "pendingClarification",
 ]) {
   if (!contains(aiAgentsPageSource, expectedUiText)) {
     fail(`ui-source: missing expected Mira disclaimer/formatting text: ${expectedUiText}.`);

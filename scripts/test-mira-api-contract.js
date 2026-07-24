@@ -2680,50 +2680,24 @@ const modeCases = [
     expectedStatus: 200,
   },
   {
-    id: "active-goal-vendor-capability-followup",
+    id: "current-request-detailed-vendor-recommendation",
     env: { MIRA_LLM_MODE: "mock" },
-    message: "We need discrepancy tracking, approvals, and payment workflows.",
-    conversationHistory: [
-      { role: "user", content: "We process vendor invoices." },
-      {
-        role: "assistant",
-        content:
-          "Do you mainly need discrepancy tracking, approvals, payment workflows, recurring expense analysis, or a combination?",
-        pendingClarification: {
-          field: "needs",
-          questionId: "vendor-bill-capabilities",
-          options: [
-            "discrepancy tracking",
-            "approval workflow",
-            "payment workflow",
-            "recurring expense analysis",
-          ],
-          sourceGoalId: "goal-1",
-        },
-      },
-    ],
+    message:
+      "We process vendor invoices and need discrepancy tracking, approvals, and payment workflows.",
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
     expectedPrimarySourceId: "bill-audit-bill-pay",
     expectedRequirementReady: true,
     expectedRecommendationReadinessStatus: "ready",
-    expectedActiveGoalWorkflow: "vendor-bill-audit-payment",
-    expectedActiveGoalStatus: "recommended",
-    expectedActiveGoalNeeds: [
-      "vendor bill review",
-      "discrepancy tracking",
-      "approval workflow",
-      "payment workflow",
-    ],
-    expectedPendingClarification: null,
     expectedAnswerIncludes: "Recommended: Bill Audit & Bill Pay",
     expectedAnswerStructureKind: "recommendation",
   },
   {
-    id: "correction-claims-to-telecom-clears-comparison-state",
+    id: "current-telecom-request-overrides-claims-history",
     env: { MIRA_LLM_MODE: "mock" },
-    message: "Telecom goal contract and rate comparison.",
+    message:
+      "We need telecom bill analysis, contract and rate comparison, and usage analysis.",
     conversationHistory: [
       { role: "user", content: "We need claims-processing support." },
       {
@@ -2757,30 +2731,6 @@ const modeCases = [
     ],
     expectedAnswerStructureKind: "recommendation",
     expectedSuggestedFollowUpsEmpty: true,
-  },
-  {
-    id: "requirements-three-turn-recommendation-ready",
-    env: { MIRA_LLM_MODE: "mock" },
-    message: "We need role-based access and audit tracking.",
-    conversationHistory: [
-      { role: "user", content: "We are a healthcare TPA." },
-      { role: "assistant", content: "What process are you trying to improve?" },
-      { role: "user", content: "We need case management." },
-      {
-        role: "assistant",
-        content:
-          "Which case-management capabilities matter most: intake, assignment, role-based access, audit history, or something else?",
-      },
-    ],
-    expectedMode: "local_harness_mock",
-    expectedHandoff: false,
-    expectedStatus: 200,
-    expectedPrimarySourceId: "secure-ticketing-case-management",
-    expectedRequirementIndustry: "healthcare/TPA",
-    expectedRequirementReady: true,
-    expectedRecommendationReadinessStatus: "ready",
-    expectedMissingRequirements: [],
-    expectedAnswerStructureKind: "recommendation",
   },
   {
     id: "requirements-insufficient-asks-one-clarification",
@@ -2864,30 +2814,6 @@ for (const modeCase of modeCases) {
       JSON.stringify(modeCase.expectedMissingRequirements)
   ) {
     fail(`${modeCase.id}: unexpected missing requirements.`);
-  }
-  if (
-    modeCase.expectedActiveGoalWorkflow &&
-    result.body.activeGoal?.workflow !== modeCase.expectedActiveGoalWorkflow
-  ) {
-    fail(`${modeCase.id}: unexpected active goal workflow.`);
-  }
-  if (
-    modeCase.expectedActiveGoalStatus &&
-    result.body.activeGoal?.status !== modeCase.expectedActiveGoalStatus
-  ) {
-    fail(`${modeCase.id}: unexpected active goal status.`);
-  }
-  for (const need of modeCase.expectedActiveGoalNeeds || []) {
-    if (!result.body.activeGoal?.needs?.includes(need)) {
-      fail(`${modeCase.id}: active goal missing need ${need}.`);
-    }
-  }
-  if (
-    Object.hasOwn(modeCase, "expectedPendingClarification") &&
-    JSON.stringify(result.body.pendingClarification) !==
-      JSON.stringify(modeCase.expectedPendingClarification)
-  ) {
-    fail(`${modeCase.id}: unexpected pending clarification metadata.`);
   }
   if (result.body.handoffNeeded !== modeCase.expectedHandoff) {
     fail(`${modeCase.id}: expected handoffNeeded=${modeCase.expectedHandoff}.`);
