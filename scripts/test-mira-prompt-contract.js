@@ -18,6 +18,7 @@ import {
   classifyMiraTopicShift,
   resolveMiraRecommendation,
 } from "../api/agents/mira/miraRecommendations.js";
+import { resolveMiraComparison } from "../api/agents/mira/miraComparisons.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,
@@ -1263,6 +1264,134 @@ if (
   !retainedGroups.some((group) => group.groupId === "main-offerings")
 ) {
   fail("reference-groups: a focused follow-up group must retain the earlier main-offerings group.");
+}
+
+const comparisonCases = [
+  {
+    id: "explicit-platforms",
+    message:
+      "Compare Secure Ticketing and Case Management with Bill Audit & Bill Pay.",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    status: "complete",
+  },
+  {
+    id: "ordinal",
+    message: "Compare first versus second.",
+    history: platformOnlyHistory,
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    status: "complete",
+  },
+  {
+    id: "typed-ordinal",
+    message: "Compare the second platform versus the first platform.",
+    history: platformOnlyHistory,
+    expectedIds: [
+      "bill-audit-bill-pay",
+      "secure-ticketing-case-management",
+    ],
+    status: "complete",
+  },
+  {
+    id: "clear-telecom-decision",
+    message: "Which is better for telecom expenses?",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    decisionIncludes: "Bill Audit & Bill Pay is the stronger grounded match",
+    status: "complete",
+  },
+  {
+    id: "ambiguous-better",
+    message: "Which is better?",
+    expectedIds: [],
+    status: "needs_clarification",
+  },
+  {
+    id: "both-needed",
+    message:
+      "Compare both for secure case tracking with role-based access and vendor bill approval.",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    decisionIncludes: "map to both",
+    status: "complete",
+  },
+  {
+    id: "external-company",
+    message: "Compare OneSmarter with Salesforce.",
+    expectedIds: [],
+    status: "insufficient_evidence",
+  },
+  {
+    id: "no-stale-recommendation",
+    message:
+      "Compare AI Agentic Services and Enterprise Software Development.",
+    history: [
+      {
+        role: "assistant",
+        content: "Recommended: Bill Audit & Bill Pay.",
+        conversationEntities: [{ id: "bill-audit-bill-pay" }],
+      },
+    ],
+    expectedIds: ["ai-agentic-services", "enterprise-software-development"],
+    status: "complete",
+  },
+  {
+    id: "typo-normalized",
+    message: "Compar frist and secnd platfrom.",
+    history: platformOnlyHistory,
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    status: "complete",
+  },
+];
+
+for (const testCase of comparisonCases) {
+  const result = resolveMiraComparison(
+    testCase.message,
+    testCase.history || [],
+  );
+  const actualIds = result?.comparison?.options?.map((option) => option.id) || [];
+  if (result?.comparison?.status !== testCase.status) {
+    fail(
+      `comparison-${testCase.id}: expected status ${testCase.status}, got ${result?.comparison?.status}.`,
+    );
+  }
+  if (JSON.stringify(actualIds) !== JSON.stringify(testCase.expectedIds)) {
+    fail(
+      `comparison-${testCase.id}: expected [${testCase.expectedIds}], got [${actualIds}].`,
+    );
+  }
+  if (
+    testCase.decisionIncludes &&
+    !contains(
+      result?.comparison?.decisionGuidance,
+      testCase.decisionIncludes,
+    )
+  ) {
+    fail(`comparison-${testCase.id}: missing grounded decision guidance.`);
+  }
+}
+
+const groundedComparison = resolveMiraComparison(
+  "Compare Secure Ticketing and Case Management with Bill Audit & Bill Pay.",
+);
+if (
+  /pricing|implementation timeline|guaranteed performance|integration with/i.test(
+    JSON.stringify(groundedComparison?.comparison || {}),
+  )
+) {
+  fail("comparison-grounding: returned an unsupported comparison claim.");
 }
 
 if (failures.length) {

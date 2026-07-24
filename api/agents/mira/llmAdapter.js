@@ -11,6 +11,10 @@ import {
   isExplicitMiraComparisonRequest,
   resolveMiraRecommendation,
 } from "./miraRecommendations.js";
+import {
+  isMiraComparisonIntent,
+  resolveMiraComparison,
+} from "./miraComparisons.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -569,6 +573,7 @@ export const runMiraResponseAdapter = async ({
   const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
   const comparisonIntent =
+    isMiraComparisonIntent(message) ||
     isComparisonIntent(message) ||
     (historyHasPlatformOptions(conversationHistory) &&
       /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
@@ -582,11 +587,35 @@ export const runMiraResponseAdapter = async ({
     message,
     conversationHistory,
   );
+  const comparisonResolution = resolveMiraComparison(
+    message,
+    conversationHistory,
+  );
   let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
 
-  if (
+  if (comparisonResolution && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence:
+        comparisonResolution.comparison.status === "complete" ? "high" : "low",
+      matchedEntries: comparisonResolution.matchedEntries,
+      answerSeed: comparisonResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      comparison: comparisonResolution.comparison,
+      resolvedConversationEntities: comparisonResolution.entities,
+      comparisonHandled: true,
+      clarificationNeeded:
+        comparisonResolution.comparison.status === "needs_clarification",
+      answerStructureKind:
+        comparisonResolution.comparison.status === "complete"
+          ? "comparison"
+          : "",
+    };
+  } else if (
     referenceResolution.kind === "resolved" &&
     !localResult.riskFlags.length
   ) {
@@ -647,7 +676,8 @@ export const runMiraResponseAdapter = async ({
       (referenceResolution.hadEntityContext || !conversationHistory.length)) ||
       needsFollowUpClarification(message, conversationHistory)) &&
     !localResult.riskFlags.length &&
-    !localResult.recommendationHandled
+    !localResult.recommendationHandled &&
+    !localResult.comparisonHandled
   ) {
     localResult = {
       ...localResult,
@@ -695,7 +725,9 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: localResult.recommendation
+      responseGuidance: localResult.comparison
+        ? "Provide only the grounded comparison and decision guidance represented by the supplied approved context. Do not invent pricing, integrations, implementation timelines, performance claims, guarantees, or unsupported limitations."
+        : localResult.recommendation
         ? "Provide only the grounded recommendation represented by the supplied approved context. Do not invent features, pricing, timelines, integrations, guarantees, or compliance claims."
         : referenceResolution.isComparison
         ? `Compare only these selected grounded entities: ${referenceResolution.entities

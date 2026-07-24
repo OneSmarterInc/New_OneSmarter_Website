@@ -591,6 +591,11 @@ const modeCases = [
     expectedStatus: 200,
     expectedSourceIds: ["secure-ticketing-case-management", "bill-audit-bill-pay"],
     expectedAnswerIncludesAll: ["Secure Ticketing", "Bill Audit & Bill Pay", "Key difference"],
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
   },
   {
     id: "followup-soc2-pronoun-uses-history",
@@ -2867,6 +2872,25 @@ for (const modeCase of modeCases) {
     fail(
       `${modeCase.id}: expected answer structure kind ${modeCase.expectedAnswerStructureKind}.`,
     );
+  }
+  if (
+    modeCase.expectedComparisonStatus &&
+    result.body.comparison?.status !== modeCase.expectedComparisonStatus
+  ) {
+    fail(
+      `${modeCase.id}: expected comparison status ${modeCase.expectedComparisonStatus}.`,
+    );
+  }
+  if (modeCase.expectedComparisonOptionIds) {
+    const actualOptionIds = (result.body.comparison?.options || []).map(
+      (option) => option.id,
+    );
+    if (
+      JSON.stringify(actualOptionIds) !==
+      JSON.stringify(modeCase.expectedComparisonOptionIds)
+    ) {
+      fail(`${modeCase.id}: unexpected comparison option IDs.`);
+    }
   }
   if (modeCase.expectedAnswerStructureSectionIds) {
     const actualSectionIds = (result.body.answerStructure?.sections || []).map(

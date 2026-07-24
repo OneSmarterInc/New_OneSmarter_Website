@@ -248,7 +248,7 @@ const requestedType = (message = "") => {
 };
 
 const hasReferenceLanguage = (message = "") =>
-  /\b(first|second|third|fourth|last|previous|former|latter|option\s+[1-4]|number\s+(?:one|two|three|four)|that one|this (?:platform|service|industry|topic)|that (?:platform|service|industry|topic)|tell (?:me )?more about it|compare the|different from)\b/.test(
+  /\b(first|second|third|fourth|last|previous|former|latter|option\s+[1-4]|number\s+(?:one|two|three|four)|that one|this (?:platform|service|industry|topic)|that (?:platform|service|industry|topic)|tell (?:me )?more about it|compare the|different from|one or both)\b/.test(
     message,
   );
 
@@ -355,6 +355,10 @@ const clarificationFor = (entities, type = "item") => {
 };
 
 const resolveIndexes = (message, entityCount) => {
+  if (/\bone or both\b/.test(message) && entityCount === 2) return [0, 1];
+  if (/\b(?:compare )?(?:the )?two\b/.test(message) && entityCount === 2) {
+    return [0, 1];
+  }
   if (/\bfirst two\b/.test(message)) return [0, 1];
   if (/\blast two\b/.test(message)) return [entityCount - 2, entityCount - 1];
   if (/\bformer\b/.test(message)) return [0];
@@ -458,7 +462,10 @@ export const resolveMiraConversationReference = (
 
   const entities = validIndexes.map((index) => entitySet[index]);
   const isComparison =
-    entities.length > 1 && /\b(compare|different|difference)\b/.test(normalizedMessage);
+    entities.length > 1 &&
+    /\b(compare|compared|different|difference|versus|vs)\b/.test(
+      normalizedMessage,
+    );
   return { kind: "resolved", entities, isComparison, hadEntityContext: true };
 };
 
