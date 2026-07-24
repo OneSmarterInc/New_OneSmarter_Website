@@ -1,4 +1,7 @@
-import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalEngine.js";
+import {
+  runMiraLocalHarness,
+  runMiraSafetyGate,
+} from "../../../src/data/agentKnowledge/miraLocalEngine.js";
 import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
 import { buildMiraPromptPayload } from "./miraPromptContract.js";
 import { validateMiraModelOutput } from "./miraOutputValidator.js";
@@ -112,9 +115,9 @@ const recentUserHistoryText = (conversationHistory = []) =>
     .toLowerCase();
 
 const SENSITIVE_SUBMISSION_INTENT_PATTERN =
-  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit|here are)\b/i;
+  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|compare|store|transmit|here are)\b/i;
 const SENSITIVE_DATA_PATTERN =
-  /\b(phi|patient information|patient records?|patient data|claims?\s+(file|data|info|information|record|records|number)|claim number|confidential\s+(document|client document|file|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
+  /\b(phi|patient information|patient (?:files?|records?|data)|claims?\s+(files?|data|info|information|records?|number)|claim number|confidential\s+(documents?|client documents?|files?|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
 
 const hasSensitiveDataSubmissionIntent = (text = "") =>
   SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
@@ -566,6 +569,11 @@ export const runMiraResponseAdapter = async ({
 } = {}) => {
   if (config?.mode === "off") {
     return unavailableResponse(message);
+  }
+
+  const safetyResult = runMiraSafetyGate(message);
+  if (safetyResult) {
+    return withFallbackMetadata(safetyResult, "pre_call_safety_gate");
   }
 
   const referenceResolution = resolveMiraConversationReference(

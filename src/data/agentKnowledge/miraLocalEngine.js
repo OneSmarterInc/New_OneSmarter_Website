@@ -115,9 +115,9 @@ const RISK_RULES = [
 const unique = (items) => [...new Set(items)];
 
 const SENSITIVE_SUBMISSION_INTENT_PATTERN =
-  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|store|transmit|here are)\b/i;
+  /\b(upload|attach|paste|send|share|provide|submit|process|analyze|analyse|review|compare|store|transmit|here are)\b/i;
 const SENSITIVE_DATA_PATTERN =
-  /\b(phi|patient information|patient records?|patient data|claims?\s+(file|data|info|information|record|records|number)|claim number|confidential\s+(document|client document|file|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
+  /\b(phi|patient information|patient (?:files?|records?|data)|claims?\s+(files?|data|info|information|records?|number)|claim number|confidential\s+(documents?|client documents?|files?|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
 
 const hasSensitiveDataSubmissionIntent = (text = "") =>
   SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
@@ -435,6 +435,32 @@ export const buildSafeAnswerSeed = (
     handoffReason,
     suggestedFollowUps: suggestedFollowUpsFor(matchedEntries, handoffNeeded),
   };
+};
+
+export const runMiraSafetyGate = (
+  question,
+  { claimRules = miraClaimRules } = {},
+) => {
+  const riskFlags = detectRiskFlags(question, claimRules);
+  if (!riskFlags.includes("phi_or_confidential_data")) return null;
+  const normalizedQuestion = normalizeQuestion(question);
+  return buildSafeAnswerSeed(
+    question,
+    {
+      question,
+      normalizedQuestion,
+      intent: normalizeMiraIntent({
+        originalMessage: question,
+        normalizedMessage: normalizedQuestion,
+        retrievalConfidence: "low",
+        riskFlags,
+      }),
+      riskFlags,
+      confidence: "low",
+      matchedEntries: [],
+    },
+    { claimRules },
+  );
 };
 
 export const runMiraLocalHarness = (question, options = {}) => {

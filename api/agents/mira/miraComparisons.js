@@ -72,7 +72,7 @@ const requirementSignals = (message = "") => {
   const text = normalize(message);
   const signals = [];
   const add = (optionId, reason) => signals.push({ optionId, reason });
-  if (/\bcase intake|case tracking|case management|role based access|audit history|secure communication\b/.test(text)) {
+  if (/\bcase intake|case tracking|case management|patient records? workflow|role based access|audit history|secure communication\b/.test(text)) {
     add(
       "secure-ticketing-case-management",
       "Secure case intake, role-based access, audit history, controlled communication, and workflow tracking align with Secure Ticketing and Case Management.",

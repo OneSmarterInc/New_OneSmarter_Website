@@ -54,6 +54,9 @@ const phiTopicOnlyCases = [
 
 const phiSubmissionCases = [
   "Can I upload a claims file?",
+  "Can I upload the patient files here so you can compare them?",
+  "Can I attach patient records?",
+  "Can I send claims files for analysis?",
   "Can I paste patient information?",
   "Can you review this confidential document?",
   "Can I send you PHI?",
