@@ -11,7 +11,12 @@ const REQUIREMENT_STATEMENT =
   /\b(?:we are|i am|i work (?:for|at)|we (?:process|handle|manage|review|track|approve))\b/i;
 const CONTINUATION = /\b(?:also|additionally|too|as well|along with)\b/i;
 const REFINEMENT = /\b(?:specifically|in particular|more precisely|for that|within that)\b/i;
-const COMPARISON = /\b(?:compare|versus|vs\.?|difference between|which is better)\b/i;
+const CORRECTION =
+  /\b(?:actually|instead|correction|i meant|this is for|not that)\b/i;
+const EXPLICIT_MULTIPLE_GOALS =
+  /\b(?:both|also|as well|along with|in addition|still need|keep(?:ing)? .+ too)\b/i;
+const EXPLICIT_COMPARISON =
+  /\b(?:compare|versus|vs\.?|difference(?:s)?(?: between)?|which (?:one|platform|service|offering) is better|first (?:one )?and (?:the )?second|first and second|(?:side-by-side|side by side) comparison|comparison (?:between|of))\b/i;
 
 const NEEDS = [
   {
@@ -39,7 +44,7 @@ const NEEDS = [
     id: "telecom-expense-management",
     optionId: "bill-audit-bill-pay",
     patterns: [/\btelecom\b/i, /\bcontract (?:and |\/ )?rate comparison\b/i],
-    reason: "The need involves telecom expense management, including bill analysis, rate comparison, or cost control.",
+    reason: "The need involves telecom expense management, including bill analysis, contract and rate comparison, or cost control.",
   },
   {
     id: "claims-processing",
@@ -206,7 +211,9 @@ const emptyRequirementState = () => ({
 });
 
 const shouldResetRequirements = (state, extracted, message, relation) => {
-  if (/\bactually\b|\bcorrection\b|\binstead\b/i.test(message)) return true;
+  if (CORRECTION.test(message) && !EXPLICIT_MULTIPLE_GOALS.test(message)) {
+    return true;
+  }
   if (relation !== "new_goal" || !extracted.workflows.length) return false;
   return (
     state.workflows.length > 0 &&
@@ -257,6 +264,7 @@ const readinessFor = (state) => {
     }
     if (workflow === "telecom-expense-management") {
       evidence = [
+        ...(has("telecom bill analysis") ? ["telecom bill analysis"] : []),
         ...(has("contract and rate comparison")
           ? ["contract and rate comparison"]
           : []),
@@ -266,7 +274,11 @@ const readinessFor = (state) => {
           : []),
       ];
       evidenceByWorkflow.set(workflow, evidence);
-      return evidence.length >= 2;
+      return (
+        evidence.length >= 2 &&
+        (evidence.includes("contract and rate comparison") ||
+          evidence.includes("usage analysis"))
+      );
     }
     if (workflow === "ai-workflow-automation") {
       evidence = has("repetitive workflows") ? ["repetitive workflows"] : [];
@@ -380,7 +392,9 @@ export const classifyMiraTopicShift = (message = "", conversationHistory = []) =
   );
 
   let relationToPreviousTurn = "unclear";
-  if (COMPARISON.test(current)) {
+  if (CORRECTION.test(current) && !EXPLICIT_MULTIPLE_GOALS.test(current)) {
+    relationToPreviousTurn = "new_goal";
+  } else if (EXPLICIT_COMPARISON.test(current)) {
     relationToPreviousTurn = "comparison";
   } else if (currentTopics.length && previousTopics.length) {
     relationToPreviousTurn = sharedTopics.length
@@ -412,6 +426,9 @@ export const classifyMiraTopicShift = (message = "", conversationHistory = []) =
   };
 };
 
+export const isExplicitMiraComparisonRequest = (message = "") =>
+  EXPLICIT_COMPARISON.test(normalizedText(message));
+
 const optionFor = (optionId, position) => {
   const isNested = [
     "ai-agentic-services",
@@ -441,7 +458,9 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
         /\bwhat (?:process|workflow|type of workflow)\b/i.test(turn.content),
     );
   const statesCurrentGoal =
-    CURRENT_GOAL.test(current) || REQUIREMENT_STATEMENT.test(current);
+    CURRENT_GOAL.test(current) ||
+    REQUIREMENT_STATEMENT.test(current) ||
+    CORRECTION.test(current);
   const continuesRecognizedGoal = ["continuation", "refinement"].includes(
     topicShift.relationToPreviousTurn,
   );

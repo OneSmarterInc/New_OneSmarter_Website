@@ -65,9 +65,15 @@ const fail = (message) => failures.push(message);
 const contains = (text, value) =>
   text.toLowerCase().includes(String(value).toLowerCase());
 
+const withoutSafeHipaaCorrection = (text = "") =>
+  String(text).replace(
+    /No\. OneSmarter does not present itself as HIPAA certified\./gi,
+    "",
+  );
+
 const unsafeMatches = (text) =>
   riskyPhrasePatterns
-    .filter(({ pattern }) => pattern.test(text))
+    .filter(({ pattern }) => pattern.test(withoutSafeHipaaCorrection(text)))
     .map(({ label }) => label);
 
 const expectedHandlingMatches = (fixture, result) => {

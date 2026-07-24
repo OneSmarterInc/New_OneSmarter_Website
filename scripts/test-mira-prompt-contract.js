@@ -231,6 +231,115 @@ if (
   fail("requirements correction: old claims workflow was not replaced.");
 }
 
+const correctionRegressionCases = [
+  {
+    name: "claims to telecom",
+    message: "Telecom goal contract and rate comparison.",
+    history: [
+      { role: "user", content: "We need claims-processing support." },
+      {
+        role: "assistant",
+        content: "What outcome are you trying to achieve with this workflow?",
+      },
+      { role: "user", content: "Actually, this is for telecom bills." },
+      {
+        role: "assistant",
+        content:
+          "Is your telecom goal contract and rate comparison, cost reduction, or something else?",
+      },
+    ],
+    primaryId: "bill-audit-bill-pay",
+    workflow: "telecom-expense-management",
+    excludedWorkflow: "claims-processing",
+    answerIncludes: "contract and rate comparison",
+  },
+  {
+    name: "bill audit to IBM i",
+    message: "I meant IBM i modernization and support.",
+    history: recommendationHistory(
+      "We review vendor bills, discrepancies, approvals, and payments.",
+      "Recommended: Bill Audit & Bill Pay.",
+    ),
+    primaryId: "ibm-i-as400-services",
+    workflow: "ibm-i-as400-support",
+    excludedWorkflow: "vendor-bill-audit-payment",
+  },
+  {
+    name: "case management to AI automation",
+    message:
+      "Instead, we need AI automation for repetitive business workflows.",
+    history: recommendationHistory(
+      "We need case intake, assignment tracking, and audit history.",
+      "Recommended: Secure Ticketing and Case Management.",
+    ),
+    primaryId: "ai-agentic-services",
+    workflow: "ai-workflow-automation",
+    excludedWorkflow: "secure-case-management",
+  },
+];
+
+for (const testCase of correctionRegressionCases) {
+  const result = resolveMiraRecommendation(testCase.message, testCase.history);
+  if (result?.recommendation?.primaryOption?.id !== testCase.primaryId) {
+    fail(`correction ${testCase.name}: wrong primary recommendation.`);
+  }
+  if (!result?.requirementState?.workflows?.includes(testCase.workflow)) {
+    fail(`correction ${testCase.name}: corrected workflow was not retained.`);
+  }
+  if (
+    result?.requirementState?.workflows?.includes(testCase.excludedWorkflow)
+  ) {
+    fail(`correction ${testCase.name}: stale workflow was retained.`);
+  }
+  if (
+    testCase.answerIncludes &&
+    !contains(result?.answer, testCase.answerIncludes)
+  ) {
+    fail(`correction ${testCase.name}: grounded reason was missing.`);
+  }
+  if (result?.topicShift?.relationToPreviousTurn === "comparison") {
+    fail(`correction ${testCase.name}: incorrectly entered comparison mode.`);
+  }
+}
+
+const explicitComparisonShift = classifyMiraTopicShift(
+  "Compare first and second.",
+  recommendationHistory(
+    "What platforms do you offer?",
+    "Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
+  ),
+);
+if (explicitComparisonShift.relationToPreviousTurn !== "comparison") {
+  fail("comparison trigger: explicit comparison was not preserved.");
+}
+
+const capabilityComparisonShift = classifyMiraTopicShift(
+  "Telecom goal contract and rate comparison.",
+  recommendationHistory(
+    "Actually, this is for telecom bills.",
+    "What telecom outcome matters most?",
+  ),
+);
+if (capabilityComparisonShift.relationToPreviousTurn === "comparison") {
+  fail("comparison trigger: a normal capability statement entered comparison mode.");
+}
+
+const retainedExplicitMultipleNeeds = buildMiraRequirementState(
+  "Actually, we still need both claims support and telecom bills.",
+  recommendationHistory(
+    "We need claims-processing support.",
+    "What outcome are you trying to achieve?",
+  ),
+);
+if (
+  !retainedExplicitMultipleNeeds.workflows.includes("claims-processing") ||
+  !retainedExplicitMultipleNeeds.workflows.includes(
+    "telecom-expense-management",
+  )
+) {
+  fail("requirements correction: explicit multiple needs were not retained.");
+}
+
 const resetRequirements = buildMiraRequirementState(
   "We now need IBM i modernization.",
   [
@@ -773,7 +882,19 @@ const validateCase = ({
     if (!result.safeFallback?.answer) {
       fail(`${id}: invalid output should include safeFallback.answer.`);
     }
-    if (contains(result.safeFallback?.answer || "", "HIPAA Certified")) {
+    if (
+      contains(result.safeFallback?.answer || "", "HIPAA Certified") &&
+      !(
+        contains(
+          result.safeFallback?.answer || "",
+          "No. OneSmarter does not present itself as HIPAA certified.",
+        ) &&
+        contains(
+          result.safeFallback?.answer || "",
+          "HIPAA Security Rule Compliance Assessment Completed",
+        )
+      )
+    ) {
       fail(`${id}: safe fallback repeats unsafe HIPAA wording.`);
     }
     if (contains(result.safeFallback?.answer || "", "SOC 2 Certified")) {

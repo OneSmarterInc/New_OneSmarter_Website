@@ -7,7 +7,10 @@ import {
   matchedEntriesForConversationEntities,
   resolveMiraConversationReference,
 } from "./miraConversationReferences.js";
-import { resolveMiraRecommendation } from "./miraRecommendations.js";
+import {
+  isExplicitMiraComparisonRequest,
+  resolveMiraRecommendation,
+} from "./miraRecommendations.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -111,9 +114,7 @@ const hasSensitiveDataSubmissionIntent = (text = "") =>
   SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
 
 const isComparisonIntent = (message = "") =>
-  /\b(compare both platforms|compare the two|comparison|difference between the platforms|which platform is for what|side-by-side comparison|side by side comparison|both platforms)\b/i.test(
-    message,
-  );
+  isExplicitMiraComparisonRequest(message);
 
 const isBroadPlatformQuestion = (message = "") =>
   isComparisonIntent(message) || /\b(two platforms|all platforms|platforms)\b/i.test(message);

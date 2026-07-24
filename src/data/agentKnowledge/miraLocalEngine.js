@@ -100,7 +100,7 @@ const RISK_RULES = [
   },
   {
     flag: "business_specific_review",
-    pattern: /\b(security questionnaire|soc report|evidence|baa|procurement|contract|pricing|implementation|business-specific|vendor review|audit review)\b/i,
+    pattern: /\b(security questionnaire|soc report|evidence|baa|procurement|contract\b(?!\s*(?:and|\/)\s*rate comparison\b)|pricing|implementation|business-specific|vendor review|audit review)\b/i,
   },
   {
     flag: "prompt_injection",
@@ -397,7 +397,11 @@ export const buildSafeAnswerSeed = (
   let handoffReason = "";
 
   if (refusalCategory) {
-    answerSeed = responseForCategory(refusalCategory, claimRules);
+    answerSeed =
+      refusalCategory === "unsupported_compliance_claim" &&
+      /\bare you hipaa certified\b/i.test(question)
+        ? "No. OneSmarter does not present itself as HIPAA certified. OneSmarter has completed an independent HIPAA Security Rule compliance assessment. The approved evidence-based wording is HIPAA Security Rule Compliance Assessment Completed. This does not represent a certification or a compliance guarantee."
+        : responseForCategory(refusalCategory, claimRules);
     handoffReason = refusalCategory === "unknown_or_not_grounded" ? "" : refusalCategory;
   } else if (needsClarification) {
     answerSeed =

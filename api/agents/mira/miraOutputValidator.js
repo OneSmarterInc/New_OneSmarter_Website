@@ -67,7 +67,7 @@ export const normalizeMiraPublicAnswerText = (answer = "") =>
 
 const isSafeCorrectionContext = (answer, label) => {
   const hasCorrectionLanguage =
-    /\b(cannot|can't|do not|don't|should not|avoid|rather than|instead of|not describe|not use)\b/i.test(
+    /\b(cannot|can't|do not|don't|does not|should not|avoid|rather than|instead of|not describe|not use)\b/i.test(
       answer,
     );
 

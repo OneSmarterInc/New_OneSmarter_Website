@@ -109,11 +109,14 @@ export const miraTestQuestions = [
     expectedRiskFlags: ["hipaa_claim_boundary"],
     expectedKnowledgeIds: ["hipaa-security-rule-assessment"],
     expectedAnswerThemes: [
-      "do not present this as certification",
+      "does not present itself as HIPAA certified",
       "HIPAA Security Rule Compliance Assessment Completed",
       "independent HIPAA Security Rule compliance assessment",
     ],
-    mustInclude: ["HIPAA Security Rule Compliance Assessment Completed"],
+    mustInclude: [
+      "No. OneSmarter does not present itself as HIPAA certified.",
+      "HIPAA Security Rule Compliance Assessment Completed",
+    ],
     mustAvoid: ["yes, certified"],
   },
   {

@@ -27,6 +27,12 @@ const riskyPhrasePatterns = [
   { label: "HIPPA", pattern: /\bHIPPA\b/i },
 ];
 
+const withoutSafeHipaaCorrection = (text = "") =>
+  String(text).replace(
+    /No\. OneSmarter does not present itself as HIPAA certified\./gi,
+    "",
+  );
+
 const cases = [
   {
     id: "valid-company-question",
@@ -69,6 +75,8 @@ const cases = [
     expectedFlags: ["hipaa_claim_boundary"],
     expectedSourceIds: ["hipaa-security-rule-assessment"],
     expectedHandoff: false,
+    expectedAnswerIncludes:
+      "No. OneSmarter does not present itself as HIPAA certified.",
   },
   {
     id: "soc2-claim-boundary",
@@ -228,7 +236,7 @@ const contains = (text, value) =>
 
 const unsafeMatches = (text) =>
   riskyPhrasePatterns
-    .filter(({ pattern }) => pattern.test(text))
+    .filter(({ pattern }) => pattern.test(withoutSafeHipaaCorrection(text)))
     .map(({ label }) => label);
 
 const withEnv = async (values, callback) => {
@@ -2672,6 +2680,44 @@ const modeCases = [
     expectedStatus: 200,
   },
   {
+    id: "correction-claims-to-telecom-clears-comparison-state",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Telecom goal contract and rate comparison.",
+    conversationHistory: [
+      { role: "user", content: "We need claims-processing support." },
+      {
+        role: "assistant",
+        content: "What outcome are you trying to achieve with this workflow?",
+      },
+      { role: "user", content: "Actually, this is for telecom bills." },
+      {
+        role: "assistant",
+        content:
+          "Is your telecom goal contract and rate comparison, cost reduction, or something else?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    forbiddenSourceIds: [
+      "claims-processing-services",
+      "secure-ticketing-case-management",
+    ],
+    expectedAnswerIncludesAll: [
+      "Recommended: Bill Audit & Bill Pay",
+      "telecom expense management",
+      "contract and rate comparison",
+    ],
+    expectedAnswerExcludesAll: [
+      "Key difference",
+      "Secure Ticketing and Case Management",
+      "Claims Processing Services",
+    ],
+    expectedAnswerStructureKind: "recommendation",
+    expectedSuggestedFollowUpsEmpty: true,
+  },
+  {
     id: "requirements-three-turn-recommendation-ready",
     env: { MIRA_LLM_MODE: "mock" },
     message: "We need role-based access and audit tracking.",
@@ -2925,6 +2971,12 @@ for (const modeCase of modeCases) {
   }
   if (!result.body.answer || !result.body.answerSeed || !result.body.privacyReminder) {
     fail(`${modeCase.id}: expected stable success response fields.`);
+  }
+  if (
+    modeCase.expectedSuggestedFollowUpsEmpty &&
+    result.body.suggestedFollowUps?.length
+  ) {
+    fail(`${modeCase.id}: expected stale follow-up suggestions to be cleared.`);
   }
   if (
     typeof modeCase.expectedFallbackUsed === "boolean" &&
