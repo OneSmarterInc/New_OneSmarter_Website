@@ -4,6 +4,9 @@ import {
   matchedEntriesForConversationEntities,
   resolveMiraConversationReference,
 } from "./miraConversationReferences.js";
+import {
+  resolveMiraComparisonEntities,
+} from "./miraEntityResolver.js";
 
 const COMPARISON_INTENT =
   /\b(?:compare|side[- ]by[- ]side comparison|comparison (?:between|of)|difference(?:s)?(?: between)?|different from|versus|vs\.?|which (?:one|option|platform|service|offering) is better|which is better|pros and cons|one or both|first (?:one )?compared with (?:the )?second|how (?:is|are) .+ different from)\b/i;
@@ -16,22 +19,10 @@ const EXPLICIT_HISTORY_REFERENCE =
 const knowledgeById = new Map(
   onesmarterPublicKnowledgeBase.map((entry) => [entry.id, entry]),
 );
-const ENTITY_ALIASES = [
-  ["secure-ticketing-case-management", ["secure ticketing and case management", "secure ticketing", "case management"]],
-  ["bill-audit-bill-pay", ["bill audit & bill pay", "bill audit and bill pay", "bill audit", "bill pay"]],
-  ["technology-solutions-overview", ["technology solutions overview", "technology solutions"]],
-  ["claims-processing-services", ["claims processing services", "claims processing"]],
-  ["ai-agentic-services", ["ai agentic services", "ai agents", "agentic services"]],
-  ["ibm-i-as400-services", ["ibm i / as400 services", "ibm i services", "as400 services", "ibm i", "as400"]],
-  ["enterprise-software-development", ["enterprise software development"]],
-  ["software-support-consolidation", ["software support consolidation"]],
-  ["compliance-cyber-assurance-overview", ["compliance & cyber assurance", "compliance and cyber assurance"]],
-];
-
 const normalize = (value = "") =>
   String(value)
     .toLowerCase()
-    .replace(/\bcompar\b/g, "compare")
+    .replace(/\b(?:comapre|compar)\b/g, "compare")
     .replace(/\bdiffrence\b/g, "difference")
     .replace(/\bplatfrom\b/g, "platform")
     .replace(/\bsecnd\b/g, "second")
@@ -53,20 +44,12 @@ const nestedIds = new Set([
   "software-support-consolidation",
 ]);
 
-const explicitlyNamedEntities = (message = "") => {
-  const text = normalize(message);
-  return uniqueEntities(
-    ENTITY_ALIASES.filter(([, aliases]) =>
-      aliases.some((alias) => text.includes(normalize(alias))),
-    )
-      .map(([id]) =>
-        groundedConversationEntityForId(id, {
-          level: nestedIds.has(id) ? 1 : 0,
-        }),
-      )
-      .filter(Boolean),
+const explicitlyNamedEntities = (message = "") =>
+  uniqueEntities(
+    resolveMiraComparisonEntities(message).matches.map(
+      (match) => match.entity,
+    ),
   );
-};
 
 const requirementSignals = (message = "") => {
   const text = normalize(message);
@@ -282,7 +265,10 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
   }
 
   const reference = classification.reference;
-  const named = explicitlyNamedEntities(message);
+  const fuzzyResolution = resolveMiraComparisonEntities(message);
+  const named = uniqueEntities(
+    fuzzyResolution.matches.map((match) => match.entity),
+  );
   const referenced =
     reference.kind === "resolved" && reference.entities.length > 1
       ? reference.entities
@@ -317,6 +303,56 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
         (signalIds.has(entity.id) ||
           /\bwhich (?:one|option|platform|offering)? ?is better\b/i.test(message)),
     );
+  }
+
+  if (
+    fuzzyResolution.issues.length &&
+    !referenced.length &&
+    !(signals.length >= 2 && /\bcompare both\b/i.test(message))
+  ) {
+    const recognizedEntities = uniqueEntities(
+      fuzzyResolution.matches.map((match) => match.entity),
+    );
+    const matchedEntries =
+      matchedEntriesForConversationEntities(recognizedEntities);
+    const likelyOptions = fuzzyResolution.issues
+      .flatMap((issue) => issue.candidates || [])
+      .map((candidate) => candidate.label)
+      .filter((label, index, labels) => labels.indexOf(label) === index)
+      .slice(0, 4);
+    const unresolvedLabels = fuzzyResolution.issues
+      .map((issue) => `"${issue.operand}"`)
+      .join(" and ");
+    const hasRecognizedEntity = recognizedEntities.length > 0;
+    const answer = hasRecognizedEntity
+      ? `I recognized ${recognizedEntities.map((entity) => entity.label).join(" and ")}, but the approved knowledge base does not establish an offering for ${unresolvedLabels}.`
+      : likelyOptions.length
+        ? `I could not resolve that comparison confidently. Did you mean ${likelyOptions.join(", or ")}?`
+        : `I could not resolve ${unresolvedLabels} to approved OneSmarter offerings. Which platforms or services would you like me to compare?`;
+    return {
+      comparison: {
+        status: hasRecognizedEntity
+          ? "insufficient_evidence"
+          : "needs_clarification",
+        options: recognizedEntities.map((entity) =>
+          optionMetadata(
+            entity,
+            matchedEntries.find((entry) =>
+              entity.sourceIds?.includes(entry.id),
+            ),
+          ),
+        ),
+        sharedCapabilities: [],
+        keyDifferences: [],
+        decisionGuidance: answer,
+        evidenceGaps: fuzzyResolution.issues.map(
+          (issue) => `Approved offering match for ${issue.operand}`,
+        ),
+      },
+      entities: recognizedEntities,
+      matchedEntries,
+      answer,
+    };
   }
 
   if (entities.length < 2) {
@@ -365,9 +401,12 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
       matchedEntries.find((entry) => entity.sourceIds?.includes(entry.id)),
     ),
   );
-  const matchedSignals = signals.filter((signal) =>
-    options.some((option) => option.id === signal.optionId),
-  );
+  const matchedSignals =
+    classification.decisionIntent === "compare_options" && signals.length < 2
+      ? []
+      : signals.filter((signal) =>
+          options.some((option) => option.id === signal.optionId),
+        );
   const decisionGuidance =
     matchedSignals.length === 1
       ? `${matchedSignals[0].reason} Based on that stated need, ${options.find((option) => option.id === matchedSignals[0].optionId)?.label} is the stronger grounded match.`

@@ -24,6 +24,10 @@ import {
   resolveMiraDecisionRequest,
 } from "../api/agents/mira/miraComparisons.js";
 import {
+  resolveMiraComparisonEntities,
+  resolveMiraEntityText,
+} from "../api/agents/mira/miraEntityResolver.js";
+import {
   retrieveMiraContext,
   runMiraLocalHarness,
 } from "../src/data/agentKnowledge/miraLocalEngine.js";
@@ -1348,6 +1352,66 @@ const comparisonCases = [
     ],
     status: "complete",
   },
+  {
+    id: "fuzzy-as400-secure",
+    message: "compare as400 services and secure tickiting",
+    expectedIds: [
+      "ibm-i-as400-services",
+      "secure-ticketing-case-management",
+    ],
+    status: "complete",
+  },
+  {
+    id: "fuzzy-secure-bill",
+    message: "compare secure ticking and bill audit",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    status: "complete",
+  },
+  {
+    id: "abbreviation",
+    message: "IBM i vs AI agents",
+    expectedIds: ["ibm-i-as400-services", "ai-agentic-services"],
+    status: "complete",
+  },
+  {
+    id: "reordered",
+    message: "compare case management secure ticketing with bill pay audit",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    status: "complete",
+  },
+  {
+    id: "singular-plural",
+    message: "claims service vs as400 service",
+    expectedIds: ["claims-processing-services", "ibm-i-as400-services"],
+    status: "complete",
+  },
+  {
+    id: "typos-both-names",
+    message: "comapre secur tickting and bil auditing",
+    expectedIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    status: "complete",
+  },
+  {
+    id: "ambiguous-generic",
+    message: "compare support with technology",
+    expectedIds: [],
+    status: "needs_clarification",
+  },
+  {
+    id: "partial-unknown",
+    message: "compare payroll platform and ticketing",
+    expectedIds: ["secure-ticketing-case-management"],
+    status: "insufficient_evidence",
+  },
 ];
 
 for (const testCase of comparisonCases) {
@@ -1375,6 +1439,30 @@ for (const testCase of comparisonCases) {
   ) {
     fail(`comparison-${testCase.id}: missing grounded decision guidance.`);
   }
+}
+
+const fuzzyMetadata = resolveMiraComparisonEntities(
+  "compare as400 services and secure tickiting",
+);
+if (
+  fuzzyMetadata.status !== "resolved" ||
+  fuzzyMetadata.matches.some(
+    (match) =>
+      match.confidence < 0.68 ||
+      !["exact_alias", "fuzzy_alias", "abbreviation"].includes(
+        match.matchType,
+      ),
+  )
+) {
+  fail("entity-fuzzy-metadata: expected confident deterministic match metadata.");
+}
+
+const ambiguousEntity = resolveMiraEntityText("support");
+if (
+  ambiguousEntity.status !== "ambiguous" ||
+  ambiguousEntity.candidates.length < 2
+) {
+  fail("entity-fuzzy-ambiguity: generic support must list likely candidates.");
 }
 
 const groundedComparison = resolveMiraComparison(

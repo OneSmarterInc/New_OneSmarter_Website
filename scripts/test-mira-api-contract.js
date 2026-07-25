@@ -598,6 +598,73 @@ const modeCases = [
     ],
   },
   {
+    id: "fuzzy-comparison-as400-secure-ticketing",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "compare as400 services and secure tickiting",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedSourceIds: [
+      "technology-solutions-overview",
+      "secure-ticketing-case-management",
+    ],
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ibm-i-as400-services",
+      "secure-ticketing-case-management",
+    ],
+    expectedAnswerIncludesAll: [
+      "IBM i / AS400 Services",
+      "Secure Ticketing and Case Management",
+    ],
+  },
+  {
+    id: "fuzzy-comparison-secure-ticketing-bill-audit",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "compare secure ticking and bill audit",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedSourceIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+    ],
+  },
+  {
+    id: "direct-ai-entity-overrides-stale-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about AI agents.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content:
+          "Secure Ticketing and Case Management compared with Bill Audit & Bill Pay.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "ai-agentic-services",
+    expectedAnswerIncludes: "AI Agentic Services",
+    forbiddenSourceIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
     id: "criterion-selection-financial-current-message",
     env: { MIRA_LLM_MODE: "mock" },
     message:

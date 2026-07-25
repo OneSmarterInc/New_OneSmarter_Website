@@ -20,6 +20,7 @@ import {
   resolveMiraComparison,
   resolveMiraDecisionRequest,
 } from "./miraComparisons.js";
+import { resolveMiraEntityText } from "./miraEntityResolver.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -576,6 +577,11 @@ export const runMiraResponseAdapter = async ({
     return withFallbackMetadata(safetyResult, "pre_call_safety_gate");
   }
 
+  const directEntityRequest =
+    /\b(?:tell me about|what (?:is|are)|explain|describe)\b/i.test(message);
+  const directEntityResolution = directEntityRequest
+    ? resolveMiraEntityText(message)
+    : null;
   const referenceResolution = resolveMiraConversationReference(
     message,
     conversationHistory,
@@ -649,6 +655,15 @@ export const runMiraResponseAdapter = async ({
           ? "comparison"
           : "",
     };
+  } else if (
+    directEntityResolution?.status === "resolved" &&
+    !localResult.riskFlags.length
+  ) {
+    localResult = withResolvedConversationEntities(localResult, {
+      entities: [directEntityResolution.match.entity],
+      isComparison: false,
+      isList: false,
+    });
   } else if (
     referenceResolution.kind === "resolved" &&
     !localResult.riskFlags.length
