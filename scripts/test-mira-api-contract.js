@@ -707,6 +707,125 @@ const modeCases = [
     ],
   },
   {
+    id: "completeness-role-access-audit-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Which platform supports role-based access and audit history?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "secure-ticketing-case-management",
+    expectedAnswerIncludes: "Secure Ticketing and Case Management",
+    expectedAnswerCompletenessStatus: "complete",
+    expectedAnswerQuestionCount: 0,
+    expectedFollowUpQuestionEmpty: true,
+  },
+  {
+    id: "completeness-platform-explanation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does Bill Audit & Bill Pay support?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerIncludes: "Bill Audit & Bill Pay",
+    expectedAnswerCompletenessStatus: "complete",
+    expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "completeness-unsupported-sap-integration",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Does Bill Audit & Bill Pay integrate with SAP?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerIncludesAll: ["does not confirm", "care@onesmarter.com"],
+    expectedAnswerCompletenessStatus: "unsupported_with_handoff",
+    expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "completeness-unsupported-as400-timeline",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "How long does AS400 modernization take?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "technology-solutions-overview",
+    expectedAnswerIncludesAll: ["does not specify", "care@onesmarter.com"],
+    expectedAnswerCompletenessStatus: "unsupported_with_handoff",
+    expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "completeness-genuine-ambiguity",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Which platform is best?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerCompletenessStatus: "needs_clarification",
+    expectedAnswerQuestionCount: 1,
+  },
+  {
+    id: "completeness-missing-reference",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain the second one.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerCompletenessStatus: "needs_clarification",
+    expectedAnswerQuestionCount: 1,
+  },
+  {
+    id: "completeness-mixed-current-needs",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need case tracking and vendor bill approvals.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedSourceIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedAnswerCompletenessStatus: "complete",
+    expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "completeness-resolved-after-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need vendor bill approvals.",
+    conversationHistory: [
+      { role: "user", content: "Which platform is best?" },
+      {
+        role: "assistant",
+        content: "What workflow are you trying to improve?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedAnswerCompletenessStatus: "complete",
+    expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "completeness-topic-change-after-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about AI agents.",
+    conversationHistory: [
+      { role: "user", content: "Which platform is best?" },
+      {
+        role: "assistant",
+        content: "What workflow are you trying to improve?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "ai-agentic-services",
+    expectedAnswerCompletenessStatus: "complete",
+    expectedAnswerQuestionCount: 0,
+  },
+  {
     id: "safety-upload-patient-files-before-comparison",
     env: { MIRA_LLM_MODE: "mock" },
     message: "Can I upload the patient files here so you can compare them?",
@@ -729,6 +848,8 @@ const modeCases = [
     expectedStatus: 200,
     expectedRiskFlags: ["phi_or_confidential_data"],
     expectedAnswerIncludes: "do not submit",
+    expectedAnswerCompletenessStatus: "safety_response",
+    expectedAnswerQuestionCount: 0,
   },
   {
     id: "safety-send-claims-files-analysis",
@@ -876,7 +997,7 @@ const modeCases = [
     ],
     expectedStructuredSectionsWithBullets: 2,
     expectedStructuredImportantNote: true,
-    expectedStructuredFollowUp: true,
+    expectedFollowUpQuestionEmpty: true,
   },
   {
     id: "structured-entities-main-offerings-response",
@@ -2880,7 +3001,8 @@ const modeCases = [
       "secure-ticketing-case-management",
     ],
     expectedAnswerIncludesAll: [
-      "Recommended: Bill Audit & Bill Pay",
+      "Recommended option:",
+      "Bill Audit & Bill Pay",
       "telecom expense management",
       "contract and rate comparison",
     ],
@@ -2967,6 +3089,29 @@ for (const modeCase of modeCases) {
     fail(
       `${modeCase.id}: expected decision primary option ${modeCase.expectedDecisionPrimaryId}.`,
     );
+  }
+  if (
+    modeCase.expectedAnswerCompletenessStatus &&
+    result.body.answerCompleteness?.status !==
+      modeCase.expectedAnswerCompletenessStatus
+  ) {
+    fail(
+      `${modeCase.id}: expected answer completeness ${modeCase.expectedAnswerCompletenessStatus}.`,
+    );
+  }
+  if (Number.isFinite(modeCase.expectedAnswerQuestionCount)) {
+    const questionCount = (result.body.answer?.match(/\?/g) || []).length;
+    if (questionCount !== modeCase.expectedAnswerQuestionCount) {
+      fail(
+        `${modeCase.id}: expected ${modeCase.expectedAnswerQuestionCount} answer question marks, got ${questionCount}.`,
+      );
+    }
+  }
+  if (
+    modeCase.expectedFollowUpQuestionEmpty &&
+    result.body.answerStructure?.followUpQuestion
+  ) {
+    fail(`${modeCase.id}: expected no structured follow-up question.`);
   }
   if (
     modeCase.expectedRequirementIndustry &&

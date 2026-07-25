@@ -143,6 +143,30 @@ const historyHasKnownApprovedTopic = (conversationHistory = []) =>
     recentHistoryText(conversationHistory),
   );
 
+const unsupportedImplementationAnswer = (
+  message = "",
+  directEntityResolution = null,
+) => {
+  if (directEntityResolution?.status !== "resolved") return null;
+  const entity = directEntityResolution.match.entity;
+  const asksIntegration =
+    /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?)\b/i.test(
+      message,
+    );
+  const asksTimeline =
+    /\b(?:how long|timeline|timeframe|implementation time|modernization time|delivery time)\b/i.test(
+      message,
+    );
+  if (!asksIntegration && !asksTimeline) return null;
+  const subject = entity.label;
+  return {
+    entity,
+    answer: asksIntegration
+      ? `The approved OneSmarter content does not confirm that ${subject} integrates with the named external system. For integration-specific verification, email care@onesmarter.com.`
+      : `The approved OneSmarter content does not specify an implementation or modernization timeline for ${subject}. For project-specific timing, email care@onesmarter.com.`,
+  };
+};
+
 const referencesPriorContext = (message = "") =>
   /\b(that|it|this|those|they|them|which one|the first one|the second one|first option|second option|tell me more|what about|why does that matter|how is that different|previous|above|same one)\b/i.test(
     message,
@@ -579,9 +603,18 @@ export const runMiraResponseAdapter = async ({
 
   const directEntityRequest =
     /\b(?:tell me about|what (?:is|are)|explain|describe)\b/i.test(message);
-  const directEntityResolution = directEntityRequest
+  const implementationSpecificRequest =
+    /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?|how long|timeline|timeframe)\b/i.test(
+      message,
+    );
+  const directEntityResolution =
+    directEntityRequest || implementationSpecificRequest
     ? resolveMiraEntityText(message)
     : null;
+  const unsupportedResolution = unsupportedImplementationAnswer(
+    message,
+    directEntityResolution,
+  );
   const referenceResolution = resolveMiraConversationReference(
     message,
     conversationHistory,
@@ -615,7 +648,23 @@ export const runMiraResponseAdapter = async ({
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
 
-  if (decisionResolution && !localResult.riskFlags.length) {
+  if (unsupportedResolution && !localResult.riskFlags.length) {
+    const matchedEntries = matchedEntriesForConversationEntities([
+      unsupportedResolution.entity,
+    ]);
+    localResult = {
+      ...localResult,
+      confidence: "low",
+      matchedEntries,
+      answerSeed: unsupportedResolution.answer,
+      handoffNeeded: true,
+      handoffReason: "unsupported_implementation_detail",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: [unsupportedResolution.entity],
+      clarificationNeeded: false,
+      unsupportedHandled: true,
+    };
+  } else if (decisionResolution && !localResult.riskFlags.length) {
     localResult = {
       ...localResult,
       confidence: "high",

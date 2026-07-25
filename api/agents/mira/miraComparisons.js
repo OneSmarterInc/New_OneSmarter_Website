@@ -142,6 +142,13 @@ export const classifyMiraDecisionIntent = (
   );
   const hasTwoResolvedOptions =
     reference.kind === "resolved" && reference.entities.length > 1;
+  const statesDirectNeed = /\b(?:we|i) need\b/i.test(normalizedMessage);
+  if (optionIds.length > 1 && statesDirectNeed) {
+    return { decisionIntent: "multi_need", signals, reference };
+  }
+  if (optionIds.length === 1 && statesDirectNeed) {
+    return { decisionIntent: "select_for_requirement", signals, reference };
+  }
   if (optionIds.length > 1 && SELECTION_LANGUAGE.test(normalizedMessage)) {
     return { decisionIntent: "multi_need", signals, reference };
   }

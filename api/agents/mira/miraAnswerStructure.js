@@ -42,9 +42,9 @@ export const buildMiraAnswerStructure = ({
     sections,
     importantNote: result.answerStructureImportantNote || "",
     followUpQuestion:
-      result.answerStructureFollowUpQuestion ||
-      result.suggestedFollowUps?.[0] ||
-      "",
+      result.answerCompleteness?.allowFollowUpQuestion === true
+        ? result.answerStructureFollowUpQuestion || result.answerSeed || ""
+        : "",
   };
 };
 
