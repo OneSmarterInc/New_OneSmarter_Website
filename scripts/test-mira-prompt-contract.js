@@ -4,29 +4,29 @@ import {
   buildMiraContextBlock,
   buildMiraPromptPayload,
   buildMiraSystemPrompt,
-} from "../api/agents/mira/miraPromptContract.js";
-import { validateMiraModelOutput } from "../api/agents/mira/miraOutputValidator.js";
-import { readMiraRuntimeConfig } from "../api/agents/mira/miraRuntimeConfig.js";
-import { runOpenAiMiraAdapter } from "../api/agents/mira/openAiAdapter.js";
+} from "../src/server/mira/miraPromptContract.js";
+import { validateMiraModelOutput } from "../src/server/mira/miraOutputValidator.js";
+import { readMiraRuntimeConfig } from "../src/server/mira/miraRuntimeConfig.js";
+import { runOpenAiMiraAdapter } from "../src/server/mira/openAiAdapter.js";
 import {
   buildConversationEntityGroups,
   normalizeGroundedConversationEntities,
   resolveMiraConversationReference,
-} from "../api/agents/mira/miraConversationReferences.js";
+} from "../src/server/mira/miraConversationReferences.js";
 import {
   buildMiraRequirementState,
   classifyMiraTopicShift,
   resolveMiraRecommendation,
-} from "../api/agents/mira/miraRecommendations.js";
+} from "../src/server/mira/miraRecommendations.js";
 import {
   classifyMiraDecisionIntent,
   resolveMiraComparison,
   resolveMiraDecisionRequest,
-} from "../api/agents/mira/miraComparisons.js";
+} from "../src/server/mira/miraComparisons.js";
 import {
   resolveMiraComparisonEntities,
   resolveMiraEntityText,
-} from "../api/agents/mira/miraEntityResolver.js";
+} from "../src/server/mira/miraEntityResolver.js";
 import {
   retrieveMiraContext,
   runMiraLocalHarness,

@@ -1,4 +1,4 @@
-import { handleMiraChatRequest } from "./chatCore.js";
+import { handleMiraChatRequest } from "../../../src/server/mira/chatCore.js";
 
 export default async function handler(req, res) {
   const result = await handleMiraChatRequest({

@@ -2,7 +2,7 @@ import process from "node:process";
 import {
   handleMiraChatRequest,
   resetMiraRateLimitForTests,
-} from "../api/agents/mira/chatCore.js";
+} from "../src/server/mira/chatCore.js";
 
 const failures = [];
 const ENV_KEYS = [

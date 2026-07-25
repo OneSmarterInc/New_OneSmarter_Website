@@ -1,4 +1,4 @@
-import { onesmarterPublicKnowledgeBase } from "../../../src/data/agentKnowledge/onesmarterPublicKb.js";
+import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmarterPublicKb.js";
 import {
   groundedConversationEntityForId,
   matchedEntriesForConversationEntities,

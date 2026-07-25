@@ -1,4 +1,4 @@
-import { onesmarterPublicKnowledgeBase } from "../../../src/data/agentKnowledge/onesmarterPublicKb.js";
+import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmarterPublicKb.js";
 
 const MAX_ENTITY_SETS = 3;
 const MAX_TOP_LEVEL_ENTITIES = 8;

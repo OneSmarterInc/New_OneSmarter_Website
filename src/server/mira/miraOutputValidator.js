@@ -1,5 +1,5 @@
-import { miraClaimRules } from "../../../src/data/agentKnowledge/miraClaimRules.js";
-import { runMiraLocalHarness } from "../../../src/data/agentKnowledge/miraLocalEngine.js";
+import { miraClaimRules } from "../../data/agentKnowledge/miraClaimRules.js";
+import { runMiraLocalHarness } from "../../data/agentKnowledge/miraLocalEngine.js";
 
 const VALID_GROUNDING_STATUSES = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_OUTPUT_SAFETY_STATUSES = new Set(["passed", "corrected", "refused"]);

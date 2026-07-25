@@ -1,7 +1,7 @@
 import {
   runMiraLocalHarness,
   runMiraSafetyGate,
-} from "../../../src/data/agentKnowledge/miraLocalEngine.js";
+} from "../../data/agentKnowledge/miraLocalEngine.js";
 import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
 import { buildMiraPromptPayload } from "./miraPromptContract.js";
 import { validateMiraModelOutput } from "./miraOutputValidator.js";

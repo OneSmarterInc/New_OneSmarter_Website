@@ -1,4 +1,4 @@
-import { miraClaimRules } from "../../../src/data/agentKnowledge/miraClaimRules.js";
+import { miraClaimRules } from "../../data/agentKnowledge/miraClaimRules.js";
 
 export const MIRA_MODEL_OUTPUT_SCHEMA = {
   answer: "string",
