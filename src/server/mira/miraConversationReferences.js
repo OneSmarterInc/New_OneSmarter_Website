@@ -18,6 +18,11 @@ const ENTITY_DEFINITIONS = {
         label: "Healthcare & TPA Technology Services",
         type: "service",
         sourceIds: ["technology-solutions-overview"],
+        approvedSummary:
+          "Healthcare & TPA Technology Services are a Technology Solutions service area for healthcare operations and TPA technology work.",
+        sourceFacts: [
+          "Healthcare & TPA Technology Services are included under Technology Solutions.",
+        ],
       },
       {
         id: "claims-processing-services",
@@ -36,18 +41,33 @@ const ENTITY_DEFINITIONS = {
         label: "IBM i / AS400 Services",
         type: "service",
         sourceIds: ["technology-solutions-overview"],
+        approvedSummary:
+          "IBM i / AS400 Services are an approved service area within OneSmarter Technology Solutions.",
+        sourceFacts: [
+          "IBM i / AS400 Services are included under Technology Solutions.",
+        ],
       },
       {
         id: "enterprise-software-development",
         label: "Enterprise Software Development",
         type: "service",
         sourceIds: ["technology-solutions-overview"],
+        approvedSummary:
+          "Enterprise Software Development is an approved service area within OneSmarter Technology Solutions.",
+        sourceFacts: [
+          "Enterprise Software Development is included under Technology Solutions.",
+        ],
       },
       {
         id: "software-support-consolidation",
         label: "Software Support Consolidation",
         type: "service",
         sourceIds: ["technology-solutions-overview"],
+        approvedSummary:
+          "Software Support Consolidation is a Technology Solutions service area supported by global delivery and support teams.",
+        sourceFacts: [
+          "Software support consolidation uses global delivery and support teams.",
+        ],
       },
     ],
   },
@@ -67,15 +87,23 @@ const entityTypeFor = (entry) => {
   return "topic";
 };
 
-const groundedChildEntity = (definition, position) => ({
-  id: definition.id,
-  label: definition.label,
-  type: definition.type,
-  level: 1,
-  position,
-  parentId: definition.parentId || "technology-solutions-overview",
-  sourceIds: definition.sourceIds.filter((sourceId) => knowledgeById.has(sourceId)),
-});
+const groundedChildEntity = (definition, position) => {
+  const directSource = knowledgeById.get(definition.id);
+  return {
+    id: definition.id,
+    label: definition.label,
+    type: definition.type,
+    level: 1,
+    position,
+    parentId: definition.parentId || "technology-solutions-overview",
+    sourceIds: definition.sourceIds.filter((sourceId) =>
+      knowledgeById.has(sourceId),
+    ),
+    approvedSummary:
+      definition.approvedSummary || directSource?.approvedSummary || "",
+    sourceFacts: definition.sourceFacts || directSource?.sourceFacts || [],
+  };
+};
 
 export const groundedConversationEntityForId = (
   id,
@@ -95,6 +123,8 @@ export const groundedConversationEntityForId = (
     level: 0,
     position,
     sourceIds: [entry.id],
+    approvedSummary: entry.approvedSummary,
+    sourceFacts: entry.sourceFacts || [],
     ...(includeChildren && definition?.children?.length
       ? {
           children: definition.children
@@ -260,6 +290,23 @@ const isScopedListRequest = (message = "") =>
     message,
   );
 
+const directlyScopedParent = (message = "") => {
+  const searchableMessage = normalizedLabel(message);
+  for (const parentId of Object.keys(ENTITY_DEFINITIONS)) {
+    const parent = groundedConversationEntityForId(parentId);
+    const parentLabel = normalizedLabel(parent?.label);
+    const parentLabelWithoutOverview = parentLabel.replace(/\s+overview$/, "");
+    if (
+      parent &&
+      (searchableMessage.includes(parentLabel) ||
+        searchableMessage.includes(parentLabelWithoutOverview))
+    ) {
+      return parent;
+    }
+  }
+  return null;
+};
+
 const recentEntityGroups = (conversationHistory = []) =>
   buildConversationEntityGroups(conversationHistory);
 
@@ -409,6 +456,21 @@ export const resolveMiraConversationReference = (
   }
 
   const type = requestedType(normalizedMessage);
+  if (scopedListRequest && !sets.length) {
+    const parent = directlyScopedParent(normalizedMessage);
+    const entities = (parent?.children || []).filter(
+      (entity) => !type || entity.type === type,
+    );
+    if (entities.length) {
+      return {
+        kind: "resolved",
+        entities,
+        isComparison: false,
+        isList: true,
+        hadEntityContext: false,
+      };
+    }
+  }
   const selection = selectEntityGroup(sets, type, normalizedMessage);
   const entitySet = selection.entities;
   if (selection.ambiguousParents.length) {

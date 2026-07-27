@@ -3560,6 +3560,151 @@ const modeCases = [
     expectedRiskFlags: ["phi_or_confidential_data"],
     expectedCurrentTurnAnswerability: "safety",
   },
+  {
+    id: "child-grounding-broad-healthcare-nonempty",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about healthcare.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedStructuredNonEmptySectionIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "healthcare-tpa-technology-services",
+    ],
+  },
+  {
+    id: "child-grounding-direct-healthcare-tpa",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What are Healthcare & TPA Technology Services?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedConversationEntityIds: ["healthcare-tpa-technology-services"],
+    expectedAnswerStartsWith: "Healthcare & TPA Technology Services:",
+    expectedAnswerIncludesAll: [
+      "healthcare operations and TPA technology work",
+      "part of OneSmarter's Technology Solutions",
+    ],
+    expectedAnswerExcludesAll: [
+      "Claims Processing Services are positioned",
+      "AI Agentic Services",
+      "Software Support Consolidation",
+    ],
+  },
+  {
+    id: "child-grounding-parent-overview-unchanged",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What is Technology Solutions Overview?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedConversationEntityIds: ["technology-solutions-overview"],
+    expectedAnswerStartsWith: "Technology Solutions Overview:",
+    expectedAnswerIncludesAll: [
+      "Healthcare & TPA Technology",
+      "Claims Processing Services",
+      "AI Agentic Services",
+      "IBM i / AS400 Services",
+      "Enterprise Software Development",
+      "Software Support Consolidation",
+    ],
+  },
+  {
+    id: "child-grounding-direct-ai-agentic",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about AI Agentic Services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["ai-agentic-services"],
+    expectedConversationEntityIds: ["ai-agentic-services"],
+    expectedAnswerIncludesAll: [
+      "AI Agentic Services",
+      "controlled automation",
+      "document workflows",
+    ],
+    expectedAnswerExcludesAll: ["IBM i / AS400 Services", "Claims Processing Services"],
+  },
+  {
+    id: "child-grounding-direct-ibmi-as400",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about IBM i / AS400 Services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedConversationEntityIds: ["ibm-i-as400-services"],
+    expectedAnswerIncludesAll: [
+      "IBM i / AS400 Services",
+      "approved service area within OneSmarter Technology Solutions",
+    ],
+    expectedAnswerExcludesAll: ["Claims Processing Services", "AI Agentic Services"],
+  },
+  {
+    id: "child-grounding-direct-enterprise-development",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about Enterprise Software Development.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedConversationEntityIds: ["enterprise-software-development"],
+    expectedAnswerIncludesAll: [
+      "Enterprise Software Development",
+      "approved service area within OneSmarter Technology Solutions",
+    ],
+    expectedAnswerExcludesAll: ["Claims Processing Services", "AI Agentic Services"],
+  },
+  {
+    id: "child-grounding-direct-software-support",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about Software Support Consolidation.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedConversationEntityIds: ["software-support-consolidation"],
+    expectedAnswerIncludesAll: [
+      "Software Support Consolidation",
+      "global delivery and support teams",
+    ],
+    expectedAnswerExcludesAll: ["Claims Processing Services", "AI Agentic Services"],
+  },
+  {
+    id: "child-grounding-list-technology-services",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "List the services under Technology Solutions.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+    expectedAnswerStructureSectionIds: [
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+    expectedStructuredNonEmptySectionIds: [
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+  },
 ];
 
 const consistencyResults = new Map();
@@ -3659,6 +3804,14 @@ for (const modeCase of modeCases) {
         `${modeCase.id}: expected ${modeCase.expectedAnswerQuestionCount} answer question marks, got ${questionCount}.`,
       );
     }
+  }
+  if (
+    modeCase.expectedAnswerStartsWith &&
+    !result.body.answer?.startsWith(modeCase.expectedAnswerStartsWith)
+  ) {
+    fail(
+      `${modeCase.id}: expected answer to start with ${modeCase.expectedAnswerStartsWith}.`,
+    );
   }
   if (
     modeCase.expectedFollowUpQuestionEmpty &&
@@ -3819,6 +3972,14 @@ for (const modeCase of modeCases) {
       JSON.stringify(modeCase.expectedAnswerStructureSectionIds)
     ) {
       fail(`${modeCase.id}: unexpected structured answer section IDs.`);
+    }
+  }
+  for (const sectionId of modeCase.expectedStructuredNonEmptySectionIds || []) {
+    const section = (result.body.answerStructure?.sections || []).find(
+      (candidate) => candidate.id === sectionId,
+    );
+    if (!section?.summary?.trim()) {
+      fail(`${modeCase.id}: expected a grounded summary for ${sectionId}.`);
     }
   }
   if (modeCase.expectedStructuredSectionsWithBullets) {

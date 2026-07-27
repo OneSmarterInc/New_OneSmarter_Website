@@ -250,6 +250,22 @@ const answerSeedForEntries = (matchedEntries = []) => {
   return `${primary.approvedSummary} ${facts}${relatedText} ${primary.handoffGuidance}`.trim();
 };
 
+const answerSeedForEntity = (entity, matchedEntries = []) => {
+  if (entity?.level !== 1 || !entity.approvedSummary) {
+    return `${matchedEntries[0]?.title || entity?.label}: ${answerSeedForEntries(matchedEntries)}`;
+  }
+  const facts = (entity.sourceFacts || []).slice(0, 2);
+  return [
+    `${entity.label}: ${entity.approvedSummary}`,
+    ...facts.map((fact) => `- ${fact}`),
+    entity.parentId
+      ? "It is part of OneSmarter's Technology Solutions."
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
 const entityTypeLabel = (type = "entity") =>
   ({
     platform: "Platform",
@@ -316,7 +332,7 @@ const withResolvedConversationEntities = (
           referenceResolution.entities,
           matchedEntries,
         )
-      : `${matchedEntries[0].title}: ${answerSeedForEntries(matchedEntries)}`,
+      : answerSeedForEntity(referenceResolution.entities[0], matchedEntries),
     suggestedFollowUps: matchedEntries
       .flatMap((entry) => entry.relatedQuestions || [])
       .slice(0, 3),

@@ -7,7 +7,12 @@ const childStructure = (entity, matchedEntries) => {
     id: entity.id,
     heading: entity.label,
     entityType: entity.type,
-    ...(source?.id === entity.id
+    ...(entity.approvedSummary
+      ? {
+          summary: entity.approvedSummary,
+          bullets: (entity.sourceFacts || []).slice(0, 4),
+        }
+      : source?.id === entity.id
       ? {
           summary: source.approvedSummary,
           bullets: (source.sourceFacts || []).slice(0, 4),

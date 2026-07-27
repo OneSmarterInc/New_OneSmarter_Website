@@ -111,19 +111,18 @@ const EXPLICIT_COMPARISON =
 const DECISION_REQUEST =
   /\b(?:which (?:one|option|platform|service|offering)|what (?:platform|service|offering) should|best for|better for|right for|fits? (?:our|my|the|this))\b/i;
 const STANDALONE_REQUIREMENT = /\b(?:we|i|our company|my company)\s+(?:need|want|process|handle)\b/i;
+const CHILD_ENTITY_IDS = new Set([
+  "healthcare-tpa-technology-services",
+  "claims-processing-services",
+  "ai-agentic-services",
+  "ibm-i-as400-services",
+  "enterprise-software-development",
+  "software-support-consolidation",
+]);
 
 const entityForId = (id) =>
   groundedConversationEntityForId(id, {
-    level: id === "technology-solutions-overview" ||
-      id === "secure-ticketing-case-management" ||
-      id === "bill-audit-bill-pay" ||
-      id === "claims-processing-services" ||
-      id === "ai-agentic-services" ||
-      id === "business-services-overview" ||
-      id === "compliance-cyber-assurance-overview" ||
-      id === "hipaa-security-rule-assessment"
-      ? 0
-      : 1,
+    level: CHILD_ENTITY_IDS.has(id) ? 1 : 0,
     includeChildren: false,
   });
 
@@ -139,6 +138,9 @@ const metadataEntity = (entity) => ({
   type: entity.type,
   ...(entity.parentId ? { parentId: entity.parentId } : {}),
 });
+
+const normalizedLabel = (value = "") =>
+  String(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 export const resolveMiraRelevantFacts = (message = "") => {
   if (
@@ -168,9 +170,13 @@ export const resolveMiraRelevantFacts = (message = "") => {
   ]);
   const reasons = entities.map((entity) => {
     const rule = EVIDENCE_RULES.find((candidate) => candidate.id === entity.id);
+    const directlyNamed = normalizedLabel(message).includes(
+      normalizedLabel(entity.label),
+    );
     return {
       entity,
       reason:
+        (directlyNamed ? entity.approvedSummary : "") ||
         rule?.reason ||
         (entity.id === "healthcare-tpa-technology-services"
           ? "Healthcare & TPA Technology Services are included under OneSmarter Technology Solutions."
