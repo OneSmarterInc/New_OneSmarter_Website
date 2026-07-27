@@ -60,6 +60,12 @@ const EVIDENCE_RULES = [
     reason:
       "Compliance & Cyber Assurance supports review preparation, evidence organization, control documentation, framework mapping, VAPT coordination, and remediation.",
   },
+  {
+    id: "hipaa-security-rule-assessment",
+    pattern: /\bhipaa (?:security rule )?(?:compliance )?assessment\b/i,
+    reason:
+      "OneSmarter has completed an independent HIPAA Security Rule compliance assessment; this is assessment wording, not a certification or compliance guarantee.",
+  },
 ];
 
 const BROAD_CATEGORY_RULES = [
@@ -73,17 +79,33 @@ const BROAD_CATEGORY_RULES = [
     entityIds: ["ibm-i-as400-services", "enterprise-software-development"],
   },
   {
-    pattern: /\bhealthcare operations?\b|\bhealthcare (?:and |&)tpa\b|\btpa operations?\b/i,
+    pattern:
+      /\bhealthcare\b|\bhealthcare operations?\b|\bhealthcare (?:and |&)tpa\b|\btpa operations?\b/i,
     entityIds: [
       "secure-ticketing-case-management",
       "claims-processing-services",
       "healthcare-tpa-technology-services",
     ],
+    supportingIds: ["hipaa-security-rule-assessment"],
+  },
+  {
+    pattern: /\btechnology services?\b|\btechnology solutions?\b/i,
+    entityIds: [
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+    ],
+  },
+  {
+    pattern: /\bback[- ]office (?:operations?|workflows?|support)\b/i,
+    entityIds: ["business-services-overview", "bill-audit-bill-pay"],
   },
 ];
 
 const QUESTION_SCOPE =
-  /\b(?:what|which|how|where|offer|offers|support|supports|help|helps|available)\b/i;
+  /\b(?:tell me about|what|which|how|where|do you do|offer|offers|support|supports|help|helps|available|overview)\b/i;
+const BROAD_OVERVIEW_REQUEST =
+  /\b(?:tell me|overview of)\b|\bwhat\b.+\b(?:offer|offers|do for|help)\b/i;
 const EXPLICIT_COMPARISON =
   /\b(?:compare|comparison|versus|vs\.?|difference between|different from|pros and cons|one or both)\b/i;
 const DECISION_REQUEST =
@@ -98,7 +120,8 @@ const entityForId = (id) =>
       id === "claims-processing-services" ||
       id === "ai-agentic-services" ||
       id === "business-services-overview" ||
-      id === "compliance-cyber-assurance-overview"
+      id === "compliance-cyber-assurance-overview" ||
+      id === "hipaa-security-rule-assessment"
       ? 0
       : 1,
     includeChildren: false,
@@ -127,14 +150,22 @@ export const resolveMiraRelevantFacts = (message = "") => {
     return null;
   }
 
-  const broadRule = BROAD_CATEGORY_RULES.find((rule) => rule.pattern.test(message));
+  const broadRule = BROAD_OVERVIEW_REQUEST.test(message)
+    ? BROAD_CATEGORY_RULES.find((rule) => rule.pattern.test(message))
+    : null;
   const matchedRules = EVIDENCE_RULES.filter((rule) => rule.pattern.test(message));
   const selectedIds = broadRule?.entityIds || matchedRules.map((rule) => rule.id);
   if (!selectedIds.length) return null;
 
   const entities = uniqueById(selectedIds.map(entityForId).filter(Boolean)).slice(0, 3);
   if (!entities.length) return null;
-  const matchedEntries = matchedEntriesForConversationEntities(entities);
+  const supportingEntities = uniqueById(
+    (broadRule?.supportingIds || []).map(entityForId).filter(Boolean),
+  );
+  const matchedEntries = matchedEntriesForConversationEntities([
+    ...entities,
+    ...supportingEntities,
+  ]);
   const reasons = entities.map((entity) => {
     const rule = EVIDENCE_RULES.find((candidate) => candidate.id === entity.id);
     return {
@@ -160,10 +191,17 @@ export const resolveMiraRelevantFacts = (message = "") => {
         ({ entity, reason }, index) =>
           `${index + 1}. ${entity.label} (${entity.type})\n   - ${reason}`,
       ),
+      ...(supportingEntities.some(
+        (entity) => entity.id === "hipaa-security-rule-assessment",
+      )
+        ? [
+            "Supporting context: OneSmarter has completed an independent HIPAA Security Rule compliance assessment. This is evidence-based assessment wording, not a certification or compliance guarantee.",
+          ]
+        : []),
     ].join("\n"),
     evidenceSelection: {
       primary: entities.map(metadataEntity),
-      supporting: [],
+      supporting: supportingEntities.map(metadataEntity),
       excluded: [],
     },
   };
@@ -195,6 +233,7 @@ export const applyMiraEvidenceSelection = (
           }));
   const primarySourceIds = new Set([
     ...primary.map((item) => item.id),
+    ...(result.evidenceSelection?.supporting || []).map((item) => item.id),
     ...primaryEntities.flatMap((entity) => entity.sourceIds || []),
   ]);
   const excluded = uniqueById(initialMatchedEntries)

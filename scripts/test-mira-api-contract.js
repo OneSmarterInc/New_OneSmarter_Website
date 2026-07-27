@@ -3050,13 +3050,14 @@ const modeCases = [
       "secure-ticketing-case-management",
       "claims-processing-services",
       "technology-solutions-overview",
+      "hipaa-security-rule-assessment",
     ],
     expectedEvidencePrimaryIds: [
       "secure-ticketing-case-management",
       "claims-processing-services",
       "healthcare-tpa-technology-services",
     ],
-    forbiddenSourceIds: ["hipaa-security-rule-assessment"],
+    expectedEvidenceSupportingIds: ["hipaa-security-rule-assessment"],
   },
   {
     id: "evidence-ranking-modernization",
@@ -3276,6 +3277,7 @@ const modeCases = [
       "secure-ticketing-case-management",
       "claims-processing-services",
       "technology-solutions-overview",
+      "hipaa-security-rule-assessment",
     ],
     expectedTurnRelation: "standalone_new_request",
     expectedCurrentTurnAnswerability: "answerable",
@@ -3299,6 +3301,7 @@ const modeCases = [
       "secure-ticketing-case-management",
       "claims-processing-services",
       "technology-solutions-overview",
+      "hipaa-security-rule-assessment",
     ],
     expectedTurnRelation: "standalone_new_request",
     expectedCurrentTurnAnswerability: "answerable",
@@ -3419,6 +3422,138 @@ const modeCases = [
         content: "OneSmarter offers two platforms.",
       },
     ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedCurrentTurnAnswerability: "safety",
+  },
+  {
+    id: "broad-topic-healthcare-fresh",
+    consistencyGroup: "broad-healthcare-topic",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about healthcare.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "technology-solutions-overview",
+      "hipaa-security-rule-assessment",
+    ],
+    expectedEvidencePrimaryIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "healthcare-tpa-technology-services",
+    ],
+    expectedEvidenceSupportingIds: ["hipaa-security-rule-assessment"],
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Claims Processing Services",
+      "Healthcare & TPA Technology Services",
+      "Supporting context",
+    ],
+  },
+  {
+    id: "broad-topic-healthcare-after-unrelated-history",
+    consistencyGroup: "broad-healthcare-topic",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about healthcare.",
+    conversationHistory: [
+      { role: "user", content: "Tell me about Bill Audit & Bill Pay." },
+      {
+        role: "assistant",
+        content: "Bill Audit & Bill Pay supports vendor-bill workflows.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "technology-solutions-overview",
+      "hipaa-security-rule-assessment",
+    ],
+    expectedEvidencePrimaryIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "healthcare-tpa-technology-services",
+    ],
+    expectedEvidenceSupportingIds: ["hipaa-security-rule-assessment"],
+    forbiddenSourceIds: ["bill-audit-bill-pay"],
+  },
+  {
+    id: "broad-topic-healthcare-operations",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can OneSmarter help a healthcare operations team with?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedEvidencePrimaryIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "healthcare-tpa-technology-services",
+    ],
+    expectedEvidenceSupportingIds: ["hipaa-security-rule-assessment"],
+  },
+  {
+    id: "broad-topic-modernization",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about modernization.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedEvidencePrimaryIds: [
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+    ],
+  },
+  {
+    id: "broad-topic-ai-automation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about AI automation.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["ai-agentic-services"],
+    expectedEvidencePrimaryIds: ["ai-agentic-services"],
+  },
+  {
+    id: "narrow-topic-hipaa-assessment-remains-specific",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about your HIPAA assessment.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["hipaa-security-rule-assessment"],
+    expectedEvidencePrimaryIds: ["hipaa-security-rule-assessment"],
+    expectedEvidenceSupportingIds: [],
+    expectedAnswerIncludesAll: [
+      "HIPAA Security Rule compliance assessment",
+      "not a certification or compliance guarantee",
+    ],
+    expectedAnswerExcludesAll: [
+      "Claims Processing Services",
+      "Healthcare & TPA Technology Services",
+    ],
+  },
+  {
+    id: "narrow-topic-role-access-audit-remains-specific",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What supports role-based access and audit history?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["secure-ticketing-case-management"],
+    expectedEvidencePrimaryIds: ["secure-ticketing-case-management"],
+  },
+  {
+    id: "broad-topic-safety-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Can I upload patient records?",
     expectedMode: "local_harness_mock",
     expectedHandoff: true,
     expectedStatus: 200,
@@ -3588,6 +3723,19 @@ for (const modeCase of modeCases) {
     ) {
       fail(
         `${modeCase.id}: expected primary evidence [${modeCase.expectedEvidencePrimaryIds}], got [${actualPrimaryIds}].`,
+      );
+    }
+  }
+  if (modeCase.expectedEvidenceSupportingIds) {
+    const actualSupportingIds = (
+      result.body.evidenceSelection?.supporting || []
+    ).map((entity) => entity.id);
+    if (
+      JSON.stringify(actualSupportingIds) !==
+      JSON.stringify(modeCase.expectedEvidenceSupportingIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected supporting evidence [${modeCase.expectedEvidenceSupportingIds}], got [${actualSupportingIds}].`,
       );
     }
   }
