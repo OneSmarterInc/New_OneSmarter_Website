@@ -25,6 +25,10 @@ import {
   applyMiraEvidenceSelection,
   resolveMiraRelevantFacts,
 } from "./miraEvidenceSelection.js";
+import {
+  classifyMiraTurnContext,
+  currentTurnAnswerabilityFor,
+} from "./miraTurnContext.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -600,13 +604,24 @@ export const runMiraResponseAdapter = async ({
     return unavailableResponse(message);
   }
 
+  const turnContext = classifyMiraTurnContext(message, conversationHistory);
+  const relevantConversationHistory = turnContext.usesHistory
+    ? conversationHistory
+    : [];
   const safetyResult = runMiraSafetyGate(message);
   if (safetyResult) {
-    return withFallbackMetadata(safetyResult, "pre_call_safety_gate");
+    const result = withFallbackMetadata(safetyResult, "pre_call_safety_gate");
+    return {
+      ...result,
+      turnContext: {
+        ...turnContext,
+        currentTurnAnswerability: currentTurnAnswerabilityFor(result),
+      },
+    };
   }
 
   const directEntityRequest =
-    /\b(?:tell me about|what (?:is|are)|explain|describe)\b/i.test(message);
+    /\b(?:tell me about|what (?:is|are|does)|explain|describe)\b/i.test(message);
   const implementationSpecificRequest =
     /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?|how long|timeline|timeframe)\b/i.test(
       message,
@@ -621,14 +636,20 @@ export const runMiraResponseAdapter = async ({
   );
   const referenceResolution = resolveMiraConversationReference(
     message,
-    conversationHistory,
+    relevantConversationHistory,
   );
-  const retrievalMessage = buildContextualRetrievalMessage(message, conversationHistory);
-  const activeSubject = resolveActiveSubject(message, conversationHistory);
+  const retrievalMessage = buildContextualRetrievalMessage(
+    message,
+    relevantConversationHistory,
+  );
+  const activeSubject = resolveActiveSubject(
+    message,
+    relevantConversationHistory,
+  );
   const comparisonIntent =
     isMiraComparisonIntent(message) ||
     isComparisonIntent(message) ||
-    (historyHasPlatformOptions(conversationHistory) &&
+    (historyHasPlatformOptions(relevantConversationHistory) &&
       /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
         message,
       ));
@@ -639,15 +660,15 @@ export const runMiraResponseAdapter = async ({
   const relevantFactResolution = resolveMiraRelevantFacts(message);
   const recommendationResolution = resolveMiraRecommendation(
     message,
-    conversationHistory,
+    relevantConversationHistory,
   );
   const comparisonResolution = resolveMiraComparison(
     message,
-    conversationHistory,
+    relevantConversationHistory,
   );
   const decisionResolution = resolveMiraDecisionRequest(
     message,
-    conversationHistory,
+    relevantConversationHistory,
   );
   let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
@@ -716,7 +737,7 @@ export const runMiraResponseAdapter = async ({
       comparisonHandled: true,
       decisionIntent: classifyMiraDecisionIntent(
         message,
-        conversationHistory,
+        relevantConversationHistory,
       ).decisionIntent,
       clarificationNeeded:
         comparisonResolution.comparison.status === "needs_clarification",
@@ -792,8 +813,9 @@ export const runMiraResponseAdapter = async ({
 
   if (
     ((referenceResolution.kind === "clarification" &&
-      (referenceResolution.hadEntityContext || !conversationHistory.length)) ||
-      needsFollowUpClarification(message, conversationHistory)) &&
+      (referenceResolution.hadEntityContext ||
+        !relevantConversationHistory.length)) ||
+      needsFollowUpClarification(message, relevantConversationHistory)) &&
     !localResult.riskFlags.length &&
     !localResult.recommendationHandled &&
     !localResult.comparisonHandled
@@ -815,6 +837,13 @@ export const runMiraResponseAdapter = async ({
   localResult = applyMiraEvidenceSelection(localResult, {
     initialMatchedEntries: initialLocalResult.matchedEntries,
   });
+  localResult = {
+    ...localResult,
+    turnContext: {
+      ...turnContext,
+      currentTurnAnswerability: currentTurnAnswerabilityFor(localResult),
+    },
+  };
 
   if (
     config?.mode === STAGING_LLM_MODE &&
@@ -872,7 +901,7 @@ export const runMiraResponseAdapter = async ({
       retrievalResult: localResult,
       riskFlags: localResult.riskFlags,
       requestContext,
-      conversationHistory,
+      conversationHistory: relevantConversationHistory,
     });
     const providerResult = await openAiAdapter({
       message,

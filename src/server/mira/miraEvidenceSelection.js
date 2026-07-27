@@ -64,6 +64,11 @@ const EVIDENCE_RULES = [
 
 const BROAD_CATEGORY_RULES = [
   {
+    pattern:
+      /\b(?:document[- ]heavy|manual (?:work|processes?)|paper[- ]heavy)\b/i,
+    entityIds: ["ai-agentic-services", "business-services-overview"],
+  },
+  {
     pattern: /\bmoderni[sz](?:e|ation|ing)\b/i,
     entityIds: ["ibm-i-as400-services", "enterprise-software-development"],
   },
@@ -92,6 +97,7 @@ const entityForId = (id) =>
       id === "bill-audit-bill-pay" ||
       id === "claims-processing-services" ||
       id === "ai-agentic-services" ||
+      id === "business-services-overview" ||
       id === "compliance-cyber-assurance-overview"
       ? 0
       : 1,
@@ -137,6 +143,8 @@ export const resolveMiraRelevantFacts = (message = "") => {
         rule?.reason ||
         (entity.id === "healthcare-tpa-technology-services"
           ? "Healthcare & TPA Technology Services are included under OneSmarter Technology Solutions."
+          : entity.id === "business-services-overview"
+            ? "Business Services cover finance, HR, payment, benefits, and back-office workflows."
           : ""),
     };
   });

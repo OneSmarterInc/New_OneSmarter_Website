@@ -9,7 +9,8 @@ const CURRENT_GOAL =
   /\b(?:we|i|our company|our team) (?:also )?(?:need|want|are trying|would like)\b/i;
 const REQUIREMENT_STATEMENT =
   /\b(?:we are|i am|i work (?:for|at)|we (?:process|handle|manage|review|track|approve))\b/i;
-const CONTINUATION = /\b(?:also|additionally|too|as well|along with)\b/i;
+const CONTINUATION =
+  /\b(?:also|additionally|as well|along with)\b|\btoo\b(?!\s+(?:much|many|little|few))(?=\s*(?:[,.!?]|$))/i;
 const REFINEMENT = /\b(?:specifically|in particular|more precisely|for that|within that)\b/i;
 const CORRECTION =
   /\b(?:actually|instead|correction|i meant|this is for|not that)\b/i;

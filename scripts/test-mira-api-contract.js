@@ -3216,7 +3216,218 @@ const modeCases = [
       "enterprise-software-development",
     ],
   },
+  {
+    id: "standalone-document-work-fresh",
+    consistencyGroup: "document-work",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "We have too much manual work in document-heavy business processes. What could help?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "ai-agentic-services",
+      "business-services-overview",
+    ],
+    expectedEvidencePrimaryIds: [
+      "ai-agentic-services",
+      "business-services-overview",
+    ],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "standalone-document-work-after-unrelated-discussion",
+    consistencyGroup: "document-work",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "We have too much manual work in document-heavy business processes. What could help?",
+    conversationHistory: [
+      { role: "user", content: "Which platform is best?" },
+      {
+        role: "assistant",
+        content:
+          "What workflow are you trying to improve: case management, bill processing, telecom expenses, claims operations, or something else?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "ai-agentic-services",
+      "business-services-overview",
+    ],
+    expectedEvidencePrimaryIds: [
+      "ai-agentic-services",
+      "business-services-overview",
+    ],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "standalone-healthcare-fresh",
+    consistencyGroup: "healthcare-operations",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can OneSmarter help a healthcare operations team with?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "technology-solutions-overview",
+    ],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "standalone-healthcare-after-unrelated-discussion",
+    consistencyGroup: "healthcare-operations",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can OneSmarter help a healthcare operations team with?",
+    conversationHistory: [
+      { role: "user", content: "Tell me about Bill Audit & Bill Pay." },
+      {
+        role: "assistant",
+        content: "Bill Audit & Bill Pay supports vendor-bill workflows.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "technology-solutions-overview",
+    ],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "standalone-modernization-after-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me what OneSmarter offers for modernization.",
+    conversationHistory: [
+      { role: "user", content: "Which platform is best?" },
+      {
+        role: "assistant",
+        content: "What workflow are you trying to improve?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedEvidencePrimaryIds: [
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+    ],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "standalone-direct-answer-resets-stale-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does Bill Audit & Bill Pay support?",
+    conversationHistory: [
+      { role: "user", content: "Which platform is best?" },
+      {
+        role: "assistant",
+        content: "What workflow are you trying to improve?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["bill-audit-bill-pay"],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+    expectedAnswerCompletenessStatus: "complete",
+  },
+  {
+    id: "standalone-ai-request-resets-stale-recommendation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We want to automate repetitive workflows using AI agents.",
+    conversationHistory: [
+      {
+        role: "user",
+        content: "We need vendor bill discrepancies and approval tracking.",
+      },
+      {
+        role: "assistant",
+        content: "Recommended option: Bill Audit & Bill Pay.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["ai-agentic-services"],
+    forbiddenSourceIds: ["bill-audit-bill-pay"],
+    expectedTurnRelation: "standalone_new_request",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "turn-classification-preserves-valid-refinement",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We also need approval tracking.",
+    conversationHistory: [
+      { role: "user", content: "We need vendor bill review." },
+      {
+        role: "assistant",
+        content:
+          "Do you mainly need discrepancy tracking, approvals, payment workflows, recurring expense analysis, or a combination?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedTurnRelation: "refinement",
+    expectedCurrentTurnAnswerability: "needs_clarification",
+    expectedAnswerIncludes: "discrepancy tracking",
+  },
+  {
+    id: "turn-classification-preserves-valid-reference",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain the second one.",
+    conversationHistory: [
+      { role: "user", content: "What are your main platforms?" },
+      {
+        role: "assistant",
+        content:
+          "1. Secure Ticketing and Case Management\n2. Bill Audit & Bill Pay",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["bill-audit-bill-pay"],
+    expectedTurnRelation: "reference_to_prior_turn",
+    expectedCurrentTurnAnswerability: "answerable",
+  },
+  {
+    id: "turn-classification-preserves-safety",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Can I upload patient records?",
+    conversationHistory: [
+      { role: "user", content: "What are your main platforms?" },
+      {
+        role: "assistant",
+        content: "OneSmarter offers two platforms.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedCurrentTurnAnswerability: "safety",
+  },
 ];
+
+const consistencyResults = new Map();
 
 for (const modeCase of modeCases) {
   resetMiraRateLimitForTests();
@@ -3286,6 +3497,24 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected answer completeness ${modeCase.expectedAnswerCompletenessStatus}.`,
+    );
+  }
+  if (
+    modeCase.expectedTurnRelation &&
+    result.body.turnContext?.relationToConversation !==
+      modeCase.expectedTurnRelation
+  ) {
+    fail(
+      `${modeCase.id}: expected turn relation ${modeCase.expectedTurnRelation}, got ${result.body.turnContext?.relationToConversation}.`,
+    );
+  }
+  if (
+    modeCase.expectedCurrentTurnAnswerability &&
+    result.body.turnContext?.currentTurnAnswerability !==
+      modeCase.expectedCurrentTurnAnswerability
+  ) {
+    fail(
+      `${modeCase.id}: expected current-turn answerability ${modeCase.expectedCurrentTurnAnswerability}, got ${result.body.turnContext?.currentTurnAnswerability}.`,
     );
   }
   if (Number.isFinite(modeCase.expectedAnswerQuestionCount)) {
@@ -3361,6 +3590,23 @@ for (const modeCase of modeCases) {
         `${modeCase.id}: expected primary evidence [${modeCase.expectedEvidencePrimaryIds}], got [${actualPrimaryIds}].`,
       );
     }
+  }
+  if (modeCase.consistencyGroup) {
+    const signature = JSON.stringify({
+      sourceIds: (result.body.matchedSources || []).map((source) => source.id),
+      primaryIds: (result.body.evidenceSelection?.primary || []).map(
+        (entity) => entity.id,
+      ),
+      answerability: result.body.turnContext?.currentTurnAnswerability,
+      answer: result.body.answer,
+    });
+    const previousSignature = consistencyResults.get(modeCase.consistencyGroup);
+    if (previousSignature && previousSignature !== signature) {
+      fail(
+        `${modeCase.id}: response differs from the fresh ${modeCase.consistencyGroup} response.`,
+      );
+    }
+    consistencyResults.set(modeCase.consistencyGroup, signature);
   }
   if (modeCase.expectedConversationEntityIds) {
     const actualEntityIds = (result.body.conversationEntities || []).map(

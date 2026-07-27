@@ -475,6 +475,7 @@ export const handleMiraChatRequest = async ({
       handoffReason: result.handoffReason || null,
       matchedSources: compactSources(result.matchedEntries),
       evidenceSelection: result.evidenceSelection,
+      turnContext: result.turnContext,
       conversationEntities: responseConversationEntities,
       conversationEntityGroups: buildConversationEntityGroups(
         normalizedHistory.history,
