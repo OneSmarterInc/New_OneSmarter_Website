@@ -29,6 +29,7 @@ import {
   classifyMiraTurnContext,
   currentTurnAnswerabilityFor,
 } from "./miraTurnContext.js";
+import { resolveMiraListingRequest } from "./miraListingIntents.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -673,6 +674,14 @@ export const runMiraResponseAdapter = async ({
     ...localHarness(retrievalMessage),
     question: message,
   };
+  const listingResolution =
+    (directEntityResolution?.status === "resolved" &&
+      !/\b(?:list|all)\b/i.test(message)) ||
+    /\b(?:main platforms|platforms do you offer|your platforms)\b/i.test(
+      message,
+    )
+      ? null
+      : resolveMiraListingRequest(message, relevantConversationHistory);
   const relevantFactResolution = resolveMiraRelevantFacts(message);
   const recommendationResolution = resolveMiraRecommendation(
     message,
@@ -705,6 +714,25 @@ export const runMiraResponseAdapter = async ({
       resolvedConversationEntities: [unsupportedResolution.entity],
       clarificationNeeded: false,
       unsupportedHandled: true,
+    };
+  } else if (listingResolution && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence: "high",
+      matchedEntries: listingResolution.matchedEntries,
+      answerSeed: listingResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: listingResolution.entities,
+      listingIntent: listingResolution.intent,
+      listingHandled: true,
+      clarificationNeeded: false,
+      answerStructureKind:
+        listingResolution.intent === "list_services_and_platforms" ||
+        listingResolution.intent === "reorganize_previous_list"
+          ? ""
+          : "list",
     };
   } else if (relevantFactResolution && !localResult.riskFlags.length) {
     localResult = {
@@ -834,7 +862,8 @@ export const runMiraResponseAdapter = async ({
       needsFollowUpClarification(message, relevantConversationHistory)) &&
     !localResult.riskFlags.length &&
     !localResult.recommendationHandled &&
-    !localResult.comparisonHandled
+    !localResult.comparisonHandled &&
+    !localResult.listingHandled
   ) {
     localResult = {
       ...localResult,

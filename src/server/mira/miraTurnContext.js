@@ -6,6 +6,8 @@ const EXPLICIT_REFINEMENT =
   /^\s*(?:we\s+)?(?:also|additionally|in addition|as well)\b|\b(?:specifically|in particular|more precisely|for that|within that)\b/i;
 const EXPLICIT_FOLLOW_UP =
   /^\s*(?:and\s+)?(?:why|how|when|where)\s+(?:does|do|is|are|would|should)\s+(?:it|that|this|they)\b/i;
+const REORGANIZE_PREVIOUS =
+  /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type|the above|them)\b/i;
 
 export const classifyMiraTurnContext = (
   message = "",
@@ -20,6 +22,8 @@ export const classifyMiraTurnContext = (
     relationToConversation = "reference_to_prior_turn";
   } else if (hasHistory && EXPLICIT_REFINEMENT.test(message)) {
     relationToConversation = "refinement";
+  } else if (hasHistory && REORGANIZE_PREVIOUS.test(message)) {
+    relationToConversation = "reference_to_prior_turn";
   } else if (hasHistory && EXPLICIT_FOLLOW_UP.test(message)) {
     relationToConversation = "explicit_follow_up";
   } else if (

@@ -3705,6 +3705,206 @@ const modeCases = [
       "software-support-consolidation",
     ],
   },
+  {
+    id: "listing-intent-explain-enterprise-child",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about Enterprise Software Development.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedConversationEntityIds: ["enterprise-software-development"],
+    expectedAnswerIncludesAll: [
+      "Enterprise Software Development",
+      "approved service area within OneSmarter Technology Solutions",
+    ],
+    expectedAnswerExcludesAll: ["Claims Processing Services", "AI Agentic Services"],
+  },
+  {
+    id: "listing-intent-platforms-only",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "List all OneSmarter platforms.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRequestIntent: "list_platforms",
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerExcludesAll: [
+      "Healthcare & TPA Technology Services",
+      "Claims Processing Services",
+      "AI Agentic Services",
+    ],
+  },
+  {
+    id: "listing-intent-services-only",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "List all OneSmarter services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRequestIntent: "list_services",
+    expectedConversationEntityIds: [
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+    expectedConversationEntityTypes: [
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+    ],
+    expectedAnswerExcludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+    ],
+  },
+  {
+    id: "listing-intent-services-and-platforms",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Give me a list of all services of OneSmarter and a list of all platforms of OneSmarter.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRequestIntent: "list_services_and_platforms",
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+    expectedAnswerStartsWith: "Platforms\n",
+    expectedAnswerIncludesAll: [
+      "Platforms",
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+      "Services",
+      "Healthcare & TPA Technology Services",
+      "Software Support Consolidation",
+    ],
+    expectedAnswerExcludesAll: [
+      "Key difference",
+      "Which platforms or services would you like me to compare",
+    ],
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "listing-intent-reorganize-previous-list",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "In the above, properly bifurcate services and platforms.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "A mixed list of platforms and services was returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+          { id: "healthcare-tpa-technology-services", level: 1 },
+          { id: "claims-processing-services", level: 1 },
+          { id: "ai-agentic-services", level: 1 },
+          { id: "ibm-i-as400-services", level: 1 },
+          { id: "enterprise-software-development", level: 1 },
+          { id: "software-support-consolidation", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRequestIntent: "reorganize_previous_list",
+    expectedTurnRelation: "reference_to_prior_turn",
+    expectedAnswerStartsWith: "Platforms\n",
+    expectedAnswerIncludesAll: ["Platforms", "Services"],
+    expectedAnswerExcludesAll: [
+      "Key difference",
+      "Which platforms or services would you like me to compare",
+    ],
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "listing-intent-explicit-comparison-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare Secure Ticketing and Bill Audit & Bill Pay.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedAnswerIncludes: "Key difference",
+  },
+  {
+    id: "listing-intent-separate-ordinals-by-type",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Separate the first and second by type.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Two mixed grounded offerings were returned.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "ai-agentic-services", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRequestIntent: "reorganize_previous_list",
+    expectedTurnRelation: "reference_to_prior_turn",
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "ai-agentic-services",
+    ],
+    expectedAnswerIncludesAll: [
+      "Platforms",
+      "Secure Ticketing and Case Management",
+      "Services",
+      "AI Agentic Services",
+    ],
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "listing-intent-typo-services-and-platforms",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "list all platfporms and servies",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRequestIntent: "list_services_and_platforms",
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+      "healthcare-tpa-technology-services",
+      "claims-processing-services",
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+      "software-support-consolidation",
+    ],
+    expectedAnswerIncludesAll: ["Platforms", "Services"],
+    expectedComparisonAbsent: true,
+  },
 ];
 
 const consistencyResults = new Map();
@@ -3786,6 +3986,14 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected turn relation ${modeCase.expectedTurnRelation}, got ${result.body.turnContext?.relationToConversation}.`,
+    );
+  }
+  if (
+    modeCase.expectedRequestIntent &&
+    result.body.requestIntent !== modeCase.expectedRequestIntent
+  ) {
+    fail(
+      `${modeCase.id}: expected request intent ${modeCase.expectedRequestIntent}, got ${result.body.requestIntent}.`,
     );
   }
   if (
@@ -3951,6 +4159,9 @@ for (const modeCase of modeCases) {
     fail(
       `${modeCase.id}: expected comparison status ${modeCase.expectedComparisonStatus}.`,
     );
+  }
+  if (modeCase.expectedComparisonAbsent && result.body.comparison) {
+    fail(`${modeCase.id}: did not expect comparison output.`);
   }
   if (modeCase.expectedComparisonOptionIds) {
     const actualOptionIds = (result.body.comparison?.options || []).map(
