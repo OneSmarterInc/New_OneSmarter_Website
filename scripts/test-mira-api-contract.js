@@ -3027,6 +3027,195 @@ const modeCases = [
     expectedMissingRequirements: ["workflow"],
     expectedAnswerIncludes: "What workflow are you trying to improve",
   },
+  {
+    id: "evidence-ranking-direct-audit-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What supports audit history?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["secure-ticketing-case-management"],
+    expectedEvidencePrimaryIds: ["secure-ticketing-case-management"],
+    expectedAnswerIncludes: "Secure Ticketing and Case Management",
+    expectedAnswerExcludesAll: ["Bill Audit & Bill Pay", "Related approved topics"],
+  },
+  {
+    id: "evidence-ranking-broad-healthcare",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can OneSmarter do for healthcare operations?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "technology-solutions-overview",
+    ],
+    expectedEvidencePrimaryIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+      "healthcare-tpa-technology-services",
+    ],
+    forbiddenSourceIds: ["hipaa-security-rule-assessment"],
+  },
+  {
+    id: "evidence-ranking-modernization",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does OneSmarter offer for modernization?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedEvidencePrimaryIds: [
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+    ],
+    forbiddenSourceIds: [
+      "company-overview",
+      "bill-audit-bill-pay",
+      "secure-ticketing-case-management",
+      "ai-agentic-services",
+    ],
+  },
+  {
+    id: "evidence-ranking-telecom",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can help with telecom expenses?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["bill-audit-bill-pay"],
+    expectedEvidencePrimaryIds: ["bill-audit-bill-pay"],
+    expectedAnswerIncludesAll: ["Bill Audit & Bill Pay", "telecom expense management"],
+  },
+  {
+    id: "evidence-ranking-ai-automation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can help automate repetitive business workflows?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["ai-agentic-services"],
+    expectedEvidencePrimaryIds: ["ai-agentic-services"],
+  },
+  {
+    id: "evidence-ranking-multi-need",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need case tracking and vendor bill approvals.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedEvidencePrimaryIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "evidence-ranking-explicit-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare AS400 Services and AI Agentic Services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: [
+      "technology-solutions-overview",
+      "ai-agentic-services",
+    ],
+    expectedEvidencePrimaryIds: [
+      "ibm-i-as400-services",
+      "ai-agentic-services",
+    ],
+    expectedComparisonStatus: "complete",
+  },
+  {
+    id: "evidence-ranking-recommendation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need vendor bill discrepancy tracking.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["bill-audit-bill-pay"],
+    expectedEvidencePrimaryIds: ["bill-audit-bill-pay"],
+  },
+  {
+    id: "evidence-ranking-topic-change",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What can help automate repetitive business workflows?",
+    conversationHistory: [
+      { role: "user", content: "What is Bill Audit & Bill Pay?" },
+      {
+        role: "assistant",
+        content: "Bill Audit & Bill Pay supports vendor bill workflows.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["ai-agentic-services"],
+    expectedEvidencePrimaryIds: ["ai-agentic-services"],
+    forbiddenSourceIds: ["bill-audit-bill-pay"],
+  },
+  {
+    id: "evidence-ranking-unsupported-detail",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Does Bill Audit & Bill Pay integrate with SAP?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["bill-audit-bill-pay"],
+    expectedEvidencePrimaryIds: ["bill-audit-bill-pay"],
+    expectedAnswerIncludes: "does not confirm",
+  },
+  {
+    id: "evidence-ranking-fuzzy-entity",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What is Bill Aduitt and Bill Pay?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["bill-audit-bill-pay"],
+    expectedEvidencePrimaryIds: ["bill-audit-bill-pay"],
+  },
+  {
+    id: "evidence-ranking-stale-history-suppression",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What supports audit history?",
+    conversationHistory: [
+      { role: "user", content: "Tell me about AI Agentic Services." },
+      {
+        role: "assistant",
+        content: "AI Agentic Services support controlled automation.",
+      },
+      { role: "user", content: "Tell me about Bill Audit & Bill Pay." },
+      {
+        role: "assistant",
+        content: "Bill Audit & Bill Pay supports vendor bill review.",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["secure-ticketing-case-management"],
+    expectedEvidencePrimaryIds: ["secure-ticketing-case-management"],
+    forbiddenSourceIds: ["ai-agentic-services", "bill-audit-bill-pay"],
+  },
+  {
+    id: "evidence-ranking-parent-child-deduplication",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does OneSmarter offer for modernization?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedExactSourceIds: ["technology-solutions-overview"],
+    expectedEvidencePrimaryIds: [
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+    ],
+  },
 ];
 
 for (const modeCase of modeCases) {
@@ -3145,6 +3334,32 @@ for (const modeCase of modeCases) {
   for (const sourceId of modeCase.expectedSourceIds || []) {
     if (!result.body.matchedSources?.some((source) => source.id === sourceId)) {
       fail(`${modeCase.id}: missing matched source ${sourceId}.`);
+    }
+  }
+  if (modeCase.expectedExactSourceIds) {
+    const actualSourceIds = (result.body.matchedSources || []).map(
+      (source) => source.id,
+    );
+    if (
+      JSON.stringify(actualSourceIds) !==
+      JSON.stringify(modeCase.expectedExactSourceIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected exact sources [${modeCase.expectedExactSourceIds}], got [${actualSourceIds}].`,
+      );
+    }
+  }
+  if (modeCase.expectedEvidencePrimaryIds) {
+    const actualPrimaryIds = (result.body.evidenceSelection?.primary || []).map(
+      (entity) => entity.id,
+    );
+    if (
+      JSON.stringify(actualPrimaryIds) !==
+      JSON.stringify(modeCase.expectedEvidencePrimaryIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected primary evidence [${modeCase.expectedEvidencePrimaryIds}], got [${actualPrimaryIds}].`,
+      );
     }
   }
   if (modeCase.expectedConversationEntityIds) {

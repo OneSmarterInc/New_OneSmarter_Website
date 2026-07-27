@@ -21,6 +21,10 @@ import {
   resolveMiraDecisionRequest,
 } from "./miraComparisons.js";
 import { resolveMiraEntityText } from "./miraEntityResolver.js";
+import {
+  applyMiraEvidenceSelection,
+  resolveMiraRelevantFacts,
+} from "./miraEvidenceSelection.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -632,6 +636,7 @@ export const runMiraResponseAdapter = async ({
     ...localHarness(retrievalMessage),
     question: message,
   };
+  const relevantFactResolution = resolveMiraRelevantFacts(message);
   const recommendationResolution = resolveMiraRecommendation(
     message,
     conversationHistory,
@@ -663,6 +668,22 @@ export const runMiraResponseAdapter = async ({
       resolvedConversationEntities: [unsupportedResolution.entity],
       clarificationNeeded: false,
       unsupportedHandled: true,
+    };
+  } else if (relevantFactResolution && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence: "high",
+      matchedEntries: relevantFactResolution.matchedEntries,
+      answerSeed: relevantFactResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: relevantFactResolution.entities,
+      evidenceSelection: relevantFactResolution.evidenceSelection,
+      evidenceQueryHandled: true,
+      clarificationNeeded: false,
+      answerStructureKind:
+        relevantFactResolution.entities.length > 1 ? "list" : "",
     };
   } else if (decisionResolution && !localResult.riskFlags.length) {
     localResult = {
@@ -791,6 +812,10 @@ export const runMiraResponseAdapter = async ({
     };
   }
 
+  localResult = applyMiraEvidenceSelection(localResult, {
+    initialMatchedEntries: initialLocalResult.matchedEntries,
+  });
+
   if (
     config?.mode === STAGING_LLM_MODE &&
     config?.provider === "openai"
@@ -827,6 +852,8 @@ export const runMiraResponseAdapter = async ({
         ? "Provide only the grounded comparison and decision guidance represented by the supplied approved context. Do not invent pricing, integrations, implementation timelines, performance claims, guarantees, or unsupported limitations."
         : localResult.recommendation
         ? "Provide only the grounded recommendation represented by the supplied approved context. Do not invent features, pricing, timelines, integrations, guarantees, or compliance claims."
+        : localResult.evidenceQueryHandled
+        ? "Answer only with the selected primary evidence for the current question. Do not add loosely related offerings or historical topics."
         : referenceResolution.isComparison
         ? `Compare only these selected grounded entities: ${referenceResolution.entities
             .map((entity) => entity.label)
