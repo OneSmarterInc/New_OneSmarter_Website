@@ -3905,6 +3905,200 @@ const modeCases = [
     expectedAnswerIncludesAll: ["Platforms", "Services"],
     expectedComparisonAbsent: true,
   },
+  {
+    id: "response-mode-company-overview",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me more about OneSmarter.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedFastPath: true,
+    expectedAnswerIncludesAll: [
+      "secure platforms",
+      "Technology services",
+      "Practical AI",
+      "Business services",
+      "Trust Center",
+    ],
+    expectedAnswerExcludesAll: [
+      "Which platforms or services would you like me to compare",
+      "Key difference",
+    ],
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "response-mode-company-overview-ignores-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me more about OneSmarter.",
+    conversationHistory: [
+      { role: "user", content: "Compare the two platforms." },
+      {
+        role: "assistant",
+        content: "The two platforms serve different workflows.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedFastPath: true,
+    expectedTurnRelation: "standalone_new_request",
+    expectedAnswerIncludes: "OneSmarter builds secure platforms",
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "response-mode-negated-comparison-names-only",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "I don't want to compare, just tell me their names.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Here are the two grounded options.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedFastPath: true,
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "response-mode-detailed-healthcare-correction",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "No, I mean explain healthcare in detail, not all services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "detailed_explanation",
+    expectedFastPath: true,
+    expectedAnswerIncludesAll: [
+      "Healthcare & TPA Technology Services",
+      "Claims Processing Services",
+      "Secure Ticketing and Case Management",
+    ],
+    expectedAnswerExcludesAll: [
+      "AI Agentic Services",
+      "IBM i / AS400 Services",
+      "Software Support Consolidation",
+    ],
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "response-mode-acknowledgement",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "ok",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "acknowledgement",
+    expectedFastPath: true,
+    expectedAnswerExact: "Sure.",
+    expectedExactSourceIds: [],
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "response-mode-concise-direct-entity",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Tell me about AS400.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "concise_explanation",
+    expectedFastPath: true,
+    expectedConversationEntityIds: ["ibm-i-as400-services"],
+    expectedAnswerIncludes: "IBM i / AS400 Services",
+    expectedAnswerExcludesAll: ["AI Agentic Services", "Claims Processing Services"],
+  },
+  {
+    id: "response-mode-platform-list",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "List all platforms.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "list",
+    expectedFastPath: true,
+    expectedRequestIntent: "list_platforms",
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "response-mode-platform-names-only",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Give me all platforms, names only.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedFastPath: true,
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+  },
+  {
+    id: "response-mode-detailed-child-service",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain AI Agentic Services in detail.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "detailed_explanation",
+    expectedConversationEntityIds: ["ai-agentic-services"],
+    expectedAnswerIncludesAll: [
+      "AI Agentic Services",
+      "controlled automation",
+      "document workflows",
+    ],
+  },
+  {
+    id: "response-mode-comparison-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare AI Agentic Services with AS400 Services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "comparison",
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+    ],
+  },
+  {
+    id: "response-mode-recommendation-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Which platform is best for vendor bill approvals?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "recommendation",
+    expectedRecommendationStatus: "recommended",
+    expectedRecommendationPrimaryId: "bill-audit-bill-pay",
+  },
+  {
+    id: "response-mode-safety-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Can I upload patient records?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedResponseMode: "safety",
+    expectedFastPath: true,
+    expectedRiskFlags: ["phi_or_confidential_data"],
+  },
 ];
 
 const consistencyResults = new Map();
@@ -3997,6 +4191,22 @@ for (const modeCase of modeCases) {
     );
   }
   if (
+    modeCase.expectedResponseMode &&
+    result.body.responseMode?.mode !== modeCase.expectedResponseMode
+  ) {
+    fail(
+      `${modeCase.id}: expected response mode ${modeCase.expectedResponseMode}, got ${result.body.responseMode?.mode}.`,
+    );
+  }
+  if (
+    typeof modeCase.expectedFastPath === "boolean" &&
+    Boolean(result.body.responseMode?.fastPath) !== modeCase.expectedFastPath
+  ) {
+    fail(
+      `${modeCase.id}: expected fastPath=${modeCase.expectedFastPath}, got ${result.body.responseMode?.fastPath}.`,
+    );
+  }
+  if (
     modeCase.expectedCurrentTurnAnswerability &&
     result.body.turnContext?.currentTurnAnswerability !==
       modeCase.expectedCurrentTurnAnswerability
@@ -4019,6 +4229,14 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected answer to start with ${modeCase.expectedAnswerStartsWith}.`,
+    );
+  }
+  if (
+    typeof modeCase.expectedAnswerExact === "string" &&
+    result.body.answer !== modeCase.expectedAnswerExact
+  ) {
+    fail(
+      `${modeCase.id}: expected exact answer ${JSON.stringify(modeCase.expectedAnswerExact)}, got ${JSON.stringify(result.body.answer)}.`,
     );
   }
   if (

@@ -30,6 +30,13 @@ import {
   currentTurnAnswerabilityFor,
 } from "./miraTurnContext.js";
 import { resolveMiraListingRequest } from "./miraListingIntents.js";
+import {
+  acknowledgementAnswerFor,
+  classifyMiraResponseMode,
+  RESPONSE_MODE_BUDGETS,
+  resolveMiraNamesOnly,
+  resolveMiraResponseModeFastPath,
+} from "./miraResponseModes.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -621,7 +628,12 @@ export const runMiraResponseAdapter = async ({
     return unavailableResponse(message);
   }
 
-  const turnContext = classifyMiraTurnContext(message, conversationHistory);
+  const responseMode = classifyMiraResponseMode(message, conversationHistory);
+  const turnContext = classifyMiraTurnContext(
+    message,
+    conversationHistory,
+    responseMode.mode,
+  );
   const relevantConversationHistory = turnContext.usesHistory
     ? conversationHistory
     : [];
@@ -630,10 +642,37 @@ export const runMiraResponseAdapter = async ({
     const result = withFallbackMetadata(safetyResult, "pre_call_safety_gate");
     return {
       ...result,
+      responseMode: {
+        mode: "safety",
+        budget: { maxSentences: 3, shape: "safety_hard_stop" },
+        fastPath: true,
+      },
       turnContext: {
         ...turnContext,
         currentTurnAnswerability: currentTurnAnswerabilityFor(result),
       },
+    };
+  }
+
+  if (responseMode.mode === "acknowledgement") {
+    return {
+      question: message,
+      normalizedQuestion: message.toLowerCase(),
+      riskFlags: [],
+      confidence: "high",
+      matchedEntries: [],
+      answerSeed: acknowledgementAnswerFor(message),
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      responseMode: { ...responseMode, fastPath: true },
+      turnContext: {
+        ...turnContext,
+        currentTurnAnswerability: "answerable",
+      },
+      mode: LOCAL_HARNESS_MODE,
+      fallbackUsed: false,
+      fallbackReason: "",
     };
   }
 
@@ -664,12 +703,13 @@ export const runMiraResponseAdapter = async ({
     relevantConversationHistory,
   );
   const comparisonIntent =
-    isMiraComparisonIntent(message) ||
+    responseMode.mode === "comparison" &&
+    (isMiraComparisonIntent(message) ||
     isComparisonIntent(message) ||
     (historyHasPlatformOptions(relevantConversationHistory) &&
       /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
         message,
-      ));
+      )));
   const initialLocalResult = {
     ...localHarness(retrievalMessage),
     question: message,
@@ -682,6 +722,14 @@ export const runMiraResponseAdapter = async ({
     )
       ? null
       : resolveMiraListingRequest(message, relevantConversationHistory);
+  const namesOnlyResolution =
+    responseMode.mode === "names_only"
+      ? resolveMiraNamesOnly(message, relevantConversationHistory)
+      : null;
+  const responseModeFastPath = resolveMiraResponseModeFastPath(
+    message,
+    responseMode,
+  );
   const relevantFactResolution = resolveMiraRelevantFacts(message);
   const recommendationResolution = resolveMiraRecommendation(
     message,
@@ -699,7 +747,36 @@ export const runMiraResponseAdapter = async ({
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
 
-  if (unsupportedResolution && !localResult.riskFlags.length) {
+  if (namesOnlyResolution && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence: "high",
+      matchedEntries: namesOnlyResolution.matchedEntries,
+      answerSeed: namesOnlyResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: namesOnlyResolution.entities,
+      listingHandled: true,
+      clarificationNeeded: false,
+      answerStructureKind: "",
+      fastPathHandled: true,
+    };
+  } else if (responseModeFastPath && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence: "high",
+      matchedEntries: responseModeFastPath.matchedEntries,
+      answerSeed: responseModeFastPath.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: responseModeFastPath.entities,
+      clarificationNeeded: false,
+      answerStructureKind: "",
+      fastPathHandled: true,
+    };
+  } else if (unsupportedResolution && !localResult.riskFlags.length) {
     const matchedEntries = matchedEntriesForConversationEntities([
       unsupportedResolution.entity,
     ]);
@@ -863,7 +940,8 @@ export const runMiraResponseAdapter = async ({
     !localResult.riskFlags.length &&
     !localResult.recommendationHandled &&
     !localResult.comparisonHandled &&
-    !localResult.listingHandled
+    !localResult.listingHandled &&
+    !localResult.fastPathHandled
   ) {
     localResult = {
       ...localResult,
@@ -882,8 +960,36 @@ export const runMiraResponseAdapter = async ({
   localResult = applyMiraEvidenceSelection(localResult, {
     initialMatchedEntries: initialLocalResult.matchedEntries,
   });
+  const effectiveResponseMode = localResult.unsupportedHandled
+    ? {
+        ...responseMode,
+        mode: "unsupported_request",
+        budget: RESPONSE_MODE_BUDGETS.unsupported_request,
+      }
+    : localResult.clarificationNeeded &&
+        !["comparison", "recommendation"].includes(responseMode.mode)
+      ? {
+          ...responseMode,
+          mode: "clarification_response",
+          budget: RESPONSE_MODE_BUDGETS.clarification_response,
+        }
+      : responseMode;
   localResult = {
     ...localResult,
+    responseMode: {
+      ...effectiveResponseMode,
+      fastPath: Boolean(
+        localResult.fastPathHandled ||
+          localResult.listingHandled ||
+          localResult.evidenceQueryHandled ||
+          (directEntityResolution?.status === "resolved" &&
+            responseMode.mode !== "detailed_explanation") ||
+          referenceResolution.kind === "resolved",
+      ),
+      skipModel:
+        Boolean(localResult.fastPathHandled) &&
+        effectiveResponseMode.mode === "names_only",
+    },
     turnContext: {
       ...turnContext,
       currentTurnAnswerability: currentTurnAnswerabilityFor(localResult),
@@ -894,6 +1000,14 @@ export const runMiraResponseAdapter = async ({
     config?.mode === STAGING_LLM_MODE &&
     config?.provider === "openai"
   ) {
+    if (localResult.responseMode.skipModel) {
+      return {
+        ...localResult,
+        mode: LOCAL_HARNESS_MODE,
+        fallbackUsed: false,
+        fallbackReason: "",
+      };
+    }
     if (localResult.clarificationNeeded) {
       return withFallbackMetadata(localResult, "follow_up_clarification");
     }
@@ -939,6 +1053,12 @@ export const runMiraResponseAdapter = async ({
             "Include a short key-difference summary.",
             "Do not expose source-note wording such as related topics, route guidance, retrieved context, or page language.",
           ].join(" ")
+        : responseMode.mode === "overview"
+        ? "Give a concise company overview using only the strongest approved areas. Do not turn the answer into a comparison or a full service catalog."
+        : responseMode.mode === "detailed_explanation"
+        ? "Give a focused detailed explanation of only the current topic. Exclude unrelated services and preserve primary-evidence priority."
+        : responseMode.mode === "concise_explanation"
+        ? "Answer directly in one short paragraph or two to four concise bullets using only approved context."
         : "",
     };
     const promptPayload = buildMiraPromptPayload({

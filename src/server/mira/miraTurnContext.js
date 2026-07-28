@@ -12,11 +12,18 @@ const REORGANIZE_PREVIOUS =
 export const classifyMiraTurnContext = (
   message = "",
   conversationHistory = [],
+  responseMode = "",
 ) => {
   const hasHistory = conversationHistory.length > 0;
   let relationToConversation = "standalone_new_request";
 
-  if (hasHistory && PRIOR_COMPARISON.test(message)) {
+  if (
+    ["overview", "acknowledgement"].includes(responseMode)
+  ) {
+    relationToConversation = "standalone_new_request";
+  } else if (hasHistory && responseMode === "names_only") {
+    relationToConversation = "reference_to_prior_turn";
+  } else if (hasHistory && PRIOR_COMPARISON.test(message)) {
     relationToConversation = "comparison_with_prior_options";
   } else if (hasHistory && PRIOR_REFERENCE.test(message)) {
     relationToConversation = "reference_to_prior_turn";
