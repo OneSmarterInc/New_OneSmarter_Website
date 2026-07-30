@@ -37,6 +37,7 @@ import {
   resolveMiraNamesOnly,
   resolveMiraResponseModeFastPath,
 } from "./miraResponseModes.js";
+import { normalizeMiraUserMessage } from "./miraUserMessageNormalizer.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -628,20 +629,26 @@ export const runMiraResponseAdapter = async ({
     return unavailableResponse(message);
   }
 
-  const responseMode = classifyMiraResponseMode(message, conversationHistory);
+  const messageNormalization = normalizeMiraUserMessage(message);
+  const classificationMessage = messageNormalization.normalizedMessage;
+  const responseMode = classifyMiraResponseMode(
+    classificationMessage,
+    conversationHistory,
+  );
   const turnContext = classifyMiraTurnContext(
-    message,
+    classificationMessage,
     conversationHistory,
     responseMode.mode,
   );
   const relevantConversationHistory = turnContext.usesHistory
     ? conversationHistory
     : [];
-  const safetyResult = runMiraSafetyGate(message);
+  const safetyResult = runMiraSafetyGate(classificationMessage);
   if (safetyResult) {
     const result = withFallbackMetadata(safetyResult, "pre_call_safety_gate");
     return {
       ...result,
+      messageNormalization,
       responseMode: {
         mode: "safety",
         budget: { maxSentences: 3, shape: "safety_hard_stop" },
@@ -657,11 +664,12 @@ export const runMiraResponseAdapter = async ({
   if (responseMode.mode === "acknowledgement") {
     return {
       question: message,
-      normalizedQuestion: message.toLowerCase(),
+      normalizedQuestion: classificationMessage.toLowerCase(),
+      messageNormalization,
       riskFlags: [],
       confidence: "high",
       matchedEntries: [],
-      answerSeed: acknowledgementAnswerFor(message),
+      answerSeed: acknowledgementAnswerFor(classificationMessage),
       handoffNeeded: false,
       handoffReason: "",
       suggestedFollowUps: [],
@@ -677,70 +685,77 @@ export const runMiraResponseAdapter = async ({
   }
 
   const directEntityRequest =
-    /\b(?:tell me about|what (?:is|are|does)|explain|describe)\b/i.test(message);
+    /\b(?:tell me about|what (?:is|are|does)|explain|describe)\b/i.test(
+      classificationMessage,
+    );
   const implementationSpecificRequest =
     /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?|how long|timeline|timeframe)\b/i.test(
-      message,
+      classificationMessage,
     );
   const directEntityResolution =
     directEntityRequest || implementationSpecificRequest
-    ? resolveMiraEntityText(message)
+    ? resolveMiraEntityText(classificationMessage)
     : null;
   const unsupportedResolution = unsupportedImplementationAnswer(
-    message,
+    classificationMessage,
     directEntityResolution,
   );
   const referenceResolution = resolveMiraConversationReference(
-    message,
+    classificationMessage,
     relevantConversationHistory,
   );
   const retrievalMessage = buildContextualRetrievalMessage(
-    message,
+    classificationMessage,
     relevantConversationHistory,
   );
   const activeSubject = resolveActiveSubject(
-    message,
+    classificationMessage,
     relevantConversationHistory,
   );
   const comparisonIntent =
     responseMode.mode === "comparison" &&
-    (isMiraComparisonIntent(message) ||
-    isComparisonIntent(message) ||
+    (isMiraComparisonIntent(classificationMessage) ||
+    isComparisonIntent(classificationMessage) ||
     (historyHasPlatformOptions(relevantConversationHistory) &&
       /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
-        message,
+        classificationMessage,
       )));
   const initialLocalResult = {
     ...localHarness(retrievalMessage),
     question: message,
+    originalMessage: messageNormalization.originalMessage,
+    normalizedMessage: classificationMessage,
   };
   const listingResolution =
     (directEntityResolution?.status === "resolved" &&
-      !/\b(?:list|all)\b/i.test(message)) ||
+      !/\b(?:list|all)\b/i.test(classificationMessage)) ||
     /\b(?:main platforms|platforms do you offer|your platforms)\b/i.test(
-      message,
+      classificationMessage,
     )
       ? null
-      : resolveMiraListingRequest(message, relevantConversationHistory);
+      : resolveMiraListingRequest(
+          classificationMessage,
+          relevantConversationHistory,
+        );
   const namesOnlyResolution =
     responseMode.mode === "names_only"
-      ? resolveMiraNamesOnly(message, relevantConversationHistory)
+      ? resolveMiraNamesOnly(classificationMessage, relevantConversationHistory)
       : null;
   const responseModeFastPath = resolveMiraResponseModeFastPath(
-    message,
+    classificationMessage,
     responseMode,
   );
-  const relevantFactResolution = resolveMiraRelevantFacts(message);
+  const relevantFactResolution = resolveMiraRelevantFacts(classificationMessage);
   const recommendationResolution = resolveMiraRecommendation(
-    message,
+    classificationMessage,
     relevantConversationHistory,
   );
   const comparisonResolution = resolveMiraComparison(
-    message,
+    classificationMessage,
     relevantConversationHistory,
   );
   const decisionResolution = resolveMiraDecisionRequest(
-    message,
+    classificationMessage,
     relevantConversationHistory,
   );
   let localResult = comparisonIntent
@@ -857,7 +872,7 @@ export const runMiraResponseAdapter = async ({
       resolvedConversationEntities: comparisonResolution.entities,
       comparisonHandled: true,
       decisionIntent: classifyMiraDecisionIntent(
-        message,
+        classificationMessage,
         relevantConversationHistory,
       ).decisionIntent,
       clarificationNeeded:
@@ -886,13 +901,15 @@ export const runMiraResponseAdapter = async ({
     );
   } else if (
     referenceResolution.kind === "none" &&
-    /\b(main platforms|platforms do you offer|your platforms)\b/i.test(message)
+    /\b(main platforms|platforms do you offer|your platforms)\b/i.test(
+      classificationMessage,
+    )
   ) {
     localResult = withPlatformEntities(localResult);
   } else if (
     referenceResolution.kind === "none" &&
     /\b(main offerings|offerings do you have|offerings do you offer|your offerings)\b/i.test(
-      message,
+      classificationMessage,
     )
   ) {
     localResult = withMainOfferingEntities(localResult);
@@ -936,7 +953,10 @@ export const runMiraResponseAdapter = async ({
     ((referenceResolution.kind === "clarification" &&
       (referenceResolution.hadEntityContext ||
         !relevantConversationHistory.length)) ||
-      needsFollowUpClarification(message, relevantConversationHistory)) &&
+      needsFollowUpClarification(
+        classificationMessage,
+        relevantConversationHistory,
+      )) &&
     !localResult.riskFlags.length &&
     !localResult.recommendationHandled &&
     !localResult.comparisonHandled &&
@@ -976,6 +996,7 @@ export const runMiraResponseAdapter = async ({
       : responseMode;
   localResult = {
     ...localResult,
+    messageNormalization,
     responseMode: {
       ...effectiveResponseMode,
       fastPath: Boolean(

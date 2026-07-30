@@ -4,6 +4,7 @@ import {
   resetMiraRateLimitForTests,
 } from "../src/server/mira/chatCore.js";
 import { validateMiraFinalResponse } from "../src/server/mira/miraFinalResponseValidator.js";
+import { normalizeMiraUserMessage } from "../src/server/mira/miraUserMessageNormalizer.js";
 
 const failures = [];
 const ENV_KEYS = [
@@ -300,6 +301,38 @@ for (const validatorCase of finalValidatorCases) {
       `${validatorCase.id}: expected action ${validatorCase.expectedAction}, got ${validated.finalResponseValidation?.action}.`,
     );
   }
+}
+
+const sharedNormalizationCases = [
+  ["ttell me more about onesmarter", "tell me more about onesmarter"],
+  ["whhat are your main platfporms", "what are your main platforms"],
+  ["jst tell me ther names", "just tell me their names"],
+  ["comapre secure tickting and bill audit", "compare secure ticketing and bill audit"],
+  [
+    "wht supports role based access and audit history",
+    "what supports role based access and audit history",
+  ],
+  ["tlel me about helthcare", "tell me about healthcare"],
+  ["okayy", "okay"],
+  ["tell me abot moderniztion", "tell me about modernization"],
+];
+
+for (const [input, expected] of sharedNormalizationCases) {
+  const normalized = normalizeMiraUserMessage(input);
+  if (normalized.normalizedMessage !== expected) {
+    fail(
+      `shared-normalization: expected ${JSON.stringify(expected)}, got ${JSON.stringify(normalized.normalizedMessage)}.`,
+    );
+  }
+}
+
+const protectedNormalizationInput =
+  "Email Care@Test.com at https://Example.com/a??b about IBM i, AS 400, HIPAA, SOC 2, and PCI DSS.";
+if (
+  normalizeMiraUserMessage(protectedNormalizationInput).normalizedMessage !==
+  protectedNormalizationInput
+) {
+  fail("shared-normalization: protected technical terms were rewritten.");
 }
 
 const contains = (text, value) =>
@@ -4232,6 +4265,142 @@ const modeCases = [
     expectedFinalValidationAction: "keep",
     expectedFetchCalls: 0,
     expectedComparisonAbsent: true,
+  },
+  {
+    id: "shared-normalization-overview-control",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "tell me more about onesmarter",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedNormalizedMessage: "tell me more about onesmarter",
+    consistencyGroup: "normalized-overview",
+  },
+  {
+    id: "shared-normalization-duplicated-first-letter-overview",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "ttell me more about onesmarter",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedNormalizedMessage: "tell me more about onesmarter",
+    expectedNormalizationApplied: true,
+    consistencyGroup: "normalized-overview",
+  },
+  {
+    id: "shared-normalization-platform-list",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "whhat are your main platfporms",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "list",
+    expectedNormalizedMessage: "what are your main platforms",
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "shared-normalization-names-only-reference",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "jst tell me ther names",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "OneSmarter offers two platforms.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedNormalizedMessage: "just tell me their names",
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedComparisonAbsent: true,
+  },
+  {
+    id: "shared-normalization-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "comapre secure tickting and bill audit",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "comparison",
+    expectedNormalizedMessage: "compare secure ticketing and bill audit",
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "shared-normalization-capability-question",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "wht supports role based access and audit history",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedNormalizedMessage:
+      "what supports role based access and audit history",
+    expectedPrimarySourceId: "secure-ticketing-case-management",
+    expectedAnswerIncludes: "Secure Ticketing and Case Management",
+  },
+  {
+    id: "shared-normalization-healthcare-topic",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "tlel me about helthcare",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedNormalizedMessage: "tell me about healthcare",
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Claims Processing Services",
+      "Healthcare & TPA Technology Services",
+    ],
+  },
+  {
+    id: "shared-normalization-acknowledgement",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "okayy",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "acknowledgement",
+    expectedNormalizedMessage: "okay",
+    expectedAnswerExact: "Sure.",
+    expectedExactSourceIds: [],
+  },
+  {
+    id: "shared-normalization-unsupported-integration-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Does Bill Audit integrate with SAP?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedResponseMode: "unsupported_request",
+    expectedNormalizedMessage: "Does Bill Audit integrate with SAP?",
+    expectedAnswerIncludes: "does not confirm",
+    expectedHandoffReason: "unsupported_implementation_detail",
+  },
+  {
+    id: "shared-normalization-safety-preserved",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Can I upload patient records?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedResponseMode: "safety",
+    expectedNormalizedMessage: "Can I upload patient records?",
+    expectedRiskFlags: ["phi_or_confidential_data"],
   },
 ];
 
