@@ -8,6 +8,7 @@ import {
 } from "./miraConversationReferences.js";
 import { buildMiraAnswerStructure } from "./miraAnswerStructure.js";
 import { applyMiraAnswerCompleteness } from "./miraAnswerCompleteness.js";
+import { validateMiraFinalResponse } from "./miraFinalResponseValidator.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -451,6 +452,7 @@ export const handleMiraChatRequest = async ({
       config: runtimeConfig,
     });
     result = applyMiraAnswerCompleteness(result);
+    result = validateMiraFinalResponse(result);
     const normalizedConversationId = normalizeConversationId(conversationId);
     const responseConversationEntities = result.resolvedConversationEntities?.length
       ? normalizeGroundedConversationEntities(result.resolvedConversationEntities)
@@ -467,6 +469,7 @@ export const handleMiraChatRequest = async ({
       conversationId: normalizedConversationId,
       answer: buildAnswer(result),
       answerCompleteness: result.answerCompleteness,
+      finalResponseValidation: result.finalResponseValidation,
       ...(answerStructure ? { answerStructure } : {}),
       answerSeed: result.answerSeed,
       confidence: result.confidence,

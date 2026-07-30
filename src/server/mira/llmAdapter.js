@@ -1104,6 +1104,7 @@ export const runMiraResponseAdapter = async ({
     return {
       ...localResult,
       mode: STAGING_LLM_MODE,
+      validationFallbackAnswer: localResult.answerSeed,
       answerSeed: modelOutput.answer,
       handoffNeeded: normalizedHandoff.handoffNeeded,
       handoffReason: normalizedHandoff.handoffReason,

@@ -3,6 +3,7 @@ import {
   handleMiraChatRequest,
   resetMiraRateLimitForTests,
 } from "../src/server/mira/chatCore.js";
+import { validateMiraFinalResponse } from "../src/server/mira/miraFinalResponseValidator.js";
 
 const failures = [];
 const ENV_KEYS = [
@@ -230,6 +231,76 @@ const cases = [
 ];
 
 const fail = (message) => failures.push(message);
+
+const finalValidatorCases = [
+  {
+    id: "final-validator-overview-stale-comparison-fallback",
+    input: {
+      answerSeed: "Which platforms would you like me to compare?",
+      validationFallbackAnswer: "OneSmarter provides grounded business solutions.",
+      responseMode: { mode: "overview" },
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer: "OneSmarter provides grounded business solutions.",
+    expectedAction: "fallback",
+  },
+  {
+    id: "final-validator-names-only-trim",
+    input: {
+      answerSeed: "1. First Platform - description\n2. Second Platform - description",
+      responseMode: { mode: "names_only" },
+      resolvedConversationEntities: [
+        { id: "first", label: "First Platform" },
+        { id: "second", label: "Second Platform" },
+      ],
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer: "First Platform\nSecond Platform",
+    expectedAction: "trim",
+  },
+  {
+    id: "final-validator-complete-answer-removes-follow-up",
+    input: {
+      answerSeed: "Bill Audit & Bill Pay supports approval workflows.\nWould you like more details?",
+      responseMode: { mode: "concise_explanation" },
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer: "Bill Audit & Bill Pay supports approval workflows.",
+    expectedAction: "trim",
+  },
+  {
+    id: "final-validator-safety-kept-verbatim",
+    input: {
+      answerSeed: "Please do not upload patient records here.",
+      responseMode: { mode: "safety" },
+      answerCompleteness: { status: "safety_response" },
+      riskFlags: ["phi_or_confidential_data"],
+      handoffNeeded: true,
+    },
+    expectedAnswer: "Please do not upload patient records here.",
+    expectedAction: "keep",
+  },
+];
+
+for (const validatorCase of finalValidatorCases) {
+  const validated = validateMiraFinalResponse(validatorCase.input);
+  if (validated.answerSeed !== validatorCase.expectedAnswer) {
+    fail(`${validatorCase.id}: validator produced unexpected answer.`);
+  }
+  if (
+    validated.finalResponseValidation?.action !== validatorCase.expectedAction
+  ) {
+    fail(
+      `${validatorCase.id}: expected action ${validatorCase.expectedAction}, got ${validated.finalResponseValidation?.action}.`,
+    );
+  }
+}
 
 const contains = (text, value) =>
   text.toLowerCase().includes(String(value).toLowerCase());
@@ -1291,6 +1362,9 @@ const modeCases = [
     expectedGroundingStatus: "grounded",
     expectedOutputSafetyStatus: "passed",
     expectedAnswerIncludes: "OneSmarter builds secure platforms",
+    expectedFinalValidationAction: "keep",
+    expectedFinalValidationValid: true,
+    expectedFetchCalls: 1,
     expectedDisclaimerIncludes: "This response is grounded in approved public OneSmarter content.",
     forbiddenResponseTexts: ["local harness response", "secret-value-that-must-not-be-exposed"],
   },
@@ -3914,6 +3988,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedResponseMode: "overview",
     expectedFastPath: true,
+    expectedFinalValidationAction: "keep",
     expectedAnswerIncludesAll: [
       "secure platforms",
       "Technology services",
@@ -3947,6 +4022,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedResponseMode: "overview",
     expectedFastPath: true,
+    expectedFinalValidationAction: "keep",
     expectedTurnRelation: "standalone_new_request",
     expectedAnswerIncludes: "OneSmarter builds secure platforms",
     expectedComparisonAbsent: true,
@@ -3970,6 +4046,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedResponseMode: "names_only",
     expectedFastPath: true,
+    expectedFinalValidationAction: "keep",
     expectedAnswerExact:
       "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
     expectedComparisonAbsent: true,
@@ -3983,6 +4060,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedResponseMode: "detailed_explanation",
     expectedFastPath: true,
+    expectedFinalValidationAction: "keep",
     expectedAnswerIncludesAll: [
       "Healthcare & TPA Technology Services",
       "Claims Processing Services",
@@ -4004,6 +4082,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedResponseMode: "acknowledgement",
     expectedFastPath: true,
+    expectedFinalValidationAction: "keep",
     expectedAnswerExact: "Sure.",
     expectedExactSourceIds: [],
     expectedComparisonAbsent: true,
@@ -4071,6 +4150,7 @@ const modeCases = [
     expectedHandoff: false,
     expectedStatus: 200,
     expectedResponseMode: "comparison",
+    expectedFinalValidationAction: "keep",
     expectedComparisonStatus: "complete",
     expectedComparisonOptionIds: [
       "ai-agentic-services",
@@ -4085,6 +4165,7 @@ const modeCases = [
     expectedHandoff: false,
     expectedStatus: 200,
     expectedResponseMode: "recommendation",
+    expectedFinalValidationAction: "keep",
     expectedRecommendationStatus: "recommended",
     expectedRecommendationPrimaryId: "bill-audit-bill-pay",
   },
@@ -4097,7 +4178,60 @@ const modeCases = [
     expectedStatus: 200,
     expectedResponseMode: "safety",
     expectedFastPath: true,
+    expectedFinalValidationAction: "keep",
     expectedRiskFlags: ["phi_or_confidential_data"],
+  },
+  {
+    id: "final-validation-direct-capability-answer",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Which platform supports role-based access and audit history?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerIncludes: "Secure Ticketing and Case Management",
+    expectedAnswerQuestionCount: 0,
+    expectedFinalValidationAction: "keep",
+  },
+  {
+    id: "final-validation-vendor-approval-recommendation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need vendor bill approval workflows.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRecommendationStatus: "recommended",
+    expectedRecommendationPrimaryId: "bill-audit-bill-pay",
+    expectedFinalValidationAction: "keep",
+  },
+  {
+    id: "final-validation-names-only-zero-provider-calls",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "I don't want to compare anymore; just give me their names.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Here are the two grounded options.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    fetchImpl: openAiSuccessFetch(validModelOutput),
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedFinalValidationAction: "keep",
+    expectedFetchCalls: 0,
+    expectedComparisonAbsent: true,
   },
 ];
 
@@ -4196,6 +4330,24 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected response mode ${modeCase.expectedResponseMode}, got ${result.body.responseMode?.mode}.`,
+    );
+  }
+  if (
+    modeCase.expectedFinalValidationAction &&
+    result.body.finalResponseValidation?.action !==
+      modeCase.expectedFinalValidationAction
+  ) {
+    fail(
+      `${modeCase.id}: expected final validation action ${modeCase.expectedFinalValidationAction}, got ${result.body.finalResponseValidation?.action}.`,
+    );
+  }
+  if (
+    typeof modeCase.expectedFinalValidationValid === "boolean" &&
+    result.body.finalResponseValidation?.valid !==
+      modeCase.expectedFinalValidationValid
+  ) {
+    fail(
+      `${modeCase.id}: expected final validation valid=${modeCase.expectedFinalValidationValid}.`,
     );
   }
   if (
