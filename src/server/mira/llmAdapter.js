@@ -38,6 +38,10 @@ import {
   resolveMiraResponseModeFastPath,
 } from "./miraResponseModes.js";
 import { normalizeMiraUserMessage } from "./miraUserMessageNormalizer.js";
+import {
+  extractMiraBusinessGoals,
+  frameMiraGoalRecommendation,
+} from "./miraBusinessGoals.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -631,6 +635,12 @@ export const runMiraResponseAdapter = async ({
 
   const messageNormalization = normalizeMiraUserMessage(message);
   const classificationMessage = messageNormalization.normalizedMessage;
+  const businessGoalResolution = extractMiraBusinessGoals(
+    classificationMessage,
+  );
+  const goalAwareMessage = businessGoalResolution.signalText
+    ? `${classificationMessage} ${businessGoalResolution.signalText}`
+    : classificationMessage;
   const responseMode = classifyMiraResponseMode(
     classificationMessage,
     conversationHistory,
@@ -705,7 +715,7 @@ export const runMiraResponseAdapter = async ({
     relevantConversationHistory,
   );
   const retrievalMessage = buildContextualRetrievalMessage(
-    classificationMessage,
+    goalAwareMessage,
     relevantConversationHistory,
   );
   const activeSubject = resolveActiveSubject(
@@ -746,17 +756,20 @@ export const runMiraResponseAdapter = async ({
     responseMode,
   );
   const relevantFactResolution = resolveMiraRelevantFacts(classificationMessage);
-  const recommendationResolution = resolveMiraRecommendation(
-    classificationMessage,
-    relevantConversationHistory,
+  const recommendationResolution = frameMiraGoalRecommendation(
+    resolveMiraRecommendation(goalAwareMessage, relevantConversationHistory),
+    businessGoalResolution,
   );
   const comparisonResolution = resolveMiraComparison(
     classificationMessage,
     relevantConversationHistory,
   );
-  const decisionResolution = resolveMiraDecisionRequest(
-    classificationMessage,
-    relevantConversationHistory,
+  const decisionResolution = frameMiraGoalRecommendation(
+    resolveMiraDecisionRequest(
+      classificationMessage,
+      relevantConversationHistory,
+    ),
+    businessGoalResolution,
   );
   let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
@@ -997,6 +1010,9 @@ export const runMiraResponseAdapter = async ({
   localResult = {
     ...localResult,
     messageNormalization,
+    businessGoals: businessGoalResolution.businessGoals,
+    businessGoalConfidence: businessGoalResolution.confidence,
+    businessGoalAmbiguous: businessGoalResolution.ambiguous,
     responseMode: {
       ...effectiveResponseMode,
       fastPath: Boolean(

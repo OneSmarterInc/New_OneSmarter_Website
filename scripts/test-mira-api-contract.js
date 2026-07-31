@@ -5,6 +5,7 @@ import {
 } from "../src/server/mira/chatCore.js";
 import { validateMiraFinalResponse } from "../src/server/mira/miraFinalResponseValidator.js";
 import { normalizeMiraUserMessage } from "../src/server/mira/miraUserMessageNormalizer.js";
+import { extractMiraBusinessGoals } from "../src/server/mira/miraBusinessGoals.js";
 
 const failures = [];
 const ENV_KEYS = [
@@ -333,6 +334,29 @@ if (
   protectedNormalizationInput
 ) {
   fail("shared-normalization: protected technical terms were rewritten.");
+}
+
+const businessGoalExtractionCases = [
+  ["cases keep falling through the cracks", ["case_workflow_control"]],
+  ["we cannot see who owns each case", ["case_workflow_control"]],
+  ["employees repeat the same document tasks", ["workflow_automation"]],
+  ["we keep finding problems in vendor invoices", ["vendor_expense_control"]],
+  ["we need to control telecom costs", ["telecom_cost_control"]],
+  ["claims operations are fragmented", ["claims_operations_improvement"]],
+  ["we need to prepare for a compliance review", ["compliance_readiness"]],
+  ["we need to show customers evidence of our security posture", ["security_evidence"]],
+  ["we have too many software support vendors", ["support_consolidation"]],
+];
+
+for (const [input, expectedGoalIds] of businessGoalExtractionCases) {
+  const actualGoalIds = extractMiraBusinessGoals(input).businessGoals.map(
+    (goal) => goal.id,
+  );
+  if (JSON.stringify(actualGoalIds) !== JSON.stringify(expectedGoalIds)) {
+    fail(
+      `business-goals: expected [${expectedGoalIds}] for ${input}, got [${actualGoalIds}].`,
+    );
+  }
 }
 
 const contains = (text, value) =>
@@ -4402,6 +4426,132 @@ const modeCases = [
     expectedNormalizedMessage: "Can I upload patient records?",
     expectedRiskFlags: ["phi_or_confidential_data"],
   },
+  {
+    id: "business-goal-case-ownership",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We keep losing track of cases and who owns them.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["case_workflow_control"],
+    expectedBusinessGoalConfidence: "high",
+    expectedRecommendationPrimaryId: "secure-ticketing-case-management",
+    expectedAnswerIncludesAll: [
+      "better case visibility, ownership, and workflow control",
+      "Secure Ticketing and Case Management",
+    ],
+  },
+  {
+    id: "business-goal-manual-document-work",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Our team spends hours repeating document-heavy tasks.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["workflow_automation"],
+    expectedRecommendationPrimaryId: "ai-agentic-services",
+    expectedAnswerIncludesAll: [
+      "less repetitive manual work",
+      "AI Agentic Services",
+    ],
+  },
+  {
+    id: "business-goal-legacy-maintenance",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Our old IBM i applications are becoming difficult to maintain.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["legacy_modernization"],
+    expectedRecommendationPrimaryId: "ibm-i-as400-services",
+    expectedAnswerIncludes: "IBM i / AS400 Services",
+  },
+  {
+    id: "business-goal-case-semantic-variation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Cases keep falling through the cracks.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["case_workflow_control"],
+    expectedRecommendationPrimaryId: "secure-ticketing-case-management",
+  },
+  {
+    id: "business-goal-mixed-case-and-bills",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We need better case tracking and better vendor bill approvals.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: [
+      "case_workflow_control",
+      "approval_workflow_improvement",
+    ],
+    expectedRecommendationPrimaryId: "secure-ticketing-case-management",
+    expectedRecommendationAlternativeIds: ["bill-audit-bill-pay"],
+    expectedAnswerIncludesAll: [
+      "better case visibility",
+      "controlled approval and payment workflows",
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+    ],
+  },
+  {
+    id: "business-goal-ambiguous-operations",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We want to make operations better.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: [],
+    expectedBusinessGoalConfidence: "low",
+    expectedRecommendationStatus: "needs_clarification",
+    expectedAnswerQuestionCount: 1,
+  },
+  {
+    id: "business-goal-direct-platform-list-unchanged",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What are your platforms?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: [],
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "business-goal-topic-change-current-message-dominates",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Our AS400 applications are hard to maintain.",
+    conversationHistory: [
+      { role: "user", content: "We keep missing vendor discrepancies." },
+      {
+        role: "assistant",
+        content: "Bill Audit & Bill Pay supports discrepancy tracking.",
+        conversationEntities: [{ id: "bill-audit-bill-pay" }],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["application_support"],
+    expectedRecommendationPrimaryId: "ibm-i-as400-services",
+    expectedAnswerIncludes: "IBM i / AS400 Services",
+    expectedAnswerExcludes: "Bill Audit & Bill Pay",
+  },
+  {
+    id: "business-goal-safety-precedence",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We want to upload patient records so you can recommend a workflow.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: true,
+    expectedStatus: 200,
+    expectedRiskFlags: ["phi_or_confidential_data"],
+    expectedCurrentTurnAnswerability: "safety",
+    expectedRecommendationAbsent: true,
+  },
 ];
 
 const consistencyResults = new Map();
@@ -4465,6 +4615,53 @@ for (const modeCase of modeCases) {
   ) {
     fail(
       `${modeCase.id}: expected decision primary option ${modeCase.expectedDecisionPrimaryId}.`,
+    );
+  }
+  if (
+    modeCase.expectedRecommendationPrimaryId &&
+    result.body.recommendation?.primaryOption?.id !==
+      modeCase.expectedRecommendationPrimaryId
+  ) {
+    fail(
+      `${modeCase.id}: expected recommendation primary option ${modeCase.expectedRecommendationPrimaryId}.`,
+    );
+  }
+  if (modeCase.expectedRecommendationAlternativeIds) {
+    const actualAlternativeIds = (
+      result.body.recommendation?.alternatives || []
+    ).map((option) => option.id);
+    if (
+      JSON.stringify(actualAlternativeIds) !==
+      JSON.stringify(modeCase.expectedRecommendationAlternativeIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected recommendation alternatives [${modeCase.expectedRecommendationAlternativeIds}], got [${actualAlternativeIds}].`,
+      );
+    }
+  }
+  if (modeCase.expectedRecommendationAbsent && result.body.recommendation) {
+    fail(`${modeCase.id}: expected no recommendation metadata.`);
+  }
+  if (modeCase.expectedBusinessGoalIds) {
+    const actualGoalIds = (result.body.businessGoals || []).map(
+      (goal) => goal.id,
+    );
+    if (
+      JSON.stringify(actualGoalIds) !==
+      JSON.stringify(modeCase.expectedBusinessGoalIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected business goals [${modeCase.expectedBusinessGoalIds}], got [${actualGoalIds}].`,
+      );
+    }
+  }
+  if (
+    modeCase.expectedBusinessGoalConfidence &&
+    result.body.businessGoalConfidence !==
+      modeCase.expectedBusinessGoalConfidence
+  ) {
+    fail(
+      `${modeCase.id}: expected business goal confidence ${modeCase.expectedBusinessGoalConfidence}, got ${result.body.businessGoalConfidence}.`,
     );
   }
   if (

@@ -470,6 +470,8 @@ export const handleMiraChatRequest = async ({
       answer: buildAnswer(result),
       answerCompleteness: result.answerCompleteness,
       finalResponseValidation: result.finalResponseValidation,
+      businessGoals: result.businessGoals || [],
+      businessGoalConfidence: result.businessGoalConfidence || "low",
       ...(answerStructure ? { answerStructure } : {}),
       answerSeed: result.answerSeed,
       confidence: result.confidence,

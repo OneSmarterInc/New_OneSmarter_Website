@@ -299,7 +299,7 @@ const readinessFor = (state) => {
       evidenceByWorkflow.set(workflow, evidence);
       return evidence.length >= 1;
     }
-    evidence = state.needs;
+    evidence = unique([...state.needs, ...state.securityNeeds]);
     evidenceByWorkflow.set(workflow, evidence);
     return evidence.length >= 1;
   });
