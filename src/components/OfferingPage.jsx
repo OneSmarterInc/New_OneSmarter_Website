@@ -147,6 +147,12 @@ const trustCenter = [
       "OneSmarter's HIPAA Security Rule Compliance Assessment Completed posture and healthcare workflow safeguards.",
   },
   {
+    title: "ISO/IEC 27001",
+    path: "/trust-center/iso-27001",
+    summary:
+      "OneSmarter's ISO/IEC 27001 Certified posture and information security management system.",
+  },
+  {
     title: "Security Practices",
     path: "/trust-center/security-practices",
     summary:
@@ -501,11 +507,11 @@ const pageContent = {
     eyebrow: "Trust Center",
     title: "Trust Center",
     body:
-      "OneSmarter's Trust Center presents the company's own SOC 2, HIPAA, security, privacy, and compliance posture for clients evaluating secure technology and operational support.",
+      "OneSmarter's Trust Center presents the company's own SOC 2, HIPAA, ISO/IEC 27001, security, privacy, and compliance posture for clients evaluating secure technology and operational support.",
     points: [
       "SOC 2 Type II Attested.",
       "HIPAA Security Rule Compliance Assessment Completed.",
-      "Secure delivery practices for sensitive operational workflows.",
+      "ISO/IEC 27001 Certified.",
       "Privacy and compliance-aware operations across technology and business services.",
     ],
     collection: "trustCenter",
@@ -533,6 +539,19 @@ const pageContent = {
       "Built for HIPAA-regulated workflows where applicable.",
       "Designed for PHI-sensitive workflows where applicable.",
       "Administrative and technical safeguards considered in healthcare workflow design.",
+    ],
+    collection: "trustCenter",
+  },
+  trustIso27001: {
+    eyebrow: "Trust Center",
+    title: "ISO/IEC 27001",
+    body:
+      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system (ISMS).",
+    points: [
+      "ISO/IEC 27001 Certified.",
+      "Information security management system aligned with international standards.",
+      "Risk assessment, treatment, and continual improvement practices.",
+      "Certification decisions and scope governed by an accredited certification body.",
     ],
     collection: "trustCenter",
   },

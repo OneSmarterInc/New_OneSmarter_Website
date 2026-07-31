@@ -226,6 +226,10 @@ const App = () => {
             element={<TrustCenterPage page="hipaa" />}
           />
           <Route
+            path="/trust-center/iso-27001"
+            element={<TrustCenterPage page="iso27001" />}
+          />
+          <Route
             path="/trust-center/security-practices"
             element={<TrustCenterPage page="securityPractices" />}
           />
