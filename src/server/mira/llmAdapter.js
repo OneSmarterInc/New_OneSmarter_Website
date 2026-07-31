@@ -661,7 +661,19 @@ export const runMiraResponseAdapter = async ({
     conversationHistory,
     responseMode.mode,
   );
-  const relevantConversationHistory = turnContext.usesHistory
+  const answersGoalTechnologyClarification =
+    /\b(?:IBM\s*i|AS\s*400|AS400|custom Java)\b/i.test(classificationMessage) &&
+    [...conversationHistory]
+      .reverse()
+      .some(
+        (turn) =>
+          turn?.role === "assistant" &&
+          /what technology do (?:these|the|your) .+ run on\?/i.test(
+            turn.content || "",
+          ),
+      );
+  const relevantConversationHistory =
+    turnContext.usesHistory || answersGoalTechnologyClarification
     ? conversationHistory
     : [];
   const safetyResult = runMiraSafetyGate(classificationMessage);
@@ -770,11 +782,11 @@ export const runMiraResponseAdapter = async ({
   const recommendationResolution = frameMiraGoalRecommendation(
     resolveMiraRecommendation(goalAwareMessage, relevantConversationHistory),
     businessGoalResolution,
+    businessGoalEvidence,
   );
-  const comparisonResolution = resolveMiraComparison(
-    classificationMessage,
-    relevantConversationHistory,
-  );
+  const comparisonResolution = comparisonIntent
+    ? resolveMiraComparison(classificationMessage, relevantConversationHistory)
+    : null;
   const decisionResolution = frameMiraGoalRecommendation(
     resolveMiraDecisionRequest(
       classificationMessage,

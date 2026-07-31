@@ -91,10 +91,11 @@ const GOAL_DEFINITIONS = [
     offeringIds: ["ibm-i-as400-services", "enterprise-software-development"],
     signal: "we need IBM i AS400 modernization support",
     patterns: [
-      /\b(?:old|legacy) (?:IBM i |AS400 )?(?:applications?|systems?) (?:are |becoming |feel )?(?:hard|difficult|costly) to maintain\b/i,
-      /\b(?:old|legacy) (?:enterprise )?(?:applications?|systems?) (?:are |have )?(?:becoming )?(?:expensive|costly).{0,32}(?:difficult|hard) to maintain\b/i,
+      /\b(?:old|legacy) (?:IBM i |AS400 )?(?:applications?|apps?|systems?) (?:are |becoming |feel )?(?:hard|difficult|costly|expensive) to maintain\b/i,
+      /\b(?:old|legacy) (?:enterprise )?(?:applications?|apps?|systems?) (?:are |have )?(?:becoming )?(?:expensive|costly).{0,32}(?:difficult|hard) to maintain\b/i,
       /\bmoderniz(?:e|ing|ation) (?:our )?(?:legacy|IBM i|AS400)\b/i,
       /\b(?:IBM i|AS400)\b.*\b(?:aging|old|legacy|moderniz|difficult to maintain)\b/i,
+      /\b(?:IBM i|AS400) (?:applications?|apps?|systems?) (?:need|require) moderniz(?:ation|ing)\b/i,
       /\b(?:update|modernize) (?:our )?aging (?:applications?|systems?)\b/i,
     ],
   },
@@ -104,9 +105,9 @@ const GOAL_DEFINITIONS = [
     offeringIds: ["ibm-i-as400-services", "software-support-consolidation"],
     signal: "we need IBM i AS400 support modernization",
     patterns: [
-      /\b(?:applications?|systems?) (?:(?:are )?becoming |are )?(?:hard|difficult|expensive|costly) to (?:maintain|support)\b/i,
+      /\b(?:applications?|apps?|systems?) (?:(?:are )?becoming |are )?(?:hard|difficult|expensive|costly)(?: and (?:hard|difficult|expensive|costly))? to (?:maintain|support)\b/i,
       /\b(?:maintenance|application support) (?:burden|backlog|problems?)\b/i,
-      /\b(?:old|legacy) (?:enterprise )?(?:applications?|systems?).{0,32}(?:maintenance|support) burden\b/i,
+      /\b(?:old|legacy) (?:enterprise )?(?:applications?|apps?|systems?).{0,32}(?:maintenance|support) burden\b/i,
       /\b(?:cannot|can't|cant) keep up with (?:the )?support (?:for|of) (?:our )?(?:old|legacy) (?:enterprise )?(?:applications?|systems?)\b/i,
     ],
   },
@@ -118,6 +119,7 @@ const GOAL_DEFINITIONS = [
     patterns: [
       /\b(?:build|develop|modernize) (?:a |our )?(?:custom )?enterprise (?:application|software)\b/i,
       /\bneed (?:a |new )?custom (?:application|software)\b/i,
+      /\bcustom (?:internal )?(?:application|software).{0,32}\b(?:moderniz(?:e|ation|ing)|redevelop(?:ment|ing)?)\b/i,
     ],
   },
   {
@@ -225,52 +227,112 @@ const GOAL_EVIDENCE_MAP = Object.freeze({
 
 const unique = (values) => [...new Set(values.filter(Boolean))];
 const hasIbmiScope = (message) => /\b(?:IBM\s*i|AS\s*400|AS400)\b/i.test(message);
+const explicitTechnologyContextFor = (message = "") => {
+  if (hasIbmiScope(message)) {
+    return { id: "ibm_i_as400", label: "IBM i / AS400", explicit: true };
+  }
+  if (/\bcustom Java\b/i.test(message)) {
+    return { id: "custom_java", label: "custom Java", explicit: true };
+  }
+  return { id: "unknown", label: "unknown", explicit: false };
+};
+
+const OFFERING_LABELS = Object.freeze({
+  "enterprise-software-development": "Enterprise Software Development",
+  "software-support-consolidation": "Software Support Consolidation",
+  "ibm-i-as400-services": "IBM i / AS400 Services",
+});
+
+const matchFor = (offeringId, matchType, condition = "") => ({
+  offeringId,
+  label: OFFERING_LABELS[offeringId] || offeringId,
+  matchType,
+  ...(condition ? { condition } : {}),
+});
 
 export const buildMiraGoalEvidenceBridge = (goalResolution, message = "") => {
+  const technologyContext = explicitTechnologyContextFor(message);
   if (goalResolution?.confidence !== "high") {
-    return { capabilityTerms: [], candidateOfferingIds: [], retrievalHint: "", recommendationHint: "" };
+    return {
+      technologyContext,
+      matches: [],
+      capabilityTerms: [],
+      candidateOfferingIds: [],
+      retrievalHint: "",
+      recommendationHint: "",
+    };
   }
 
   const capabilityTerms = [];
   const candidateOfferingIds = [];
   const recommendationTerms = [];
+  const matches = [];
   for (const goal of goalResolution.businessGoals || []) {
     let evidence = GOAL_EVIDENCE_MAP[goal.id];
     if (goal.id === "legacy_modernization") {
-      evidence = hasIbmiScope(message)
+      evidence = technologyContext.id === "ibm_i_as400"
         ? {
             capabilityTerms: ["IBM i", "AS400", "legacy application modernization"],
             candidateOfferingIds: ["ibm-i-as400-services"],
             recommendationTerms: ["IBM i", "AS400", "modernization", "support"],
+            matches: [matchFor("ibm-i-as400-services", "direct")],
           }
         : {
             capabilityTerms: ["legacy application modernization", "enterprise software development"],
             candidateOfferingIds: ["enterprise-software-development"],
             recommendationTerms: ["enterprise software development", "application modernization"],
+            matches: [
+              matchFor("enterprise-software-development", "general"),
+              matchFor(
+                "ibm-i-as400-services",
+                "conditional",
+                "if the applications run on IBM i / AS400",
+              ),
+            ],
           };
     } else if (goal.id === "application_support") {
-      evidence = hasIbmiScope(message)
+      evidence = technologyContext.id === "ibm_i_as400"
         ? {
             capabilityTerms: ["IBM i", "AS400", "application support"],
             candidateOfferingIds: ["ibm-i-as400-services"],
             recommendationTerms: ["IBM i", "AS400", "support"],
+            matches: [matchFor("ibm-i-as400-services", "direct")],
           }
         : {
             capabilityTerms: ["software support consolidation", "application support"],
             candidateOfferingIds: ["software-support-consolidation"],
             recommendationTerms: ["software support consolidation", "application support"],
+            matches: [
+              matchFor("software-support-consolidation", "general"),
+              matchFor(
+                "ibm-i-as400-services",
+                "conditional",
+                "if the applications run on IBM i / AS400",
+              ),
+            ],
           };
     }
     if (!evidence) continue;
     capabilityTerms.push(...evidence.capabilityTerms);
     candidateOfferingIds.push(...evidence.candidateOfferingIds);
     recommendationTerms.push(...evidence.recommendationTerms);
+    matches.push(...(evidence.matches || evidence.candidateOfferingIds.map((id) => matchFor(id, "direct"))));
   }
 
   const uniqueCapabilities = unique(capabilityTerms);
   const uniqueCandidates = unique(candidateOfferingIds);
   const uniqueRecommendationTerms = unique(recommendationTerms);
+  const uniqueMatches = matches.filter(
+    (match, index, all) =>
+      all.findIndex(
+        (candidate) =>
+          candidate.offeringId === match.offeringId &&
+          candidate.matchType === match.matchType,
+      ) === index,
+  );
   return {
+    technologyContext,
+    matches: uniqueMatches,
     capabilityTerms: uniqueCapabilities,
     candidateOfferingIds: uniqueCandidates,
     retrievalHint: uniqueCapabilities.join(" "),
@@ -317,13 +379,7 @@ export const extractMiraBusinessGoals = (message = "") => {
     (goal, index, all) =>
       all.findIndex((candidate) => candidate.id === goal.id) === index,
   );
-  const uniqueGoals = deduplicatedGoals.filter(
-    (goal) =>
-      goal.id !== "application_support" ||
-      !deduplicatedGoals.some(
-        (candidate) => candidate.id === "legacy_modernization",
-      ),
-  );
+  const uniqueGoals = deduplicatedGoals;
 
   return {
     businessGoals: uniqueGoals,
@@ -344,6 +400,7 @@ export const extractMiraBusinessGoals = (message = "") => {
 export const frameMiraGoalRecommendation = (
   recommendationResolution,
   goalResolution,
+  goalEvidence = null,
 ) => {
   if (
     !recommendationResolution ||
@@ -357,9 +414,37 @@ export const frameMiraGoalRecommendation = (
     goalLabels.length === 1
       ? `If your goal is ${goalLabels[0]}, the strongest grounded match is:`
       : `Your stated goals are ${goalLabels.join(" and ")}. The grounded matches are:`;
+  const selectedIds = new Set([
+    recommendationResolution.recommendation.primaryOption?.id,
+    ...(recommendationResolution.recommendation.alternatives || []).map(
+      (option) => option.id,
+    ),
+  ]);
+  const conditionalOptions = (goalEvidence?.matches || [])
+    .filter(
+      (match) =>
+        match.matchType === "conditional" && !selectedIds.has(match.offeringId),
+    )
+    .slice(0, 2)
+    .map((match) => ({
+      id: match.offeringId,
+      label: match.label,
+      type: "service",
+      matchType: match.matchType,
+      condition: match.condition,
+    }));
+  const conditionalText = conditionalOptions.length
+    ? `\nConditional fit: ${conditionalOptions
+        .map((option) => `${option.label} is relevant ${option.condition}`)
+        .join("; ")}.\nWhat technology do these legacy applications run on?`
+    : "";
   return {
     ...recommendationResolution,
-    answer: `${prefix}\n${recommendationResolution.answer}`,
+    recommendation: {
+      ...recommendationResolution.recommendation,
+      conditionalOptions,
+    },
+    answer: `${prefix}\n${recommendationResolution.answer}${conditionalText}`,
   };
 };
 

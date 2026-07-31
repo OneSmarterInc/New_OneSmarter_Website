@@ -175,6 +175,11 @@ const extractRequirements = (message = "") => {
       ? ["secure communication"]
       : []),
     ...(/\bmoderniz(?:e|ation|ing)\b/i.test(text) ? ["modernization"] : []),
+    ...(/\b(?:hard|difficult|expensive|costly) to maintain\b|\bmaintenance burden\b/i.test(
+      text,
+    )
+      ? ["support"]
+      : []),
     ...(/\bsupport\b/i.test(text) ? ["support"] : []),
   ]);
   const securityNeeds = unique([
@@ -216,7 +221,7 @@ const extractRequirements = (message = "") => {
 const isImmediateClarification = (turn) =>
   turn?.role === "assistant" &&
   /\?/.test(turn.content || "") &&
-  /\b(?:what (?:process|workflow|type of workflow|outcome|capabilities)|which .+ matter|do you mainly need|is your .+ goal|what repetitive workflow|or something else)\b/i.test(
+  /\b(?:what (?:process|workflow|type of workflow|outcome|capabilities|technology)|which .+ matter|do you mainly need|is your .+ goal|what repetitive workflow|or something else)\b/i.test(
     turn.content,
   );
 
@@ -351,7 +356,16 @@ export const buildMiraRequirementState = (
     immediateContext &&
     current.workflows.length === 0 &&
     !CORRECTION.test(message);
-  const state = canUseImmediateContext
+  const answersTechnologyClarification =
+    immediateContext &&
+    current.workflows.includes("ibm-i-as400-support") &&
+    /\b(?:run|runs|running|built) (?:on|with)\b/i.test(message);
+  const state = answersTechnologyClarification
+    ? {
+        ...current,
+        needs: unique([...current.needs, ...immediateContext.needs]),
+      }
+    : canUseImmediateContext
     ? {
         ...current,
         industry: current.industry || immediateContext.industry,

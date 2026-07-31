@@ -349,7 +349,10 @@ const businessGoalExtractionCases = [
   ["we need to prepare for a compliance review", ["compliance_readiness"]],
   ["we need to show customers evidence of our security posture", ["security_evidence"]],
   ["we have too many software support vendors", ["support_consolidation"]],
-  ["our legacy applications are becoming expensive and difficult to maintain", ["legacy_modernization"]],
+  [
+    "our legacy applications are becoming expensive and difficult to maintain",
+    ["legacy_modernization", "application_support"],
+  ],
   ["we cannot keep up with support for our old enterprise applications", ["application_support"]],
 ];
 
@@ -4479,10 +4482,15 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedBusinessGoalIds: ["legacy_modernization"],
+    expectedBusinessGoalIds: ["legacy_modernization", "application_support"],
     expectedRecommendationPrimaryId: "enterprise-software-development",
+    expectedRecommendationAlternativeIds: ["software-support-consolidation"],
     expectedAnswerIncludes: "Enterprise Software Development",
-    expectedAnswerExcludes: "IBM i / AS400 Services",
+    expectedConditionalOptionIds: ["ibm-i-as400-services"],
+    expectedAnswerIncludesAll: [
+      "Enterprise Software Development",
+      "if the applications run on IBM i / AS400",
+    ],
   },
   {
     id: "business-goal-old-enterprise-support",
@@ -4494,7 +4502,7 @@ const modeCases = [
     expectedBusinessGoalIds: ["application_support"],
     expectedRecommendationPrimaryId: "software-support-consolidation",
     expectedAnswerIncludes: "Software Support Consolidation",
-    expectedAnswerExcludes: "IBM i / AS400 Services",
+    expectedConditionalOptionIds: ["ibm-i-as400-services"],
   },
   {
     id: "business-goal-legacy-maintenance",
@@ -4503,9 +4511,83 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedBusinessGoalIds: ["legacy_modernization"],
+    expectedBusinessGoalIds: ["legacy_modernization", "application_support"],
     expectedRecommendationPrimaryId: "ibm-i-as400-services",
     expectedAnswerIncludes: "IBM i / AS400 Services",
+  },
+  {
+    id: "business-goal-explicit-as400-modernization",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Our AS400 applications are becoming expensive to maintain.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["application_support"],
+    expectedRecommendationPrimaryId: "ibm-i-as400-services",
+    expectedConditionalOptionIds: [],
+    expectedAnswerIncludes: "IBM i / AS400 Services",
+  },
+  {
+    id: "business-goal-explicit-ibmi-modernization",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Our IBM i applications need modernization.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["legacy_modernization"],
+    expectedRecommendationPrimaryId: "ibm-i-as400-services",
+    expectedConditionalOptionIds: [],
+  },
+  {
+    id: "business-goal-custom-application-modernization",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "We have a custom internal application that needs major modernization.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["software_delivery"],
+    expectedRecommendationPrimaryId: "enterprise-software-development",
+  },
+  {
+    id: "business-goal-as400-explicitly-boosted",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Our legacy apps are expensive to maintain, and they run on AS400.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedBusinessGoalIds: ["legacy_modernization", "application_support"],
+    expectedRecommendationPrimaryId: "ibm-i-as400-services",
+    expectedConditionalOptionIds: [],
+  },
+  {
+    id: "business-goal-technology-follow-up",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "They run on AS400.",
+    conversationHistory: [
+      { role: "user", content: "Our legacy apps are expensive to maintain." },
+      {
+        role: "assistant",
+        content:
+          "Enterprise Software Development may fit. What technology do these legacy applications run on?",
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedRecommendationPrimaryId: "ibm-i-as400-services",
+  },
+  {
+    id: "business-goal-technology-correction-clears-as400",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Actually this application is custom Java.",
+    conversationHistory: [
+      { role: "user", content: "Our AS400 system is old." },
+      { role: "assistant", content: "IBM i / AS400 Services may fit." },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerExcludes: "IBM i / AS400 Services",
   },
   {
     id: "business-goal-case-semantic-variation",
@@ -4677,6 +4759,19 @@ for (const modeCase of modeCases) {
     ) {
       fail(
         `${modeCase.id}: expected recommendation alternatives [${modeCase.expectedRecommendationAlternativeIds}], got [${actualAlternativeIds}].`,
+      );
+    }
+  }
+  if (modeCase.expectedConditionalOptionIds) {
+    const actualConditionalIds = (
+      result.body.recommendation?.conditionalOptions || []
+    ).map((option) => option.id);
+    if (
+      JSON.stringify(actualConditionalIds) !==
+      JSON.stringify(modeCase.expectedConditionalOptionIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected conditional options [${modeCase.expectedConditionalOptionIds}], got [${actualConditionalIds}].`,
       );
     }
   }
