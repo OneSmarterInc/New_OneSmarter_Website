@@ -39,6 +39,7 @@ import {
 } from "./miraResponseModes.js";
 import { normalizeMiraUserMessage } from "./miraUserMessageNormalizer.js";
 import {
+  buildMiraGoalEvidenceBridge,
   extractMiraBusinessGoals,
   frameMiraGoalRecommendation,
 } from "./miraBusinessGoals.js";
@@ -638,8 +639,18 @@ export const runMiraResponseAdapter = async ({
   const businessGoalResolution = extractMiraBusinessGoals(
     classificationMessage,
   );
-  const goalAwareMessage = businessGoalResolution.signalText
-    ? `${classificationMessage} ${businessGoalResolution.signalText}`
+  const businessGoalEvidence = buildMiraGoalEvidenceBridge(
+    businessGoalResolution,
+    classificationMessage,
+  );
+  const goalEvidenceText = [
+    businessGoalEvidence.retrievalHint,
+    businessGoalEvidence.recommendationHint,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const goalAwareMessage = goalEvidenceText
+    ? `${classificationMessage} ${goalEvidenceText}`
     : classificationMessage;
   const responseMode = classifyMiraResponseMode(
     classificationMessage,
@@ -1013,6 +1024,7 @@ export const runMiraResponseAdapter = async ({
     businessGoals: businessGoalResolution.businessGoals,
     businessGoalConfidence: businessGoalResolution.confidence,
     businessGoalAmbiguous: businessGoalResolution.ambiguous,
+    businessGoalEvidence,
     responseMode: {
       ...effectiveResponseMode,
       fastPath: Boolean(

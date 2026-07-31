@@ -80,6 +80,9 @@ const GOAL_DEFINITIONS = [
       /\b(?:manual document processing|too much paperwork|document[- ]heavy tasks?)\b/i,
       /\b(?:staff|employees?|team) (?:keep |are )?(?:repeating|repeat) (?:the same )?(?:document )?tasks?\b/i,
       /\brepetitive (?:manual |document |business )?(?:work|tasks?|workflows?)\b/i,
+      /\b(?:people|staff|employees?|team) spend too much time repeatedly handling documents? by hand\b/i,
+      /\btoo much of (?:our|the) process is manual paperwork\b/i,
+      /\brepeat (?:the )?same document steps? every day\b/i,
     ],
   },
   {
@@ -89,8 +92,10 @@ const GOAL_DEFINITIONS = [
     signal: "we need IBM i AS400 modernization support",
     patterns: [
       /\b(?:old|legacy) (?:IBM i |AS400 )?(?:applications?|systems?) (?:are |becoming |feel )?(?:hard|difficult|costly) to maintain\b/i,
+      /\b(?:old|legacy) (?:enterprise )?(?:applications?|systems?) (?:are |have )?(?:becoming )?(?:expensive|costly).{0,32}(?:difficult|hard) to maintain\b/i,
       /\bmoderniz(?:e|ing|ation) (?:our )?(?:legacy|IBM i|AS400)\b/i,
       /\b(?:IBM i|AS400)\b.*\b(?:aging|old|legacy|moderniz|difficult to maintain)\b/i,
+      /\b(?:update|modernize) (?:our )?aging (?:applications?|systems?)\b/i,
     ],
   },
   {
@@ -99,8 +104,10 @@ const GOAL_DEFINITIONS = [
     offeringIds: ["ibm-i-as400-services", "software-support-consolidation"],
     signal: "we need IBM i AS400 support modernization",
     patterns: [
-      /\b(?:applications?|systems?) (?:are |becoming )?(?:hard|difficult) to (?:maintain|support)\b/i,
+      /\b(?:applications?|systems?) (?:(?:are )?becoming |are )?(?:hard|difficult|expensive|costly) to (?:maintain|support)\b/i,
       /\b(?:maintenance|application support) (?:burden|backlog|problems?)\b/i,
+      /\b(?:old|legacy) (?:enterprise )?(?:applications?|systems?).{0,32}(?:maintenance|support) burden\b/i,
+      /\b(?:cannot|can't|cant) keep up with (?:the )?support (?:for|of) (?:our )?(?:old|legacy) (?:enterprise )?(?:applications?|systems?)\b/i,
     ],
   },
   {
@@ -158,6 +165,121 @@ const GOAL_DEFINITIONS = [
   },
 ];
 
+const GOAL_EVIDENCE_MAP = Object.freeze({
+  case_workflow_control: {
+    capabilityTerms: ["case tracking", "assignment tracking", "audit history"],
+    candidateOfferingIds: ["secure-ticketing-case-management"],
+    recommendationTerms: ["case intake", "assignment tracking", "audit history"],
+  },
+  secure_access_and_auditability: {
+    capabilityTerms: ["role-based access", "audit history", "secure communication"],
+    candidateOfferingIds: ["secure-ticketing-case-management"],
+    recommendationTerms: ["role-based access", "audit history"],
+  },
+  vendor_expense_control: {
+    capabilityTerms: ["vendor bill review", "discrepancy tracking", "recurring expense analysis"],
+    candidateOfferingIds: ["bill-audit-bill-pay"],
+    recommendationTerms: ["vendor invoices", "discrepancy tracking", "approval workflow"],
+  },
+  approval_workflow_improvement: {
+    capabilityTerms: ["approval workflows", "payment workflows", "vendor bill review"],
+    candidateOfferingIds: ["bill-audit-bill-pay"],
+    recommendationTerms: ["vendor bills", "approvals", "payment workflows"],
+  },
+  telecom_cost_control: {
+    capabilityTerms: ["telecom expense management", "contract and rate comparison", "usage analysis"],
+    candidateOfferingIds: ["bill-audit-bill-pay"],
+    recommendationTerms: ["telecom bills", "contract and rate comparison", "cost control"],
+  },
+  claims_operations_improvement: {
+    capabilityTerms: ["claims processing", "claims-related operational tasks"],
+    candidateOfferingIds: ["claims-processing-services"],
+    recommendationTerms: ["claims processing", "operational support"],
+  },
+  workflow_automation: {
+    capabilityTerms: ["controlled automation", "document workflows", "repetitive business processes"],
+    candidateOfferingIds: ["ai-agentic-services"],
+    recommendationTerms: ["AI workflow automation", "repetitive workflows", "document automation"],
+  },
+  software_delivery: {
+    capabilityTerms: ["enterprise software development", "application modernization"],
+    candidateOfferingIds: ["enterprise-software-development"],
+    recommendationTerms: ["enterprise software development", "modernization"],
+  },
+  support_consolidation: {
+    capabilityTerms: ["software support consolidation", "application support"],
+    candidateOfferingIds: ["software-support-consolidation"],
+    recommendationTerms: ["software support consolidation", "application support"],
+  },
+  compliance_readiness: {
+    capabilityTerms: ["compliance review", "control documentation", "audit readiness"],
+    candidateOfferingIds: ["compliance-cyber-assurance-overview"],
+    recommendationTerms: ["compliance review", "audit readiness"],
+  },
+  security_evidence: {
+    capabilityTerms: ["security posture", "control evidence", "Trust Center"],
+    candidateOfferingIds: ["compliance-cyber-assurance-overview", "trust-center-overview"],
+    recommendationTerms: ["security review", "control evidence"],
+  },
+});
+
+const unique = (values) => [...new Set(values.filter(Boolean))];
+const hasIbmiScope = (message) => /\b(?:IBM\s*i|AS\s*400|AS400)\b/i.test(message);
+
+export const buildMiraGoalEvidenceBridge = (goalResolution, message = "") => {
+  if (goalResolution?.confidence !== "high") {
+    return { capabilityTerms: [], candidateOfferingIds: [], retrievalHint: "", recommendationHint: "" };
+  }
+
+  const capabilityTerms = [];
+  const candidateOfferingIds = [];
+  const recommendationTerms = [];
+  for (const goal of goalResolution.businessGoals || []) {
+    let evidence = GOAL_EVIDENCE_MAP[goal.id];
+    if (goal.id === "legacy_modernization") {
+      evidence = hasIbmiScope(message)
+        ? {
+            capabilityTerms: ["IBM i", "AS400", "legacy application modernization"],
+            candidateOfferingIds: ["ibm-i-as400-services"],
+            recommendationTerms: ["IBM i", "AS400", "modernization", "support"],
+          }
+        : {
+            capabilityTerms: ["legacy application modernization", "enterprise software development"],
+            candidateOfferingIds: ["enterprise-software-development"],
+            recommendationTerms: ["enterprise software development", "application modernization"],
+          };
+    } else if (goal.id === "application_support") {
+      evidence = hasIbmiScope(message)
+        ? {
+            capabilityTerms: ["IBM i", "AS400", "application support"],
+            candidateOfferingIds: ["ibm-i-as400-services"],
+            recommendationTerms: ["IBM i", "AS400", "support"],
+          }
+        : {
+            capabilityTerms: ["software support consolidation", "application support"],
+            candidateOfferingIds: ["software-support-consolidation"],
+            recommendationTerms: ["software support consolidation", "application support"],
+          };
+    }
+    if (!evidence) continue;
+    capabilityTerms.push(...evidence.capabilityTerms);
+    candidateOfferingIds.push(...evidence.candidateOfferingIds);
+    recommendationTerms.push(...evidence.recommendationTerms);
+  }
+
+  const uniqueCapabilities = unique(capabilityTerms);
+  const uniqueCandidates = unique(candidateOfferingIds);
+  const uniqueRecommendationTerms = unique(recommendationTerms);
+  return {
+    capabilityTerms: uniqueCapabilities,
+    candidateOfferingIds: uniqueCandidates,
+    retrievalHint: uniqueCapabilities.join(" "),
+    recommendationHint: uniqueRecommendationTerms.length
+      ? `we need ${uniqueRecommendationTerms.join(" ")}`
+      : "",
+  };
+};
+
 const EXPLICIT_COMPARISON =
   /\b(?:compare|comparison|versus|vs\.?|difference between|different from)\b/i;
 const VAGUE_OPERATIONS =
@@ -191,9 +313,16 @@ export const extractMiraBusinessGoals = (message = "") => {
         ]
       : [];
   });
-  const uniqueGoals = businessGoals.filter(
+  const deduplicatedGoals = businessGoals.filter(
     (goal, index, all) =>
       all.findIndex((candidate) => candidate.id === goal.id) === index,
+  );
+  const uniqueGoals = deduplicatedGoals.filter(
+    (goal) =>
+      goal.id !== "application_support" ||
+      !deduplicatedGoals.some(
+        (candidate) => candidate.id === "legacy_modernization",
+      ),
   );
 
   return {
