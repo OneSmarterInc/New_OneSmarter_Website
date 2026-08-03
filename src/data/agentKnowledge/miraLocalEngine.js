@@ -119,8 +119,20 @@ const SENSITIVE_SUBMISSION_INTENT_PATTERN =
 const SENSITIVE_DATA_PATTERN =
   /\b(phi|patient information|patient (?:files?|records?|data)|claims?\s+(files?|data|info|information|records?|number)|claim number|confidential\s+(documents?|client documents?|files?|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
 
-const hasSensitiveDataSubmissionIntent = (text = "") =>
-  SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
+const hasSensitiveDataSubmissionIntent = (text = "") => {
+  const phiWorkflowTopicOnly =
+    /\bPHI[- ]sensitive (?:case |healthcare )?(?:workflow|workflows|operations?)\b/i.test(
+      text,
+    ) &&
+    !/\b(?:patient|claims?) (?:files?|records?|data|information|info)\b/i.test(
+      text,
+    );
+  return (
+    !phiWorkflowTopicOnly &&
+    SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) &&
+    SENSITIVE_DATA_PATTERN.test(text)
+  );
+};
 
 export const normalizeQuestion = (question = "") =>
   normalizeMiraMessageText(question);

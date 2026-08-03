@@ -6,6 +6,7 @@ import {
 import { validateMiraFinalResponse } from "../src/server/mira/miraFinalResponseValidator.js";
 import { normalizeMiraUserMessage } from "../src/server/mira/miraUserMessageNormalizer.js";
 import { extractMiraBusinessGoals } from "../src/server/mira/miraBusinessGoals.js";
+import { decomposeMiraRequest } from "../src/server/mira/miraRequestDecomposition.js";
 
 const failures = [];
 const ENV_KEYS = [
@@ -363,6 +364,54 @@ for (const [input, expectedGoalIds] of businessGoalExtractionCases) {
   if (JSON.stringify(actualGoalIds) !== JSON.stringify(expectedGoalIds)) {
     fail(
       `business-goals: expected [${expectedGoalIds}] for ${input}, got [${actualGoalIds}].`,
+    );
+  }
+}
+
+const decompositionCases = [
+  {
+    input:
+      "We need to modernize an old application, reduce maintenance costs, and avoid assuming a specific technology.",
+    requirements: ["legacy_modernization", "application_support"],
+    constraints: ["no_technology_assumption"],
+  },
+  {
+    input:
+      "Explain your compliance readiness services, tell me what your Trust Center proves, and clarify the HIPAA boundary.",
+    requirements: ["compliance_readiness", "trust_center_evidence"],
+    actions: ["explain", "clarify"],
+  },
+  {
+    input:
+      "We need role-based access, audit history, Salesforce integration, and guaranteed HIPAA compliance.",
+    requirements: ["role_based_access", "audit_history"],
+  },
+];
+
+for (const testCase of decompositionCases) {
+  const decomposition = decomposeMiraRequest(testCase.input);
+  const requirementIds = decomposition.requirements.map(({ id }) => id);
+  if (JSON.stringify(requirementIds) !== JSON.stringify(testCase.requirements)) {
+    fail(
+      `request-decomposition: expected requirements [${testCase.requirements}], got [${requirementIds}].`,
+    );
+  }
+  if (
+    testCase.constraints &&
+    JSON.stringify(decomposition.constraints) !== JSON.stringify(testCase.constraints)
+  ) {
+    fail(
+      `request-decomposition: expected constraints [${testCase.constraints}], got [${decomposition.constraints}].`,
+    );
+  }
+  if (
+    testCase.actions &&
+    !testCase.actions.every((action) =>
+      decomposition.requestedActions.includes(action),
+    )
+  ) {
+    fail(
+      `request-decomposition: missing one of actions [${testCase.actions}].`,
     );
   }
 }
@@ -4675,6 +4724,113 @@ const modeCases = [
     expectedCurrentTurnAnswerability: "safety",
     expectedRecommendationAbsent: true,
   },
+  {
+    id: "compound-case-and-claims-recommendation",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "We need secure healthcare case tracking, role-based access, audit history, and support for claims workflows. What would you suggest?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedDecompositionRequirementIds: [
+      "secure_case_tracking",
+      "role_based_access",
+      "audit_history",
+      "healthcare_sensitive_workflow",
+      "claims_workflow_support",
+    ],
+    expectedDecompositionActions: ["recommend"],
+    expectedCoverageOfferingIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+    ],
+    expectedRecommendationPrimaryId: "secure-ticketing-case-management",
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Claims Processing Services",
+      "No single offering",
+    ],
+  },
+  {
+    id: "compound-comparison-recommendation-and-coverage",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Compare your two platforms, recommend one for vendor bill approvals, and tell me whether either one is suitable for PHI-sensitive case workflows.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedDecompositionRequirementIds: [
+      "healthcare_sensitive_workflow",
+      "vendor_bill_approval",
+    ],
+    expectedDecompositionActions: ["compare", "recommend", "explain"],
+    expectedRecommendationPrimaryId: "bill-audit-bill-pay",
+    expectedComparisonStatus: "complete",
+    expectedAnswerIncludesAll: [
+      "Comparison:",
+      "Recommendation:",
+      "Bill Audit & Bill Pay",
+      "PHI-sensitive healthcare case workflows",
+    ],
+  },
+  {
+    id: "compound-ai-automation-coverage",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "We want to reduce manual document work, keep human approval, and create a repeatable workflow.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedDecompositionRequirementIds: [
+      "document_workflow_automation",
+      "human_in_the_loop_review",
+      "repeatable_workflow",
+    ],
+    expectedCoverageOfferingIds: ["ai-agentic-services"],
+    expectedAnswerIncludesAll: [
+      "AI Agentic Services",
+      "human-in-the-loop review",
+      "repeatable business processes",
+    ],
+  },
+  {
+    id: "compound-billing-and-telecom-coverage",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "We need to identify billing discrepancies, manage approvals, and control telecom expenses.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedDecompositionRequirementIds: [
+      "billing_discrepancies",
+      "telecom_expense_control",
+    ],
+    expectedCoverageOfferingIds: ["bill-audit-bill-pay"],
+    expectedRecommendationPrimaryId: "bill-audit-bill-pay",
+    expectedAnswerIncludesAll: [
+      "billing discrepancy tracking",
+      "telecom expense management",
+    ],
+  },
+  {
+    id: "compound-negative-service-catalog-constraint",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Explain healthcare case workflows and claims support, but do not list every service.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedDecompositionActions: ["explain"],
+    expectedDecompositionConstraints: [
+      "healthcare_relevance",
+      "not_all_services",
+    ],
+    expectedCoverageOfferingIds: [
+      "secure-ticketing-case-management",
+      "claims-processing-services",
+    ],
+    expectedAnswerExcludes: "AI Agentic Services",
+  },
 ];
 
 const consistencyResults = new Map();
@@ -4799,6 +4955,54 @@ for (const modeCase of modeCases) {
     fail(
       `${modeCase.id}: expected business goal confidence ${modeCase.expectedBusinessGoalConfidence}, got ${result.body.businessGoalConfidence}.`,
     );
+  }
+  if (modeCase.expectedDecompositionRequirementIds) {
+    const actualIds = (result.body.requestDecomposition?.requirements || []).map(
+      (requirement) => requirement.id,
+    );
+    if (
+      JSON.stringify(actualIds) !==
+      JSON.stringify(modeCase.expectedDecompositionRequirementIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected decomposed requirements [${modeCase.expectedDecompositionRequirementIds}], got [${actualIds}].`,
+      );
+    }
+  }
+  if (modeCase.expectedDecompositionActions) {
+    const actualActions = result.body.requestDecomposition?.requestedActions || [];
+    if (
+      JSON.stringify(actualActions) !==
+      JSON.stringify(modeCase.expectedDecompositionActions)
+    ) {
+      fail(
+        `${modeCase.id}: expected decomposed actions [${modeCase.expectedDecompositionActions}], got [${actualActions}].`,
+      );
+    }
+  }
+  if (modeCase.expectedDecompositionConstraints) {
+    const actualConstraints = result.body.requestDecomposition?.constraints || [];
+    if (
+      JSON.stringify(actualConstraints) !==
+      JSON.stringify(modeCase.expectedDecompositionConstraints)
+    ) {
+      fail(
+        `${modeCase.id}: expected decomposed constraints [${modeCase.expectedDecompositionConstraints}], got [${actualConstraints}].`,
+      );
+    }
+  }
+  if (modeCase.expectedCoverageOfferingIds) {
+    const actualIds = (result.body.offeringCoverage || []).map(
+      (coverage) => coverage.offeringId,
+    );
+    if (
+      JSON.stringify(actualIds) !==
+      JSON.stringify(modeCase.expectedCoverageOfferingIds)
+    ) {
+      fail(
+        `${modeCase.id}: expected coverage offerings [${modeCase.expectedCoverageOfferingIds}], got [${actualIds}].`,
+      );
+    }
   }
   if (
     modeCase.expectedAnswerCompletenessStatus &&

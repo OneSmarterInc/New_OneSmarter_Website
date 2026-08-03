@@ -43,6 +43,10 @@ import {
   extractMiraBusinessGoals,
   frameMiraGoalRecommendation,
 } from "./miraBusinessGoals.js";
+import {
+  composeMiraCompoundAnswer,
+  decomposeMiraRequest,
+} from "./miraRequestDecomposition.js";
 
 export const LOCAL_HARNESS_MODE = "local_harness_mock";
 const STAGING_LLM_MODE = "staging_llm";
@@ -142,8 +146,20 @@ const SENSITIVE_SUBMISSION_INTENT_PATTERN =
 const SENSITIVE_DATA_PATTERN =
   /\b(phi|patient information|patient (?:files?|records?|data)|claims?\s+(files?|data|info|information|records?|number)|claim number|confidential\s+(documents?|client documents?|files?|data|information|records?)|private operational\s+(data|details|records?)|credentials?|vendor contract)\b/i;
 
-const hasSensitiveDataSubmissionIntent = (text = "") =>
-  SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) && SENSITIVE_DATA_PATTERN.test(text);
+const hasSensitiveDataSubmissionIntent = (text = "") => {
+  const phiWorkflowTopicOnly =
+    /\bPHI[- ]sensitive (?:case |healthcare )?(?:workflow|workflows|operations?)\b/i.test(
+      text,
+    ) &&
+    !/\b(?:patient|claims?) (?:files?|records?|data|information|info)\b/i.test(
+      text,
+    );
+  return (
+    !phiWorkflowTopicOnly &&
+    SENSITIVE_SUBMISSION_INTENT_PATTERN.test(text) &&
+    SENSITIVE_DATA_PATTERN.test(text)
+  );
+};
 
 const isComparisonIntent = (message = "") =>
   isExplicitMiraComparisonRequest(message);
@@ -717,6 +733,8 @@ export const runMiraResponseAdapter = async ({
     };
   }
 
+  const requestDecomposition = decomposeMiraRequest(classificationMessage);
+
   const directEntityRequest =
     /\b(?:tell me about|what (?:is|are|does)|explain|describe)\b/i.test(
       classificationMessage,
@@ -794,6 +812,12 @@ export const runMiraResponseAdapter = async ({
     ),
     businessGoalResolution,
   );
+  const compoundResolution = composeMiraCompoundAnswer({
+    decomposition: requestDecomposition,
+    decisionResolution,
+    comparisonResolution,
+    recommendationResolution,
+  });
   let localResult = comparisonIntent
     ? withPlatformComparisonContext(initialLocalResult)
     : withActiveSubjectPriority(initialLocalResult, activeSubject);
@@ -842,6 +866,27 @@ export const runMiraResponseAdapter = async ({
       resolvedConversationEntities: [unsupportedResolution.entity],
       clarificationNeeded: false,
       unsupportedHandled: true,
+    };
+  } else if (compoundResolution && !localResult.riskFlags.length) {
+    localResult = {
+      ...localResult,
+      confidence: "high",
+      matchedEntries: compoundResolution.matchedEntries,
+      answerSeed: compoundResolution.answer,
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: compoundResolution.entities,
+      requestDecomposition,
+      offeringCoverage: compoundResolution.offeringCoverage,
+      addressedActions: compoundResolution.addressedActions,
+      recommendation: compoundResolution.recommendation,
+      comparison: comparisonResolution?.comparison,
+      recommendationHandled: Boolean(compoundResolution.recommendation),
+      comparisonHandled: Boolean(comparisonResolution),
+      compoundRequestHandled: true,
+      clarificationNeeded: false,
+      answerStructureKind: "",
     };
   } else if (listingResolution && !localResult.riskFlags.length) {
     localResult = {
@@ -1037,6 +1082,7 @@ export const runMiraResponseAdapter = async ({
     businessGoalConfidence: businessGoalResolution.confidence,
     businessGoalAmbiguous: businessGoalResolution.ambiguous,
     businessGoalEvidence,
+    requestDecomposition,
     responseMode: {
       ...effectiveResponseMode,
       fastPath: Boolean(

@@ -472,6 +472,12 @@ export const handleMiraChatRequest = async ({
       finalResponseValidation: result.finalResponseValidation,
       businessGoals: result.businessGoals || [],
       businessGoalConfidence: result.businessGoalConfidence || "low",
+      ...(result.requestDecomposition?.compoundRequest
+        ? { requestDecomposition: result.requestDecomposition }
+        : {}),
+      ...(result.offeringCoverage
+        ? { offeringCoverage: result.offeringCoverage }
+        : {}),
       ...(answerStructure ? { answerStructure } : {}),
       answerSeed: result.answerSeed,
       confidence: result.confidence,
