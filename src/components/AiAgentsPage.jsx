@@ -1729,7 +1729,7 @@ const AiAgentsPage = () => {
             <p className="mt-4 leading-7 text-gray-700">
               The agent team is designed around clear roles, useful memory
               themes, and narrow work specialties rather than a generic chatbot
-              surface.
+              surface..
             </p>
           </div>
 
