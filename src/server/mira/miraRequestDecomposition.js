@@ -46,6 +46,29 @@ const CONSTRAINTS = [
 const evidenceFor = (pattern, text) => text.match(pattern)?.[0] || "";
 const unique = (values) => [...new Set(values.filter(Boolean))];
 
+const COMPACT_COMPARISON_CAPABILITIES = Object.freeze({
+  "bill-audit-bill-pay":
+    "vendor bill review, discrepancy tracking, approvals, payment workflows, and telecom expense use cases",
+  "secure-ticketing-case-management":
+    "secure case intake, role-based access, audit history, controlled communication, and PHI-sensitive workflows",
+});
+
+const normalizedContentKey = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const uniqueContent = (values = []) => {
+  const seen = new Set();
+  return values.filter((value) => {
+    const key = normalizedContentKey(value);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 export const decomposeMiraRequest = (message = "") => {
   const text = String(message).trim();
   const potentialCompound =
@@ -152,7 +175,17 @@ export const composeMiraCompoundAnswer = ({
   const actions = decomposition.requestedActions;
   const sections = [];
   if (actions.includes("compare") && comparisonResolution?.comparison?.status === "complete") {
-    sections.push(`Comparison:\n${comparisonResolution.answer}`);
+    const differenceLines = (comparisonResolution.entities || [])
+      .map((entity) => {
+        const capabilities = COMPACT_COMPARISON_CAPABILITIES[entity.id];
+        return capabilities ? `- ${entity.label}: ${capabilities}.` : "";
+      })
+      .filter(Boolean);
+    sections.push(
+      differenceLines.length
+        ? `Comparison\nThe platforms serve different operational needs.\n\nKey differences\n${differenceLines.join("\n")}`
+        : `Comparison\n${comparisonResolution.answer}`,
+    );
   }
   let recommendation = recommendationResolution?.recommendation || null;
   if (
@@ -192,31 +225,40 @@ export const composeMiraCompoundAnswer = ({
     };
   }
   if (actions.includes("recommend") && recommendation?.status === "recommended") {
-    const recommendationAnswer =
-      recommendationResolution?.recommendation?.status === "recommended"
-        ? recommendationResolution.answer
-        : `Recommended: ${recommendation.primaryOption.label}.\n${recommendation.reasons[0]}`;
-    sections.push(`Recommendation:\n${recommendationAnswer}`);
+    sections.push(`Recommendation\n${recommendation.primaryOption.label}.`);
   }
-  const coveredIds = new Set(
-    recommendation?.primaryOption ? [recommendation.primaryOption.id] : [],
-  );
-  const coverageLines = coverage
-    .filter(({ offeringId }) => !actions.includes("recommend") || !coveredIds.has(offeringId))
-    .map(({ label, offeringId }) => {
-      const covered = (grouped.get(offeringId) || []).map(({ coverage: value }) => value);
-      return `- ${label}: ${covered.join(", ")}.`;
-    });
-  if (coverageLines.length) {
-    sections.push(`Requirement coverage:\n${coverageLines.join("\n")}`);
+  const primaryId = recommendation?.primaryOption?.id || entities[0]?.id;
+  const coverageBlocks = coverage.map(({ label, offeringId }) => {
+    const covered = uniqueContent(
+      (grouped.get(offeringId) || []).map(({ coverage: value }) => value),
+    );
+    const relationship =
+      offeringId === primaryId
+        ? "is the strongest grounded fit for"
+        : "is separately relevant for";
+    return `${label} ${relationship}:\n${covered
+      .map((item) => `- ${item}`)
+      .join("\n")}`;
+  });
+  if (
+    !actions.includes("compare") &&
+    !actions.includes("recommend") &&
+    coverage.length === 1 &&
+    decomposition.requirements.length >= 2
+  ) {
+    sections.push(`Recommendation\n${coverageBlocks[0]}`);
+  } else if (coverageBlocks.length) {
+    sections.push(`Requirement coverage\n${coverageBlocks.join("\n\n")}`);
   }
   if (coverage.length > 1) {
-    sections.push("No single offering is presented as covering every requirement; each match is scoped to the needs listed above.");
+    sections.push(
+      "No single offering is presented as covering every requirement.",
+    );
   }
   if (!sections.length) return null;
 
   return {
-    answer: sections.join("\n\n"),
+    answer: uniqueContent(sections).join("\n\n"),
     entities,
     matchedEntries: matchedEntriesForConversationEntities(entities),
     offeringCoverage: coverage,

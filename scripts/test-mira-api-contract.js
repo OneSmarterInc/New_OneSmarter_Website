@@ -4747,9 +4747,15 @@ const modeCases = [
     expectedRecommendationPrimaryId: "secure-ticketing-case-management",
     expectedAnswerIncludesAll: [
       "Secure Ticketing and Case Management",
+      "secure case workflows",
+      "role-based access",
+      "audit history",
+      "PHI-sensitive healthcare case workflows",
       "Claims Processing Services",
+      "claims workflow operations",
       "No single offering",
     ],
+    expectedMaxAnswerWords: 70,
   },
   {
     id: "compound-comparison-recommendation-and-coverage",
@@ -4767,11 +4773,19 @@ const modeCases = [
     expectedRecommendationPrimaryId: "bill-audit-bill-pay",
     expectedComparisonStatus: "complete",
     expectedAnswerIncludesAll: [
-      "Comparison:",
-      "Recommendation:",
+      "Comparison",
+      "Key differences",
+      "Recommendation",
       "Bill Audit & Bill Pay",
       "PHI-sensitive healthcare case workflows",
     ],
+    expectedAnswerExcludesAll: [
+      "Purpose:",
+      "Key difference:",
+      "Bill Audit & Bill Pay helps organizations review vendor bills",
+      "Secure Ticketing and Case Management is a platform built",
+    ],
+    expectedMaxAnswerWords: 110,
   },
   {
     id: "compound-ai-automation-coverage",
@@ -4789,9 +4803,12 @@ const modeCases = [
     expectedCoverageOfferingIds: ["ai-agentic-services"],
     expectedAnswerIncludesAll: [
       "AI Agentic Services",
+      "controlled document-workflow automation",
       "human-in-the-loop review",
       "repeatable business processes",
     ],
+    expectedAnswerExcludesAll: ["HandoffNeeded", "care@onesmarter.com"],
+    expectedMaxAnswerWords: 35,
   },
   {
     id: "compound-billing-and-telecom-coverage",
@@ -5078,6 +5095,17 @@ for (const modeCase of modeCases) {
     if (questionCount !== modeCase.expectedAnswerQuestionCount) {
       fail(
         `${modeCase.id}: expected ${modeCase.expectedAnswerQuestionCount} answer question marks, got ${questionCount}.`,
+      );
+    }
+  }
+  if (Number.isFinite(modeCase.expectedMaxAnswerWords)) {
+    const wordCount = String(result.body.answer || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+    if (wordCount > modeCase.expectedMaxAnswerWords) {
+      fail(
+        `${modeCase.id}: expected no more than ${modeCase.expectedMaxAnswerWords} answer words, got ${wordCount}.`,
       );
     }
   }
