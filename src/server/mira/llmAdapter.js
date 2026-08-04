@@ -688,8 +688,15 @@ export const runMiraResponseAdapter = async ({
             turn.content || "",
           ),
       );
+  const replacesComparisonCandidate =
+    /\b(?:no|instead).+\buse .+ as (?:the )?second option\b/i.test(
+      classificationMessage,
+    ) &&
+    conversationHistory.length > 0;
   const relevantConversationHistory =
-    turnContext.usesHistory || answersGoalTechnologyClarification
+    turnContext.usesHistory ||
+    answersGoalTechnologyClarification ||
+    replacesComparisonCandidate
     ? conversationHistory
     : [];
   const safetyResult = runMiraSafetyGate(classificationMessage);

@@ -9,7 +9,7 @@ import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmar
 const ACKNOWLEDGEMENT =
   /^(?:ok(?:ay)?|got it|thanks|thank you|understood|fine|sounds good)[.! ]*$/i;
 const COMPARISON =
-  /\b(?:compare|comparison|difference(?:s)? between|different from|versus|vs\.?|which (?:one|option|platform|service) is better|pros and cons|one or both|compared with)\b/i;
+  /\b(?:compare|comparison|difference(?:s)? between|different from|versus|vs\.?|which (?:one|option|platform|service) is better|pros and cons|one or both|compared with|use .+ as (?:the )?second option)\b/i;
 const COMPARISON_NEGATION =
   /\b(?:do not|don't|dont|not|no)\s+(?:want to\s+)?compar(?:e|ison)\b/i;
 const NAMES_ONLY =

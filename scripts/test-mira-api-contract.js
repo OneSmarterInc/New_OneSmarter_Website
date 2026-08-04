@@ -4848,6 +4848,141 @@ const modeCases = [
     ],
     expectedAnswerExcludes: "AI Agentic Services",
   },
+  {
+    id: "assistant-selected-as400-service-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Compare AS400 Services with any other relevant service and recommend one.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+    ],
+    expectedConversationEntityIds: [
+      "ibm-i-as400-services",
+      "enterprise-software-development",
+    ],
+    expectedAnswerIncludesAll: [
+      "I'll compare",
+      "Enterprise Software Development",
+      "Choose IBM i / AS400 Services when",
+      "choose Enterprise Software Development when",
+    ],
+    expectedAnswerExcludes: "Which platforms or services",
+  },
+  {
+    id: "assistant-selected-platform-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare Secure Ticketing with another platform.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+  },
+  {
+    id: "assistant-selected-healthcare-service-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Pick another healthcare service and compare it with Claims Processing Services.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "claims-processing-services",
+      "healthcare-tpa-technology-services",
+    ],
+  },
+  {
+    id: "assistant-selected-modernization-service-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Compare AI Agentic Services with another service suitable for application modernization.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ai-agentic-services",
+      "enterprise-software-development",
+    ],
+    expectedAnswerIncludesAll: [
+      "Enterprise Software Development",
+      "stronger grounded match",
+    ],
+  },
+  {
+    id: "assistant-selected-platform-pair-with-criterion",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Compare one of your platforms with another and recommend one for vendor bill approvals.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedRecommendationPrimaryId: "bill-audit-bill-pay",
+    expectedAnswerIncludesAll: ["Bill Audit & Bill Pay", "vendor-bill approval"],
+  },
+  {
+    id: "assistant-selected-as400-direct-context",
+    env: { MIRA_LLM_MODE: "mock" },
+    message:
+      "Compare AS400 Services with another service for our IBM i environment.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedAnswerIncludesAll: [
+      "IBM i / AS400 Services",
+      "stronger grounded match",
+    ],
+  },
+  {
+    id: "assistant-selected-candidate-explicit-correction",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "No, use AI Agentic Services as the second option.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content:
+          "I compared IBM i / AS400 Services with Enterprise Software Development.",
+        conversationEntities: [
+          { id: "ibm-i-as400-services", level: 1, position: 1 },
+          { id: "enterprise-software-development", level: 1, position: 2 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ibm-i-as400-services",
+      "ai-agentic-services",
+    ],
+    expectedAnswerIncludes: "AI Agentic Services",
+  },
+  {
+    id: "assistant-selected-invalid-broad-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare something with something.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "needs_clarification",
+    expectedAnswerQuestionCount: 1,
+  },
 ];
 
 const consistencyResults = new Map();

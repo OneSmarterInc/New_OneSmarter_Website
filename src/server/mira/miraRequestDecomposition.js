@@ -160,10 +160,17 @@ export const composeMiraCompoundAnswer = ({
   ) {
     return null;
   }
-  const entities = [...grouped.keys()]
+  const coverageEntities = [...grouped.keys()]
     .map((id, index) => groundedConversationEntityForId(id, { position: index + 1 }))
     .filter(Boolean);
-  const coverage = entities.map((entity) => ({
+  const entities = [
+    ...coverageEntities,
+    ...(comparisonResolution?.entities || []),
+  ].filter(
+    (entity, index, all) =>
+      all.findIndex((candidate) => candidate.id === entity.id) === index,
+  );
+  const coverage = coverageEntities.map((entity) => ({
     offeringId: entity.id,
     label: entity.label,
     supportedRequirements: (grouped.get(entity.id) || []).map(({ id }) => id),
@@ -181,17 +188,24 @@ export const composeMiraCompoundAnswer = ({
         return capabilities ? `- ${entity.label}: ${capabilities}.` : "";
       })
       .filter(Boolean);
+    const resolvedDifferenceLines = differenceLines.length
+      ? differenceLines
+      : (comparisonResolution.comparison.keyDifferences || []).map(
+          (difference) => `- ${difference}.`,
+        );
+    const selectionReason = comparisonResolution.assistantSelectedCandidate
+      ? `I'll compare ${comparisonResolution.entities[0].label} with ${comparisonResolution.assistantSelectedCandidate.label} because ${comparisonResolution.assistantSelectedCandidate.reason}.\n\n`
+      : "";
     sections.push(
-      differenceLines.length
-        ? `Comparison\nThe platforms serve different operational needs.\n\nKey differences\n${differenceLines.join("\n")}`
-        : `Comparison\n${comparisonResolution.answer}`,
+      `${selectionReason}Comparison\nThe selected offerings serve different operational needs.\n\nKey differences\n${resolvedDifferenceLines.join("\n")}`,
     );
   }
   let recommendation = recommendationResolution?.recommendation || null;
   if (
     actions.includes("recommend") &&
     recommendation?.status !== "recommended" &&
-    entities.length
+    entities.length &&
+    decomposition.requirements.length
   ) {
     const targetedOfferingIds = new Set(
       decomposition.requirements
@@ -226,6 +240,13 @@ export const composeMiraCompoundAnswer = ({
   }
   if (actions.includes("recommend") && recommendation?.status === "recommended") {
     sections.push(`Recommendation\n${recommendation.primaryOption.label}.`);
+  } else if (
+    actions.includes("recommend") &&
+    comparisonResolution?.comparison?.status === "complete"
+  ) {
+    sections.push(
+      `Recommendation\n${comparisonResolution.comparison.decisionGuidance}`,
+    );
   }
   const primaryId = recommendation?.primaryOption?.id || entities[0]?.id;
   const coverageBlocks = coverage.map(({ label, offeringId }) => {
