@@ -498,10 +498,10 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
   const historyHasBothPlatforms =
     /secure ticketing/i.test(historyText) && /bill audit/i.test(historyText);
   const asksForPlatformPair =
-    /\b(?:both platforms|the two|one or both)\b/i.test(message) ||
+    /\b(?:both platforms|the two|one or both|your platforms)\b/i.test(message) ||
     (historyHasBothPlatforms && EXPLICIT_HISTORY_REFERENCE.test(message));
 
-  if (!entities.length && asksForPlatformPair) {
+  if (entities.length < 2 && asksForPlatformPair) {
     entities = [
       groundedConversationEntityForId("secure-ticketing-case-management"),
       groundedConversationEntityForId("bill-audit-bill-pay"),
@@ -523,6 +523,7 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
 
   if (
     fuzzyResolution.issues.length &&
+    entities.length < 2 &&
     !assistantSelection &&
     !correctionEntities.length &&
     !referenced.length &&

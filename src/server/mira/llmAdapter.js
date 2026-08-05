@@ -3,6 +3,10 @@ import {
   runMiraSafetyGate,
 } from "../../data/agentKnowledge/miraLocalEngine.js";
 import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
+import {
+  applyMiraAdaptiveDiscovery,
+  isMiraAdaptiveDiscoveryFollowUp,
+} from "./miraAdaptiveDiscovery.js";
 import { buildMiraPromptPayload } from "./miraPromptContract.js";
 import { validateMiraModelOutput } from "./miraOutputValidator.js";
 import {
@@ -185,8 +189,6 @@ const unsupportedImplementationAnswer = (
   message = "",
   directEntityResolution = null,
 ) => {
-  if (directEntityResolution?.status !== "resolved") return null;
-  const entity = directEntityResolution.match.entity;
   const asksIntegration =
     /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?)\b/i.test(
       message,
@@ -196,6 +198,22 @@ const unsupportedImplementationAnswer = (
       message,
     );
   if (!asksIntegration && !asksTimeline) return null;
+  const entity =
+    directEntityResolution?.status === "resolved"
+      ? directEntityResolution.match.entity
+      : null;
+  if (
+    !entity &&
+    asksIntegration &&
+    /\b(?:SAP|Salesforce|ServiceNow|Oracle|Microsoft Dynamics)\b/i.test(message)
+  ) {
+    return {
+      entity: null,
+      answer:
+        "The approved OneSmarter content does not confirm integration with the named external system. For integration-specific verification, email care@onesmarter.com.",
+    };
+  }
+  if (!entity) return null;
   const subject = entity.label;
   return {
     entity,
@@ -688,6 +706,10 @@ export const runMiraResponseAdapter = async ({
             turn.content || "",
           ),
       );
+  const answersAdaptiveDiscovery = isMiraAdaptiveDiscoveryFollowUp(
+    classificationMessage,
+    conversationHistory,
+  );
   const replacesComparisonCandidate =
     /\b(?:no|instead).+\buse .+ as (?:the )?second option\b/i.test(
       classificationMessage,
@@ -696,6 +718,7 @@ export const runMiraResponseAdapter = async ({
   const relevantConversationHistory =
     turnContext.usesHistory ||
     answersGoalTechnologyClarification ||
+    answersAdaptiveDiscovery ||
     replacesComparisonCandidate
     ? conversationHistory
     : [];
@@ -859,9 +882,12 @@ export const runMiraResponseAdapter = async ({
       fastPathHandled: true,
     };
   } else if (unsupportedResolution && !localResult.riskFlags.length) {
-    const matchedEntries = matchedEntriesForConversationEntities([
-      unsupportedResolution.entity,
-    ]);
+    const unsupportedEntities = unsupportedResolution.entity
+      ? [unsupportedResolution.entity]
+      : [];
+    const matchedEntries = matchedEntriesForConversationEntities(
+      unsupportedEntities,
+    );
     localResult = {
       ...localResult,
       confidence: "low",
@@ -870,7 +896,7 @@ export const runMiraResponseAdapter = async ({
       handoffNeeded: true,
       handoffReason: "unsupported_implementation_detail",
       suggestedFollowUps: [],
-      resolvedConversationEntities: [unsupportedResolution.entity],
+      resolvedConversationEntities: unsupportedEntities,
       clarificationNeeded: false,
       unsupportedHandled: true,
     };
@@ -1037,6 +1063,15 @@ export const runMiraResponseAdapter = async ({
     };
   }
 
+  localResult = applyMiraAdaptiveDiscovery({
+    message: classificationMessage,
+    conversationHistory: relevantConversationHistory,
+    businessGoals: businessGoalResolution.businessGoals,
+    responseMode,
+    comparisonIntent,
+    localResult,
+  });
+
   if (
     ((referenceResolution.kind === "clarification" &&
       (referenceResolution.hadEntityContext ||
@@ -1049,6 +1084,7 @@ export const runMiraResponseAdapter = async ({
     !localResult.recommendationHandled &&
     !localResult.comparisonHandled &&
     !localResult.listingHandled &&
+    !localResult.unsupportedHandled &&
     !localResult.fastPathHandled
   ) {
     localResult = {
@@ -1065,9 +1101,11 @@ export const runMiraResponseAdapter = async ({
     };
   }
 
-  localResult = applyMiraEvidenceSelection(localResult, {
-    initialMatchedEntries: initialLocalResult.matchedEntries,
-  });
+  localResult = localResult.adaptiveDiscoveryHandled
+    ? localResult
+    : applyMiraEvidenceSelection(localResult, {
+        initialMatchedEntries: initialLocalResult.matchedEntries,
+      });
   const effectiveResponseMode = localResult.unsupportedHandled
     ? {
         ...responseMode,
@@ -1150,7 +1188,9 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: localResult.comparison
+      responseGuidance: localResult.adaptiveDiscoveryHandled
+        ? "Preserve the grounded preliminary guidance and ask exactly the one decision-critical question supplied by the local answer plan. Do not add other questions or assume the missing fact."
+        : localResult.comparison
         ? "Provide only the grounded comparison and decision guidance represented by the supplied approved context. Do not invent pricing, integrations, implementation timelines, performance claims, guarantees, or unsupported limitations."
         : localResult.recommendation
         ? "Provide only the grounded recommendation represented by the supplied approved context. Do not invent features, pricing, timelines, integrations, guarantees, or compliance claims."

@@ -154,6 +154,20 @@ export const validateMiraFinalResponse = (result = {}) => {
     .filter(Boolean);
   const primaryLabels = selectedLabels(result);
   if (
+    result.answerCompleteness?.status === "needs_refinement" &&
+    result.decisionState?.nextBestQuestion &&
+    !normalized(answer).includes(
+      normalized(result.decisionState.nextBestQuestion),
+    )
+  ) {
+    return correctionResult(
+      result,
+      fallbackAnswerFor(result),
+      ["decision_critical_question_restored"],
+      "fallback",
+    );
+  }
+  if (
     !["comparison", "recommendation"].includes(mode) &&
     (primaryLabels.length === 1 || mode === "detailed_explanation") &&
     excludedLabels.some((label) => normalized(answer).includes(normalized(label)))
@@ -179,7 +193,9 @@ export const validateMiraFinalResponse = (result = {}) => {
   }
 
   if (
-    result.answerCompleteness?.status === "needs_clarification" &&
+    ["needs_clarification", "needs_refinement"].includes(
+      result.answerCompleteness?.status,
+    ) &&
     questionCount(answer) > 1
   ) {
     const firstQuestionEnd = answer.indexOf("?") + 1;

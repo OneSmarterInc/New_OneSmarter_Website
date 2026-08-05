@@ -28,6 +28,20 @@ export const classifyMiraAnswerCompleteness = (result = {}) => {
       allowFollowUpQuestion: true,
     };
   }
+  if (
+    result.adaptiveDiscoveryHandled &&
+    result.decisionState?.nextBestQuestion
+  ) {
+    return {
+      status: "needs_refinement",
+      reason:
+        "A grounded preliminary answer is available, and one decision-critical fact could materially refine it.",
+      missingInformation: result.decisionState.missingDecisionFacts.map(
+        ({ key }) => key,
+      ),
+      allowFollowUpQuestion: true,
+    };
+  }
   if (result.unsupportedHandled) {
     return {
       status: "unsupported_with_handoff",
