@@ -169,6 +169,21 @@ export const normalizeGroundedConversationEntities = (entities) => {
     .filter(Boolean);
 };
 
+export const knownMiraOfferingEntities = () =>
+  [
+    ...onesmarterPublicKnowledgeBase.map((entry) =>
+      groundedConversationEntityForId(entry.id, { includeChildren: false }),
+    ),
+    ...childDefinitionById.keys().map((id) =>
+      groundedConversationEntityForId(id, { level: 1, includeChildren: false }),
+    ),
+  ]
+    .filter((entity) => ["platform", "service"].includes(entity?.type))
+    .filter(
+      (entity, index, entities) =>
+        entities.findIndex((candidate) => candidate.id === entity.id) === index,
+    );
+
 const MAIN_OFFERING_IDS = [
   "secure-ticketing-case-management",
   "bill-audit-bill-pay",

@@ -319,6 +319,71 @@ const finalValidatorCases = [
       "OneSmarter builds secure platforms and practical AI workflows.",
     expectedAction: "trim",
   },
+  {
+    id: "final-validator-platform-scope-removes-service-entity",
+    input: {
+      answerSeed:
+        "Secure Ticketing and Case Management supports controlled workflows. Claims Processing Services supports claims operations.",
+      responseMode: {
+        mode: "concise_explanation",
+        entityCategoryScope: "platform",
+      },
+      resolvedConversationEntities: [
+        {
+          id: "secure-ticketing-case-management",
+          label: "Secure Ticketing and Case Management",
+          type: "platform",
+          sourceIds: ["secure-ticketing-case-management"],
+          approvedSummary: "Supports controlled case workflows.",
+        },
+        {
+          id: "claims-processing-services",
+          label: "Claims Processing Services",
+          type: "service",
+          sourceIds: ["claims-processing-services"],
+          approvedSummary: "Supports claims operations.",
+        },
+      ],
+      matchedEntries: [
+        { id: "secure-ticketing-case-management" },
+        { id: "claims-processing-services" },
+      ],
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer:
+      "Secure Ticketing and Case Management: Supports controlled case workflows.",
+    expectedAction: "trim",
+  },
+  {
+    id: "final-validator-names-only-clears-presentation-metadata",
+    input: {
+      answerSeed:
+        "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+      responseMode: { mode: "names_only", entityCategoryScope: "platform" },
+      resolvedConversationEntities: [
+        {
+          id: "secure-ticketing-case-management",
+          label: "Secure Ticketing and Case Management",
+          type: "platform",
+        },
+        {
+          id: "bill-audit-bill-pay",
+          label: "Bill Audit & Bill Pay",
+          type: "platform",
+        },
+      ],
+      answerStructureKind: "list",
+      suggestedFollowUps: ["Would you like details?"],
+      handoffNeeded: false,
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+    },
+    expectedAnswer:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedAction: "trim",
+  },
 ];
 
 for (const validatorCase of finalValidatorCases) {
@@ -650,6 +715,13 @@ const validModelOutput = {
   suggestedFollowUps: ["What platforms do you offer?"],
   groundingStatus: "grounded",
   outputSafetyStatus: "passed",
+};
+
+const platformSupportModelOutput = {
+  ...validModelOutput,
+  answer:
+    "Secure Ticketing and Case Management supports secure intake, role-based access, audit history, controlled communication, and workflow tracking. Bill Audit & Bill Pay supports vendor-bill review, discrepancy tracking, approvals, and payment workflows.",
+  suggestedFollowUps: [],
 };
 
 const optionalContactModelOutput = {
@@ -4146,6 +4218,163 @@ const modeCases = [
     ],
     expectedAnswerIncludesAll: ["Platforms", "Services"],
     expectedComparisonAbsent: true,
+  },
+  {
+    id: "answer-shape-fresh-platform-names-only",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Give me the platform names only.",
+    fetchImpl: openAiSuccessFetch(validModelOutput),
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedFastPath: true,
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "answer-shape-follow-up-platform-names-only",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Just give me the platform names.",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "OneSmarter offers two platforms.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedConversationEntityTypes: ["platform", "platform"],
+  },
+  {
+    id: "answer-shape-typo-platform-names-only",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "jst giv me platform nmes only",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedNormalizedMessage: "just give me platform names only",
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+    expectedConversationEntityTypes: ["platform", "platform"],
+  },
+  {
+    id: "entity-scope-platform-support",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does each platform support?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+    ],
+    expectedAnswerExcludesAll: [
+      "Claims Processing Services",
+      "Healthcare & TPA Technology Services",
+      "AI Agentic Services",
+    ],
+    forbiddenSourceIds: ["claims-processing-services", "ai-agentic-services"],
+  },
+  {
+    id: "entity-scope-platform-support-single-provider-call",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "What does each platform support?",
+    fetchImpl: openAiSuccessFetch(platformSupportModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerExcludes: "Claims Processing Services",
+    expectedFetchCalls: 1,
+  },
+  {
+    id: "entity-scope-platform-support-overrides-mixed-history",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does each platform support?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Claims Processing Services supports claims operations.",
+        conversationEntities: [{ id: "claims-processing-services" }],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerExcludes: "Claims Processing Services",
+  },
+  {
+    id: "entity-scope-service-support",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does each service support?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityTypes: [
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+    ],
+    expectedAnswerExcludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+    ],
+  },
+  {
+    id: "entity-scope-platforms-and-services-separated",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "List your platforms and services separately.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "categorized_list",
+    expectedAnswerStartsWith: "Platforms\n",
+    expectedAnswerIncludesAll: ["Platforms", "Services"],
+    expectedConversationEntityTypes: [
+      "platform",
+      "platform",
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+    ],
   },
   {
     id: "response-mode-short-company-overview",

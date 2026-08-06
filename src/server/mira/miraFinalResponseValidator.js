@@ -70,6 +70,53 @@ const missingLabels = (answer, labels = []) => {
   return labels.filter((label) => !normalizedAnswer.includes(normalized(label)));
 };
 
+const categoryScopedCorrection = (result, answer, scope) => {
+  if (!["platform", "service"].includes(scope)) return null;
+  const selectedEntities = (result.resolvedConversationEntities || []).filter(
+    (entity) => entity?.type === scope,
+  );
+  const wrongTypeEntities = knownMiraOfferingEntities().filter(
+    (entity) => entity.type !== scope,
+  );
+  const answerContainsWrongType = wrongTypeEntities.some((entity) =>
+    normalized(answer).includes(normalized(entity.label)),
+  );
+  const selectedSetContainsWrongType = (result.resolvedConversationEntities || [])
+    .some((entity) => entity?.type !== scope);
+  if (!answerContainsWrongType && !selectedSetContainsWrongType) return null;
+
+  const cleanFallback = String(result.validationFallbackAnswer || "").trim();
+  const fallbackContainsWrongType = wrongTypeEntities.some((entity) =>
+    normalized(cleanFallback).includes(normalized(entity.label)),
+  );
+  const correctedAnswer =
+    cleanFallback && !fallbackContainsWrongType
+      ? cleanFallback
+      : selectedEntities
+          .map((entity) =>
+            entity.approvedSummary
+              ? `${entity.label}: ${entity.approvedSummary}`
+              : entity.label,
+          )
+          .join("\n\n");
+  const allowedSourceIds = new Set(
+    selectedEntities.flatMap((entity) => entity.sourceIds || []),
+  );
+
+  return {
+    ...correctionResult(
+      result,
+      correctedAnswer,
+      [`${scope}_scope_invalid_entity_removed`],
+      "trim",
+    ),
+    matchedEntries: (result.matchedEntries || []).filter((entry) =>
+      allowedSourceIds.has(entry.id),
+    ),
+    resolvedConversationEntities: selectedEntities,
+  };
+};
+
 export const validateMiraFinalResponse = (result = {}) => {
   const answer = String(result.answerSeed || "").trim();
   const mode = result.responseMode?.mode || "";
@@ -104,7 +151,16 @@ export const validateMiraFinalResponse = (result = {}) => {
   if (mode === "names_only") {
     const names = canonicalNames(result);
     const namesOnlyAnswer = names.join("\n");
-    if (names.length && answer !== namesOnlyAnswer) {
+    const hasNonNamePresentation =
+      Boolean(result.answerStructureKind) ||
+      Boolean(result.comparison) ||
+      Boolean(result.recommendation) ||
+      Boolean(result.handoffNeeded) ||
+      Boolean(result.suggestedFollowUps?.length);
+    if (
+      names.length &&
+      (answer !== namesOnlyAnswer || hasNonNamePresentation)
+    ) {
       return {
         ...correctionResult(
           result,
@@ -115,9 +171,18 @@ export const validateMiraFinalResponse = (result = {}) => {
         comparison: undefined,
         recommendation: undefined,
         answerStructureKind: "",
+        handoffNeeded: false,
+        handoffReason: "",
       };
     }
   }
+
+  const scopedCorrection = categoryScopedCorrection(
+    result,
+    answer,
+    result.responseMode?.entityCategoryScope,
+  );
+  if (scopedCorrection) return scopedCorrection;
 
   if (mode === "overview" && STALE_COMPARISON.test(answer)) {
     return correctionResult(
@@ -258,3 +323,4 @@ export const validateMiraFinalResponse = (result = {}) => {
 };
 
 export default validateMiraFinalResponse;
+import { knownMiraOfferingEntities } from "./miraConversationReferences.js";

@@ -28,9 +28,11 @@ const normalizedIntentText = (message = "") =>
 const COMPARISON_INTENT =
   /\b(?:compare|comparison|difference|different from|versus|vs\.?|which (?:one|option|platform|service) is better|pros and cons|one versus another)\b/i;
 const REORGANIZE_INTENT =
-  /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type)\b|\bshow\b.*\b(?:services?|platforms?)\b.*\bseparately\b/i;
+  /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type)\b|\b(?:show|list)\b.*\b(?:services?|platforms?)\b.*\bseparately\b/i;
 const LIST_INTENT =
-  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:onesmarter\s+)?(?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b/i;
+  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every) (?:platform|service) support\b|\bwhat do (?:the|your|both|all) (?:platforms|services) support\b/i;
+const CAPABILITY_SCOPE =
+  /\b(?:support|supports|capabilities|capability)\b/i;
 
 export const classifyMiraListingIntent = (message = "") => {
   const normalized = normalizedIntentText(message);
@@ -98,6 +100,16 @@ const categorizedAnswer = ({ platforms, services, serviceCategories }) =>
     .join("\n")
     .trim();
 
+const capabilityAnswer = ({ platforms, services }) =>
+  [...platforms, ...services]
+    .flatMap((entity) => [
+      `${entity.label}: ${entity.approvedSummary}`,
+      ...(entity.sourceFacts || []).slice(0, 2).map((fact) => `- ${fact}`),
+      "",
+    ])
+    .join("\n")
+    .trim();
+
 export const resolveMiraListingRequest = (
   message = "",
   conversationHistory = [],
@@ -131,7 +143,9 @@ export const resolveMiraListingRequest = (
     intent,
     entities: categorized,
     matchedEntries: matchedEntriesForConversationEntities(categorized),
-    answer: categorizedAnswer(categories),
+    answer: CAPABILITY_SCOPE.test(normalizedIntentText(message))
+      ? capabilityAnswer(categories)
+      : categorizedAnswer(categories),
   };
 };
 

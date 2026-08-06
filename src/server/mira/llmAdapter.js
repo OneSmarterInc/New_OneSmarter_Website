@@ -810,9 +810,9 @@ export const runMiraResponseAdapter = async ({
   const listingResolution =
     (directEntityResolution?.status === "resolved" &&
       !/\b(?:list|all)\b/i.test(classificationMessage)) ||
-    /\b(?:main platforms|platforms do you offer|your platforms)\b/i.test(
+    (/\b(?:main platforms|platforms do you offer|your platforms)\b/i.test(
       classificationMessage,
-    )
+    ) && !/\bservices?\b/i.test(classificationMessage))
       ? null
       : resolveMiraListingRequest(
           classificationMessage,

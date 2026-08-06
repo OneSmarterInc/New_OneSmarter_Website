@@ -13,6 +13,8 @@ const TOKEN_ALIASES = new Map([
   ["ther", "their"],
   ["okayy", "okay"],
   ["jst", "just"],
+  ["giv", "give"],
+  ["nmes", "names"],
   ["agnts", "agents"],
   ["wht", "what"],
   ["helthcare", "healthcare"],

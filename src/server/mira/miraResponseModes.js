@@ -13,7 +13,7 @@ const COMPARISON =
 const COMPARISON_NEGATION =
   /\b(?:do not|don't|dont|not|no)\s+(?:want to\s+)?compar(?:e|ison)\b/i;
 const NAMES_ONLY =
-  /\b(?:names? only|only (?:the )?names?|just (?:tell|give|show|list)(?: me)? (?:their|the|those)?\s*names?|give me (?:their|the|those) names?|list names only|no details?)\b/i;
+  /\b(?:names? only|only (?:the )?names?|just (?:tell|give|show|list)(?: me)? (?:their|the|those)?\s*(?:(?:platform|service|offering)\s+)?names?|give me (?:their|the|those)?\s*(?:(?:platform|service|offering)\s+)?names?|list (?:(?:platform|service|offering)\s+)?names only|no details?)\b/i;
 const DETAILED =
   /\b(?:in detail|detailed|detail explanation|full explanation|explain .+ thoroughly|deep dive)\b/i;
 const OVERVIEW =
@@ -21,13 +21,39 @@ const OVERVIEW =
 const BRIEF_ANSWER_SHAPE =
   /\b(?:short|brief|briefly|concise|concisely|quick)\b|\bone[- ]line\b|\bsummari[sz]e(?: it)? in (?:a|one) sentence\b|\bin short\b/i;
 const CATEGORIZED_LIST =
-  /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type|the above|them)\b/i;
+  /\b(?:bifurcate|separate|separately|categorize|organize|group)\b.*\b(?:services?|platforms?|by type|the above|them)\b|\b(?:services?|platforms?)\b.*\bseparately\b/i;
 const LIST =
   /\b(?:list|show|give me|what are|which are)\b.*\b(?:platforms?|services?|offerings?)\b|\ball (?:onesmarter )?(?:platforms?|services?|offerings?)\b/i;
 const RECOMMENDATION =
   /\b(?:recommend|recomend|best for|right for|which (?:platform|service) should|which (?:platform|service) is (?:best|right)|what should (?:i|we) use|help (?:me|us) choose)\b/i;
 const CONCISE =
   /\b(?:briefly|short|concise|tell me about|what (?:is|are)|explain|describe)\b/i;
+
+const entityCategoryScopeFor = (message = "") => {
+  const mentionsPlatforms = /\bplatforms?\b/i.test(message);
+  const mentionsServices = /\bservices?\b/i.test(message);
+  const negatesPlatforms = /\bnot\b[^.!?]{0,30}\bplatforms?\b/i.test(message);
+  const negatesServices = /\bnot\b[^.!?]{0,30}\bservices?\b/i.test(message);
+  if (
+    mentionsPlatforms &&
+    mentionsServices &&
+    !negatesPlatforms &&
+    !negatesServices
+  ) {
+    return "mixed";
+  }
+  const asksPlatforms =
+    /\b(?:each|every|both|the|your|all|two) platforms?\b|\bplatform (?:names?|capabilities?)\b|\bwhat (?:are|do) (?:the |your )?platforms?\b|\bwhich platform (?:is|would be) (?:better|best|right)\b/i.test(
+      message,
+    ) && !negatesPlatforms;
+  const asksServices =
+    /\b(?:each|every|both|the|your|all) services?\b|\bservice (?:names?|capabilities?)\b|\bwhat (?:are|do|does) (?:the |your )?services?\b/i.test(
+      message,
+    ) && !negatesServices;
+  if (asksPlatforms) return "platform";
+  if (asksServices) return "service";
+  return "";
+};
 
 export const RESPONSE_MODE_BUDGETS = Object.freeze({
   acknowledgement: { maxSentences: 1, shape: "one_short_sentence" },
@@ -80,6 +106,7 @@ export const classifyMiraResponseMode = (
 
   return {
     mode,
+    entityCategoryScope: entityCategoryScopeFor(normalized),
     answerShape:
       mode === "overview" && BRIEF_ANSWER_SHAPE.test(normalized)
         ? "brief"
@@ -106,8 +133,18 @@ export const resolveMiraNamesOnly = (
   conversationHistory = [],
 ) => {
   const explicitList = resolveMiraListingRequest(message, conversationHistory);
-  const entities =
-    explicitList?.entities?.length
+  const requestedType =
+    explicitList?.intent === "list_platforms"
+      ? "platform"
+      : explicitList?.intent === "list_services"
+        ? "service"
+        : "";
+  const historyEntities = namesFromLatestEntityGroup(conversationHistory).filter(
+    (entity) => !requestedType || entity.type === requestedType,
+  );
+  const entities = historyEntities.length
+    ? historyEntities
+    : explicitList?.entities?.length
       ? explicitList.entities
       : namesFromLatestEntityGroup(conversationHistory);
   if (!entities.length) return null;
