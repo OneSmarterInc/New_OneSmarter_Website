@@ -3,11 +3,19 @@ const TRAILING_FOLLOW_UP =
 const STALE_COMPARISON =
   /\bwhich (?:platforms?|services?|offerings?) would you like me to compare\b|\bkey difference\b/i;
 const SAFETY_RESPONSE_STATUSES = new Set(["safety_response"]);
+const OVERVIEW_CONTACT_GUIDANCE =
+  /(?:^|\s+)(?:Important (?:context|note):\s*)?(?:For [^\n.]*?(?:questions?|inquiries?|review|guidance|next steps)[^\n.]*?[,;:]?\s*)?(?:please\s+)?(?:email|contact)\s+care@onesmarter\.com\.?\s*/gi;
 
 const normalized = (value = "") =>
   String(value).toLowerCase().replace(/\s+/g, " ").trim();
 
 const questionCount = (answer = "") => (String(answer).match(/\?/g) || []).length;
+
+const sentenceCount = (answer = "") =>
+  String(answer)
+    .replace(/^[-*]\s+/gm, "")
+    .split(/(?<=[.!?])(?:\s+|$)/)
+    .filter((sentence) => sentence.trim()).length;
 
 const canonicalNames = (result = {}) =>
   (result.resolvedConversationEntities || [])
@@ -117,6 +125,38 @@ export const validateMiraFinalResponse = (result = {}) => {
       fallbackAnswerFor(result),
       ["overview_contains_stale_comparison"],
       "fallback",
+    );
+  }
+
+  const overviewAnswer =
+    mode === "overview" && !result.handoffNeeded
+      ? answer
+      .replace(OVERVIEW_CONTACT_GUIDANCE, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+      : answer;
+
+  if (
+    mode === "overview" &&
+    result.responseMode?.answerShape === "brief" &&
+    (sentenceCount(overviewAnswer) > 3 ||
+      /^(?:#{1,6}\s+|[-*]\s+)/m.test(overviewAnswer) ||
+      /Important (?:context|note):/i.test(overviewAnswer))
+  ) {
+    return correctionResult(
+      result,
+      fallbackAnswerFor(result),
+      ["brief_overview_shape_mismatch"],
+      "fallback",
+    );
+  }
+
+  if (overviewAnswer !== answer) {
+    return correctionResult(
+      result,
+      overviewAnswer || fallbackAnswerFor(result),
+      ["unnecessary_overview_handoff_removed"],
+      "trim",
     );
   }
 

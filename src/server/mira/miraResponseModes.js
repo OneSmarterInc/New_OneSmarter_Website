@@ -18,6 +18,8 @@ const DETAILED =
   /\b(?:in detail|detailed|detail explanation|full explanation|explain .+ thoroughly|deep dive)\b/i;
 const OVERVIEW =
   /\b(?:tell me (?:more )?about|overview of|who is)\s+(?:onesmarter|the company)\b|\bwhat does onesmarter do\b|\bcompany overview\b/i;
+const BRIEF_ANSWER_SHAPE =
+  /\b(?:short|brief|briefly|concise|concisely|quick)\b|\bone[- ]line\b|\bsummari[sz]e(?: it)? in (?:a|one) sentence\b|\bin short\b/i;
 const CATEGORIZED_LIST =
   /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type|the above|them)\b/i;
 const LIST =
@@ -78,7 +80,16 @@ export const classifyMiraResponseMode = (
 
   return {
     mode,
-    budget: RESPONSE_MODE_BUDGETS[mode],
+    answerShape:
+      mode === "overview" && BRIEF_ANSWER_SHAPE.test(normalized)
+        ? "brief"
+        : mode === "detailed_explanation"
+          ? "detailed"
+          : "default",
+    budget:
+      mode === "overview" && BRIEF_ANSWER_SHAPE.test(normalized)
+        ? { maxSentences: 3, shape: "one_to_three_sentences" }
+        : RESPONSE_MODE_BUDGETS[mode],
     comparisonNegated: COMPARISON_NEGATION.test(normalized),
     currentTurnOverride:
       /^(?:no\b|actually\b|instead\b|i mean\b|not that\b)|\b(?:only|just)\b/i.test(
@@ -120,14 +131,41 @@ const entriesForIds = (ids = []) =>
 
 export const resolveMiraResponseModeFastPath = (message = "", responseMode = {}) => {
   if (responseMode.mode === "overview") {
+    if (responseMode.answerShape === "brief") {
+      return {
+        answer:
+          "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance-readiness support for healthcare, financial, telecom, and growing organizations.",
+        matchedEntries: entriesForIds(["company-overview"]),
+        entities: [],
+      };
+    }
+
+    return {
+      answer:
+        "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance-readiness support. Its work spans healthcare, financial, telecom, and growing organizations.",
+      matchedEntries: entriesForIds([
+        "company-overview",
+        "technology-solutions-overview",
+        "business-services-overview",
+        "compliance-cyber-assurance-overview",
+        "trust-center-overview",
+      ]),
+      entities: [],
+    };
+  }
+
+  if (
+    responseMode.mode === "detailed_explanation" &&
+    /\b(?:onesmarter|the company|company overview)\b/i.test(message)
+  ) {
     return {
       answer: [
-        "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance readiness support.",
-        "- Platforms for secure case management and bill audit and payment workflows",
-        "- Technology services for healthcare, claims, IBM i / AS400, enterprise software, and support consolidation",
-        "- Practical AI and controlled workflow automation",
-        "- Business services for finance, HR, payment, benefits, and back-office workflows",
-        "- Compliance and Trust Center information grounded in approved public evidence",
+        "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance-readiness support.",
+        "- Platforms support secure case management and bill-audit and payment workflows.",
+        "- Technology services cover healthcare and claims operations, IBM i / AS400, enterprise software, and support consolidation.",
+        "- Practical AI services support controlled automation and document workflows.",
+        "- Business services cover finance, HR, payments, benefits, and back-office workflows.",
+        "- Compliance-readiness and Trust Center information is grounded in approved public evidence.",
       ].join("\n"),
       matchedEntries: entriesForIds([
         "company-overview",

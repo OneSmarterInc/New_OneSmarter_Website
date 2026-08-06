@@ -289,6 +289,36 @@ const finalValidatorCases = [
     expectedAnswer: "Please do not upload patient records here.",
     expectedAction: "keep",
   },
+  {
+    id: "final-validator-brief-overview-falls-back-from-catalog",
+    input: {
+      answerSeed:
+        "OneSmarter overview.\n- Platforms\n- Technology services\n- Business services\n- Compliance services",
+      validationFallbackAnswer:
+        "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance-readiness support.",
+      responseMode: { mode: "overview", answerShape: "brief" },
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer:
+      "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance-readiness support.",
+    expectedAction: "fallback",
+  },
+  {
+    id: "final-validator-overview-removes-optional-contact",
+    input: {
+      answerSeed:
+        "OneSmarter builds secure platforms and practical AI workflows. For general inquiries, email care@onesmarter.com.",
+      responseMode: { mode: "overview", answerShape: "default" },
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer:
+      "OneSmarter builds secure platforms and practical AI workflows.",
+    expectedAction: "trim",
+  },
 ];
 
 for (const validatorCase of finalValidatorCases) {
@@ -2376,6 +2406,29 @@ const modeCases = [
     expectedFetchCalls: 1,
   },
   {
+    id: "mode-staging-openai-brief-overview-single-provider-call",
+    env: {
+      MIRA_LLM_MODE: "staging_llm",
+      MIRA_LLM_PROVIDER: "openai",
+      MIRA_LLM_MODEL: "future-reviewed-model",
+      MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
+    },
+    message: "Give me a concise company overview.",
+    fetchImpl: openAiNestedSuccessFetch(validModelOutput),
+    expectedMode: "staging_llm",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedAnswerShape: "brief",
+    expectedMaxAnswerSentences: 3,
+    expectedAnswerExcludesAll: [
+      "Important context",
+      "Important note",
+      "care@onesmarter.com",
+    ],
+    expectedFetchCalls: 1,
+  },
+  {
     id: "mode-staging-openai-general-overview-optional-contact-is-not-handoff",
     env: {
       MIRA_LLM_MODE: "staging_llm",
@@ -2392,6 +2445,7 @@ const modeCases = [
     expectedGroundingStatus: "grounded",
     expectedOutputSafetyStatus: "passed",
     expectedHandoffReasonEmpty: true,
+    expectedAnswerExcludes: "care@onesmarter.com",
     expectedDisclaimerIncludes: "This response is grounded in approved public OneSmarter content.",
     forbiddenResponseTexts: ["local harness response", "optional_business_follow_up"],
   },
@@ -4094,27 +4148,82 @@ const modeCases = [
     expectedComparisonAbsent: true,
   },
   {
+    id: "response-mode-short-company-overview",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Give me a short company overview.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedAnswerShape: "brief",
+    expectedMaxAnswerSentences: 3,
+    expectedAnswerIncludesAll: ["secure platforms", "practical AI workflows"],
+    expectedAnswerExcludesAll: [
+      "Technology services for",
+      "Important context",
+      "Important note",
+      "care@onesmarter.com",
+    ],
+  },
+  {
+    id: "response-mode-briefly-company-overview",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Briefly tell me about OneSmarter.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "overview",
+    expectedAnswerShape: "brief",
+    expectedMaxAnswerSentences: 3,
+    expectedAnswerExcludesAll: ["care@onesmarter.com", "Important note"],
+  },
+  {
     id: "response-mode-company-overview",
     env: { MIRA_LLM_MODE: "mock" },
-    message: "Tell me more about OneSmarter.",
+    message: "Tell me about OneSmarter.",
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
     expectedResponseMode: "overview",
     expectedFastPath: true,
     expectedFinalValidationAction: "keep",
-    expectedAnswerIncludesAll: [
-      "secure platforms",
-      "Technology services",
-      "Practical AI",
-      "Business services",
-      "Trust Center",
-    ],
+    expectedAnswerShape: "default",
+    expectedMaxAnswerSentences: 3,
+    expectedAnswerIncludesAll: ["secure platforms", "healthcare", "telecom"],
     expectedAnswerExcludesAll: [
       "Which platforms or services would you like me to compare",
       "Key difference",
+      "care@onesmarter.com",
     ],
     expectedComparisonAbsent: true,
+  },
+  {
+    id: "response-mode-detailed-company-overview",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain OneSmarter in detail.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "detailed_explanation",
+    expectedAnswerShape: "detailed",
+    expectedFastPath: true,
+    expectedAnswerIncludesAll: [
+      "Platforms support",
+      "Technology services",
+      "Business services",
+      "Compliance-readiness",
+    ],
+    expectedAnswerExcludes: "care@onesmarter.com",
+  },
+  {
+    id: "response-mode-solutions-overview-control",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What solutions does OneSmarter offer?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "concise_explanation",
+    expectedAnswerIncludesAll: ["technology services", "AI Agentic Services"],
   },
   {
     id: "response-mode-company-overview-ignores-history",
@@ -5394,6 +5503,14 @@ for (const modeCase of modeCases) {
     );
   }
   if (
+    modeCase.expectedAnswerShape &&
+    result.body.responseMode?.answerShape !== modeCase.expectedAnswerShape
+  ) {
+    fail(
+      `${modeCase.id}: expected answer shape ${modeCase.expectedAnswerShape}, got ${result.body.responseMode?.answerShape}.`,
+    );
+  }
+  if (
     modeCase.expectedFinalValidationAction &&
     result.body.finalResponseValidation?.action !==
       modeCase.expectedFinalValidationAction
@@ -5444,6 +5561,17 @@ for (const modeCase of modeCases) {
     if (wordCount > modeCase.expectedMaxAnswerWords) {
       fail(
         `${modeCase.id}: expected no more than ${modeCase.expectedMaxAnswerWords} answer words, got ${wordCount}.`,
+      );
+    }
+  }
+  if (Number.isFinite(modeCase.expectedMaxAnswerSentences)) {
+    const sentenceCount = String(result.body.answer || "")
+      .replace(/^[-*]\s+/gm, "")
+      .split(/(?<=[.!?])(?:\s+|$)/)
+      .filter((sentence) => sentence.trim()).length;
+    if (sentenceCount > modeCase.expectedMaxAnswerSentences) {
+      fail(
+        `${modeCase.id}: expected no more than ${modeCase.expectedMaxAnswerSentences} answer sentences, got ${sentenceCount}.`,
       );
     }
   }

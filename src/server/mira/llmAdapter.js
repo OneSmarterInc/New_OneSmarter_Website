@@ -1208,7 +1208,9 @@ export const runMiraResponseAdapter = async ({
             "Do not expose source-note wording such as related topics, route guidance, retrieved context, or page language.",
           ].join(" ")
         : responseMode.mode === "overview"
-        ? "Give a concise company overview using only the strongest approved areas. Do not turn the answer into a comparison or a full service catalog."
+        ? responseMode.answerShape === "brief"
+          ? "Give a company overview in 1-3 sentences with no headings, detailed service catalog, Important context or Important note section, contact guidance, or handoff line."
+          : "Give a concise company overview using only the strongest approved areas. Do not turn the answer into a comparison or a full service catalog, and do not add contact guidance unless the request requires handoff."
         : responseMode.mode === "detailed_explanation"
         ? "Give a focused detailed explanation of only the current topic. Exclude unrelated services and preserve primary-evidence priority."
         : responseMode.mode === "concise_explanation"
