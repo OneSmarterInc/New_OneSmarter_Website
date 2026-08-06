@@ -1,3 +1,9 @@
+import { knownMiraOfferingEntities } from "./miraConversationReferences.js";
+import {
+  capabilityNamesAnswerForEntities,
+  capabilitySummaryAnswerForEntities,
+} from "./miraListingIntents.js";
+
 const TRAILING_FOLLOW_UP =
   /\n+(?:would|do|can|could|what|which|how)\b[^\n?]*\?\s*$/i;
 const STALE_COMPARISON =
@@ -90,7 +96,9 @@ const categoryScopedCorrection = (result, answer, scope) => {
     normalized(cleanFallback).includes(normalized(entity.label)),
   );
   const correctedAnswer =
-    cleanFallback && !fallbackContainsWrongType
+    result.responseMode?.answerShape === "capability_summary"
+      ? capabilitySummaryAnswerForEntities(selectedEntities)
+      : cleanFallback && !fallbackContainsWrongType
       ? cleanFallback
       : selectedEntities
           .map((entity) =>
@@ -150,7 +158,12 @@ export const validateMiraFinalResponse = (result = {}) => {
 
   if (mode === "names_only") {
     const names = canonicalNames(result);
-    const namesOnlyAnswer = names.join("\n");
+    const namesOnlyAnswer =
+      result.responseMode?.answerShape === "capability_names_only"
+        ? capabilityNamesAnswerForEntities(
+            result.resolvedConversationEntities || [],
+          )
+        : names.join("\n");
     const hasNonNamePresentation =
       Boolean(result.answerStructureKind) ||
       Boolean(result.comparison) ||
@@ -183,6 +196,38 @@ export const validateMiraFinalResponse = (result = {}) => {
     result.responseMode?.entityCategoryScope,
   );
   if (scopedCorrection) return scopedCorrection;
+
+  if (
+    result.responseMode?.answerShape === "capability_summary" &&
+    !result.comparison &&
+    !result.recommendation &&
+    !result.compoundRequestHandled
+  ) {
+    const capabilitySummary = capabilitySummaryAnswerForEntities(
+      result.resolvedConversationEntities || [],
+    );
+    const hasDetailedPresentation =
+      Boolean(result.answerStructureKind) ||
+      /^(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+)/m.test(answer) ||
+      /\b(?:Important context|Important note):/i.test(answer) ||
+      /care@onesmarter\.com/i.test(answer);
+    if (
+      capabilitySummary &&
+      (answer !== capabilitySummary || hasDetailedPresentation)
+    ) {
+      return {
+        ...correctionResult(
+          result,
+          capabilitySummary,
+          ["capability_summary_shape_corrected"],
+          "trim",
+        ),
+        answerStructureKind: "",
+        handoffNeeded: false,
+        handoffReason: "",
+      };
+    }
+  }
 
   if (mode === "overview" && STALE_COMPARISON.test(answer)) {
     return correctionResult(
@@ -323,4 +368,3 @@ export const validateMiraFinalResponse = (result = {}) => {
 };
 
 export default validateMiraFinalResponse;
-import { knownMiraOfferingEntities } from "./miraConversationReferences.js";

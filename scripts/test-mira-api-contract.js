@@ -384,6 +384,36 @@ const finalValidatorCases = [
       "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
     expectedAction: "trim",
   },
+  {
+    id: "final-validator-capability-summary-removes-card-layout",
+    input: {
+      answerSeed:
+        "1. Secure Ticketing and Case Management (Platform)\n- Full evidence bullet",
+      responseMode: {
+        mode: "concise_explanation",
+        answerShape: "capability_summary",
+        entityCategoryScope: "platform",
+      },
+      resolvedConversationEntities: [
+        {
+          id: "secure-ticketing-case-management",
+          label: "Secure Ticketing and Case Management",
+          type: "platform",
+          sourceIds: ["secure-ticketing-case-management"],
+          sourceFacts: [
+            "The platform supports secure intake, role-based access, audit history, controlled communication, and workflow tracking.",
+          ],
+        },
+      ],
+      answerStructureKind: "list",
+      answerCompleteness: { status: "complete" },
+      riskFlags: [],
+      handoffNeeded: false,
+    },
+    expectedAnswer:
+      "Secure Ticketing and Case Management supports secure intake, role-based access, audit history, controlled communication, and workflow tracking.",
+    expectedAction: "trim",
+  },
 ];
 
 for (const validatorCase of finalValidatorCases) {
@@ -4281,6 +4311,10 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
+    expectedAnswerShape: "capability_summary",
+    expectedAnswerStructureAbsent: true,
+    expectedAnswerExact:
+      "Secure Ticketing and Case Management supports secure intake, role-based access, audit history, controlled communication, and workflow tracking.\n\nBill Audit & Bill Pay supports vendor bill review, recurring expense analysis, discrepancy tracking, approval workflows, and payment workflows, including telecom expense management as an approved use case.",
     expectedConversationEntityIds: [
       "secure-ticketing-case-management",
       "bill-audit-bill-pay",
@@ -4298,7 +4332,125 @@ const modeCases = [
     forbiddenSourceIds: ["claims-processing-services", "ai-agentic-services"],
   },
   {
-    id: "entity-scope-platform-support-single-provider-call",
+    id: "capability-summary-contextual-each-one",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does each one support?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content:
+          "Secure Ticketing and Case Management\nBill Audit & Bill Pay",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerShape: "capability_summary",
+    expectedAnswerStructureAbsent: true,
+    expectedConversationEntityIds: [
+      "secure-ticketing-case-management",
+      "bill-audit-bill-pay",
+    ],
+    expectedAnswerIncludesAll: ["secure intake", "vendor bill review"],
+  },
+  {
+    id: "capability-summary-technology-services",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does each Technology Solutions service support?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerShape: "capability_summary",
+    expectedAnswerStructureAbsent: true,
+    expectedConversationEntityTypes: [
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+      "service",
+    ],
+    expectedAnswerExcludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+    ],
+  },
+  {
+    id: "capability-summary-second-service-reference",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "What does the second one support?",
+    conversationHistory: [
+      {
+        role: "assistant",
+        content: "Technology Solutions services",
+        conversationEntities: [
+          { id: "healthcare-tpa-technology-services", level: 1 },
+          { id: "claims-processing-services", level: 1 },
+          { id: "ai-agentic-services", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerShape: "capability_summary",
+    expectedAnswerStructureAbsent: true,
+    expectedConversationEntityIds: ["claims-processing-services"],
+    expectedAnswerIncludes: "Claims Processing Services",
+    expectedAnswerExcludesAll: [
+      "Healthcare & TPA Technology Services",
+      "AI Agentic Services",
+    ],
+  },
+  {
+    id: "capability-summary-brief-platforms",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Briefly summarize what both platforms support.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerShape: "capability_summary",
+    expectedAnswerStructureAbsent: true,
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerIncludesAll: ["secure intake", "telecom expense management"],
+  },
+  {
+    id: "capability-summary-detailed-platforms",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Explain in detail what each platform supports.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "detailed_explanation",
+    expectedAnswerShape: "detailed",
+    expectedAnswerStructureKind: "list",
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerIncludesAll: [
+      "Secure Ticketing and Case Management",
+      "Bill Audit & Bill Pay",
+      "PHI-sensitive operations",
+    ],
+  },
+  {
+    id: "capability-summary-capability-names-only",
+    env: { MIRA_LLM_MODE: "staging_llm" },
+    message: "Give me only the capability names for Secure Ticketing.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedResponseMode: "names_only",
+    expectedAnswerShape: "capability_names_only",
+    expectedAnswerStructureAbsent: true,
+    expectedAnswerExact:
+      "secure intake\nrole-based access\naudit history\ncontrolled communication\nworkflow tracking",
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "entity-scope-platform-support-deterministic-zero-provider-call",
     env: {
       MIRA_LLM_MODE: "staging_llm",
       MIRA_LLM_PROVIDER: "openai",
@@ -4307,12 +4459,12 @@ const modeCases = [
     },
     message: "What does each platform support?",
     fetchImpl: openAiSuccessFetch(platformSupportModelOutput),
-    expectedMode: "staging_llm",
+    expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
     expectedConversationEntityTypes: ["platform", "platform"],
     expectedAnswerExcludes: "Claims Processing Services",
-    expectedFetchCalls: 1,
+    expectedFetchCalls: 0,
   },
   {
     id: "entity-scope-platform-support-overrides-mixed-history",
@@ -5738,6 +5890,9 @@ for (const modeCase of modeCases) {
     fail(
       `${modeCase.id}: expected answer shape ${modeCase.expectedAnswerShape}, got ${result.body.responseMode?.answerShape}.`,
     );
+  }
+  if (modeCase.expectedAnswerStructureAbsent && result.body.answerStructure) {
+    fail(`${modeCase.id}: expected no detailed answer structure.`);
   }
   if (
     modeCase.expectedFinalValidationAction &&

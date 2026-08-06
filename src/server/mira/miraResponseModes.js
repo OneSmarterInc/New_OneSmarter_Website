@@ -13,7 +13,7 @@ const COMPARISON =
 const COMPARISON_NEGATION =
   /\b(?:do not|don't|dont|not|no)\s+(?:want to\s+)?compar(?:e|ison)\b/i;
 const NAMES_ONLY =
-  /\b(?:names? only|only (?:the )?names?|just (?:tell|give|show|list)(?: me)? (?:their|the|those)?\s*(?:(?:platform|service|offering)\s+)?names?|give me (?:their|the|those)?\s*(?:(?:platform|service|offering)\s+)?names?|list (?:(?:platform|service|offering)\s+)?names only|no details?)\b/i;
+  /\b(?:names? only|only (?:the )?(?:capability )?names?|just (?:tell|give|show|list)(?: me)? (?:their|the|those)?\s*(?:(?:platform|service|offering|capability)\s+)?names?|give me (?:their|the|those)?\s*(?:(?:platform|service|offering|capability)\s+)?names?|list (?:(?:platform|service|offering|capability)\s+)?names only|no details?)\b/i;
 const DETAILED =
   /\b(?:in detail|detailed|detail explanation|full explanation|explain .+ thoroughly|deep dive)\b/i;
 const OVERVIEW =
@@ -28,6 +28,10 @@ const RECOMMENDATION =
   /\b(?:recommend|recomend|best for|right for|which (?:platform|service) should|which (?:platform|service) is (?:best|right)|what should (?:i|we) use|help (?:me|us) choose)\b/i;
 const CONCISE =
   /\b(?:briefly|short|concise|tell me about|what (?:is|are)|explain|describe)\b/i;
+const CAPABILITY_REQUEST =
+  /\b(?:support|supports|handle|handles|help with|capabilit(?:y|ies)|what can .+ (?:do|provide)|summari[sz]e (?:their|the|these|those|its) capabilit(?:y|ies))\b/i;
+const CAPABILITY_NAMES_ONLY =
+  /\bonly (?:the )?capability names?\b|\bcapability names? only\b/i;
 
 const entityCategoryScopeFor = (message = "") => {
   const mentionsPlatforms = /\bplatforms?\b/i.test(message);
@@ -47,7 +51,7 @@ const entityCategoryScopeFor = (message = "") => {
       message,
     ) && !negatesPlatforms;
   const asksServices =
-    /\b(?:each|every|both|the|your|all) services?\b|\bservice (?:names?|capabilities?)\b|\bwhat (?:are|do|does) (?:the |your )?services?\b/i.test(
+    /\b(?:each|every|both|the|your|all)\b[^.!?]{0,40}\bservices?\b|\bservice (?:names?|capabilities?)\b|\bwhat (?:are|do|does) (?:the |your )?services?\b/i.test(
       message,
     ) && !negatesServices;
   if (asksPlatforms) return "platform";
@@ -107,12 +111,18 @@ export const classifyMiraResponseMode = (
   return {
     mode,
     entityCategoryScope: entityCategoryScopeFor(normalized),
+    capabilityRequest: CAPABILITY_REQUEST.test(normalized),
     answerShape:
-      mode === "overview" && BRIEF_ANSWER_SHAPE.test(normalized)
+      mode === "names_only" && CAPABILITY_NAMES_ONLY.test(normalized)
+        ? "capability_names_only"
+        : mode === "overview" && BRIEF_ANSWER_SHAPE.test(normalized)
         ? "brief"
         : mode === "detailed_explanation"
           ? "detailed"
-          : "default",
+        : !["comparison", "recommendation"].includes(mode) &&
+            CAPABILITY_REQUEST.test(normalized)
+          ? "capability_summary"
+        : "default",
     budget:
       mode === "overview" && BRIEF_ANSWER_SHAPE.test(normalized)
         ? { maxSentences: 3, shape: "one_to_three_sentences" }

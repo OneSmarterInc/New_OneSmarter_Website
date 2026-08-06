@@ -30,9 +30,9 @@ const COMPARISON_INTENT =
 const REORGANIZE_INTENT =
   /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type)\b|\b(?:show|list)\b.*\b(?:services?|platforms?)\b.*\bseparately\b/i;
 const LIST_INTENT =
-  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every) (?:platform|service) support\b|\bwhat do (?:the|your|both|all) (?:platforms|services) support\b/i;
+  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every)\b[^.!?]{0,40}\b(?:platform|service) supports?\b|\bwhat do (?:the|your|both|all) (?:platforms|services) supports?\b|\b(?:each|every|both|all|these|the|your)\b[^.!?]{0,40}\b(?:platforms?|services?)\b.*\b(?:supports?|provide|handle|capabilit(?:y|ies))\b/i;
 const CAPABILITY_SCOPE =
-  /\b(?:support|supports|capabilities|capability)\b/i;
+  /\b(?:supports?|capabilit(?:y|ies)|handle|provide)\b/i;
 
 export const classifyMiraListingIntent = (message = "") => {
   const normalized = normalizedIntentText(message);
@@ -100,15 +100,51 @@ const categorizedAnswer = ({ platforms, services, serviceCategories }) =>
     .join("\n")
     .trim();
 
-const capabilityAnswer = ({ platforms, services }) =>
-  [...platforms, ...services]
-    .flatMap((entity) => [
-      `${entity.label}: ${entity.approvedSummary}`,
-      ...(entity.sourceFacts || []).slice(0, 2).map((fact) => `- ${fact}`),
-      "",
-    ])
-    .join("\n")
-    .trim();
+const approvedCapabilityFacts = (entity) =>
+  (entity.sourceFacts || []).filter(
+    (fact) =>
+      !/\b(?:should not|not positioned|does not|concept|page uses)\b/i.test(fact),
+  );
+
+const capabilitySentence = (entity) => {
+  const facts = approvedCapabilityFacts(entity);
+  const primary = facts[0] || entity.approvedSummary || entity.label;
+  let sentence = primary
+    .replace(/^The (?:platform|service) supports\s+/i, `${entity.label} supports `)
+    .replace(/^The (?:platform|service) helps\s+/i, `${entity.label} helps `);
+  if (sentence.toLowerCase().startsWith(entity.label.toLowerCase())) {
+    sentence = `${entity.label}${sentence.slice(entity.label.length)}`;
+  } else {
+    sentence = `${entity.label}: ${sentence}`;
+  }
+  if (
+    entity.id === "bill-audit-bill-pay" &&
+    facts.some((fact) => /telecom expense management.+use case/i.test(fact))
+  ) {
+    sentence = `${sentence.replace(/[.]$/, "")}, including telecom expense management as an approved use case.`;
+  }
+  return sentence;
+};
+
+export const capabilitySummaryAnswerForEntities = (entities = []) =>
+  entities.map(capabilitySentence).join("\n\n");
+
+const capabilityNamesForEntity = (entity) => {
+  const fact = approvedCapabilityFacts(entity).find((candidate) =>
+    /\bsupports?\b/i.test(candidate),
+  );
+  if (!fact) return [entity.label];
+  const capabilityText = fact
+    .replace(/^.*?\bsupports?\s+/i, "")
+    .replace(/[.]$/, "")
+    .replace(/,?\s+and\s+/i, ", ");
+  return capabilityText.split(/,\s*/).map((capability) => capability.trim());
+};
+
+export const capabilityNamesAnswerForEntities = (entities = []) =>
+  [...new Set(entities.flatMap(capabilityNamesForEntity).filter(Boolean))].join(
+    "\n",
+  );
 
 export const resolveMiraListingRequest = (
   message = "",
@@ -144,8 +180,9 @@ export const resolveMiraListingRequest = (
     entities: categorized,
     matchedEntries: matchedEntriesForConversationEntities(categorized),
     answer: CAPABILITY_SCOPE.test(normalizedIntentText(message))
-      ? capabilityAnswer(categories)
+      ? capabilitySummaryAnswerForEntities(categorized)
       : categorizedAnswer(categories),
+    capabilitySummary: CAPABILITY_SCOPE.test(normalizedIntentText(message)),
   };
 };
 

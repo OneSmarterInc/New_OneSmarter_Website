@@ -293,7 +293,7 @@ const requestedType = (message = "") => {
 };
 
 const hasReferenceLanguage = (message = "") =>
-  /\b(first|second|third|fourth|last|previous|former|latter|option\s+[1-4]|number\s+(?:one|two|three|four)|that one|this (?:platform|service|industry|topic)|that (?:platform|service|industry|topic)|tell (?:me )?more about it|compare the|different from|one or both)\b/.test(
+  /\b(first|second|third|fourth|last|previous|former|latter|each one|both|their capabilities|these (?:platforms|services|offerings|options)|above (?:two|platforms|services|offerings|options)|option\s+[1-4]|number\s+(?:one|two|three|four)|that one|this (?:platform|service|industry|topic)|that (?:platform|service|industry|topic)|tell (?:me )?more about it|compare the|different from|one or both)\b/.test(
     message,
   );
 
@@ -417,6 +417,13 @@ const clarificationFor = (entities, type = "item") => {
 };
 
 const resolveIndexes = (message, entityCount) => {
+  if (
+    /\b(?:each one|both|their capabilities|these (?:platforms|services|offerings|options)|above (?:two|platforms|services|offerings|options))\b/.test(
+      message,
+    )
+  ) {
+    return Array.from({ length: entityCount }, (_, index) => index);
+  }
   if (/\bone or both\b/.test(message) && entityCount === 2) return [0, 1];
   if (/\b(?:compare )?(?:the )?two\b/.test(message) && entityCount === 2) {
     return [0, 1];

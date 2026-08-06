@@ -33,7 +33,11 @@ import {
   classifyMiraTurnContext,
   currentTurnAnswerabilityFor,
 } from "./miraTurnContext.js";
-import { resolveMiraListingRequest } from "./miraListingIntents.js";
+import {
+  capabilityNamesAnswerForEntities,
+  capabilitySummaryAnswerForEntities,
+  resolveMiraListingRequest,
+} from "./miraListingIntents.js";
 import {
   acknowledgementAnswerFor,
   classifyMiraResponseMode,
@@ -768,7 +772,7 @@ export const runMiraResponseAdapter = async ({
   const directEntityRequest =
     /\b(?:tell me about|what (?:is|are|does)|explain|describe)\b/i.test(
       classificationMessage,
-    );
+    ) || responseMode.capabilityRequest;
   const implementationSpecificRequest =
     /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?|how long|timeline|timeframe)\b/i.test(
       classificationMessage,
@@ -809,7 +813,8 @@ export const runMiraResponseAdapter = async ({
   };
   const listingResolution =
     (directEntityResolution?.status === "resolved" &&
-      !/\b(?:list|all)\b/i.test(classificationMessage)) ||
+      !/\b(?:list|all)\b/i.test(classificationMessage) &&
+      !responseMode.capabilityRequest) ||
     (/\b(?:main platforms|platforms do you offer|your platforms)\b/i.test(
       classificationMessage,
     ) && !/\bservices?\b/i.test(classificationMessage))
@@ -819,7 +824,8 @@ export const runMiraResponseAdapter = async ({
           relevantConversationHistory,
         );
   const namesOnlyResolution =
-    responseMode.mode === "names_only"
+    responseMode.mode === "names_only" &&
+    responseMode.answerShape !== "capability_names_only"
       ? resolveMiraNamesOnly(classificationMessage, relevantConversationHistory)
       : null;
   const responseModeFastPath = resolveMiraResponseModeFastPath(
@@ -926,7 +932,14 @@ export const runMiraResponseAdapter = async ({
       ...localResult,
       confidence: "high",
       matchedEntries: listingResolution.matchedEntries,
-      answerSeed: listingResolution.answer,
+      answerSeed:
+        responseMode.mode === "detailed_explanation" &&
+        listingResolution.capabilitySummary
+          ? listAnswerSeedForEntities(
+              listingResolution.entities,
+              listingResolution.matchedEntries,
+            )
+          : listingResolution.answer,
       handoffNeeded: false,
       handoffReason: "",
       suggestedFollowUps: [],
@@ -935,8 +948,11 @@ export const runMiraResponseAdapter = async ({
       listingHandled: true,
       clarificationNeeded: false,
       answerStructureKind:
-        listingResolution.intent === "list_services_and_platforms" ||
-        listingResolution.intent === "reorganize_previous_list"
+        responseMode.mode !== "detailed_explanation" &&
+        listingResolution.capabilitySummary
+          ? ""
+          : listingResolution.intent === "list_services_and_platforms" ||
+              listingResolution.intent === "reorganize_previous_list"
           ? ""
           : "list",
     };
@@ -1063,6 +1079,37 @@ export const runMiraResponseAdapter = async ({
     };
   }
 
+  if (
+    responseMode.capabilityRequest &&
+    !["detailed_explanation", "comparison", "recommendation"].includes(
+      responseMode.mode,
+    ) &&
+    localResult.resolvedConversationEntities?.length &&
+    !localResult.compoundRequestHandled &&
+    !localResult.comparisonHandled &&
+    !localResult.recommendationHandled &&
+    !localResult.riskFlags.length
+  ) {
+    const capabilityNamesOnly =
+      responseMode.answerShape === "capability_names_only";
+    localResult = {
+      ...localResult,
+      answerSeed: capabilityNamesOnly
+        ? capabilityNamesAnswerForEntities(
+            localResult.resolvedConversationEntities,
+          )
+        : capabilitySummaryAnswerForEntities(
+            localResult.resolvedConversationEntities,
+          ),
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      answerStructureKind: "",
+      capabilitySummaryHandled: true,
+      fastPathHandled: true,
+    };
+  }
+
   localResult = applyMiraAdaptiveDiscovery({
     message: classificationMessage,
     conversationHistory: relevantConversationHistory,
@@ -1140,7 +1187,8 @@ export const runMiraResponseAdapter = async ({
       ),
       skipModel:
         Boolean(localResult.fastPathHandled) &&
-        effectiveResponseMode.mode === "names_only",
+        (effectiveResponseMode.mode === "names_only" ||
+          effectiveResponseMode.answerShape === "capability_summary"),
     },
     turnContext: {
       ...turnContext,
