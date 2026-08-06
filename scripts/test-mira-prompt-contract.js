@@ -8,6 +8,7 @@ import {
 import { validateMiraModelOutput } from "../src/server/mira/miraOutputValidator.js";
 import { readMiraRuntimeConfig } from "../src/server/mira/miraRuntimeConfig.js";
 import { runOpenAiMiraAdapter } from "../src/server/mira/openAiAdapter.js";
+import { runMiraResponseAdapter } from "../src/server/mira/llmAdapter.js";
 import {
   buildConversationEntityGroups,
   normalizeGroundedConversationEntities,
@@ -38,6 +39,63 @@ const aiAgentsPageSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8
 const fail = (message) => failures.push(message);
 const contains = (text, expected) =>
   String(text).toLowerCase().includes(String(expected).toLowerCase());
+
+const performanceCases = [
+  ["acknowledgement", "ok", 0, 0],
+  ["platform-list", "What are your platforms?", 0, 0],
+  ["platform-names-only", "Give me platform names only.", 0, 0],
+  ["technology-hierarchy", "What services are under Technology Solutions?", 0, 0],
+  [
+    "technology-hierarchy-names-only",
+    "Give me Technology Solutions service names only.",
+    0,
+    0,
+  ],
+  ["direct-entity", "Tell me about AI Agentic Services.", 1, 1],
+  ["comparison", "Compare AS400 Services with Enterprise Software Development.", 1, 1],
+  [
+    "compound-recommendation",
+    "We need secure case tracking, claims support, and role-based access. What do you recommend?",
+    1,
+    1,
+  ],
+  ["adaptive-discovery", "Our legacy applications are costly to maintain.", 1, 1],
+  ["phi-safety", "Can I upload patient records?", 0, 0],
+];
+
+for (const [id, message, expectedRetrievals, expectedProviderCalls] of performanceCases) {
+  let retrievalCalls = 0;
+  let providerCalls = 0;
+  await runMiraResponseAdapter({
+    message,
+    conversationHistory: [],
+    config: {
+      mode: "staging_llm",
+      provider: "openai",
+      providerConfigComplete: true,
+      model: "performance-contract-model",
+    },
+    localHarness: (question) => {
+      retrievalCalls += 1;
+      return runMiraLocalHarness(question);
+    },
+    openAiAdapter: async () => {
+      providerCalls += 1;
+      return {
+        error: "performance_contract_stop",
+        metadata: { fallbackReason: "performance_contract_stop" },
+      };
+    },
+  });
+  if (
+    retrievalCalls !== expectedRetrievals ||
+    providerCalls !== expectedProviderCalls
+  ) {
+    fail(
+      `performance-${id}: expected retrieval/provider ${expectedRetrievals}/${expectedProviderCalls}, got ${retrievalCalls}/${providerCalls}.`,
+    );
+  }
+}
 
 const recommendationCases = [
   ["broad clarification", "Which platform should I use?", [], "needs_clarification", null],
@@ -1576,3 +1634,4 @@ if (failures.length) {
 
 console.log("Mira prompt contract tests passed.");
 console.log("Ran prompt construction checks, 18 mocked model output cases, and 24 reference cases.");
+console.log("Ran 10 pipeline call-count performance cases.");

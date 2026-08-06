@@ -169,6 +169,19 @@ export const miraOfferingRegistry = OFFERING_CONFIG.map((config) => {
   if (!entity) return null;
   const aliases = [entity.label, ...(config.aliases || [])];
   const abbreviations = config.abbreviations || [];
+  const aliasCandidates = [
+    ...aliases.map((alias) => ({ alias, abbreviation: false })),
+    ...abbreviations.map((alias) => ({ alias, abbreviation: true })),
+  ].map((candidate) => {
+    const normalized = normalizeMiraEntityText(candidate.alias);
+    const tokens = normalized.split(" ").filter(Boolean);
+    return {
+      ...candidate,
+      normalized,
+      tokens,
+      distinctiveTokens: tokens.filter((token) => !GENERIC_TOKENS.has(token)),
+    };
+  });
   return {
     id: entity.id,
     label: entity.label,
@@ -177,6 +190,7 @@ export const miraOfferingRegistry = OFFERING_CONFIG.map((config) => {
     sourceIds: entity.sourceIds,
     aliases,
     abbreviations,
+    aliasCandidates,
     normalizedTokens: [
       ...new Set(
         [...aliases, ...abbreviations].flatMap((alias) => tokensFor(alias)),
@@ -186,9 +200,11 @@ export const miraOfferingRegistry = OFFERING_CONFIG.map((config) => {
   };
 }).filter(Boolean);
 
-const scoreAlias = (operand, alias, abbreviation = false) => {
-  const normalizedOperand = normalizeMiraEntityText(operand);
-  const normalizedAlias = normalizeMiraEntityText(alias);
+const scoreAlias = (
+  normalizedOperand,
+  operandTokens,
+  { normalized: normalizedAlias, tokens: aliasTokens, distinctiveTokens, abbreviation },
+) => {
   if (!normalizedOperand || !normalizedAlias) return 0;
   if (
     normalizedOperand === normalizedAlias ||
@@ -196,8 +212,6 @@ const scoreAlias = (operand, alias, abbreviation = false) => {
   ) {
     return abbreviation ? 1 : 0.99;
   }
-  const operandTokens = tokensFor(normalizedOperand);
-  const aliasTokens = tokensFor(normalizedAlias);
   const similarities = aliasTokens.map((aliasToken) =>
     Math.max(
       0,
@@ -211,9 +225,6 @@ const scoreAlias = (operand, alias, abbreviation = false) => {
   const average =
     matched.reduce((total, similarity) => total + similarity, 0) /
     Math.max(1, aliasTokens.length);
-  const distinctiveTokens = aliasTokens.filter(
-    (token) => !GENERIC_TOKENS.has(token),
-  );
   const distinctiveMatch = distinctiveTokens.some((aliasToken) =>
     operandTokens.some(
       (operandToken) => tokenSimilarity(aliasToken, operandToken) >= 0.78,
@@ -225,26 +236,20 @@ const scoreAlias = (operand, alias, abbreviation = false) => {
   );
 };
 
-const candidateFor = (operand, registryEntry) => {
-  const aliasScores = registryEntry.aliases.map((alias) => ({
-    alias,
-    score: scoreAlias(operand, alias),
-    matchType: "fuzzy_alias",
+const candidateFor = (operand, normalizedOperand, operandTokens, registryEntry) => {
+  const aliasScores = registryEntry.aliasCandidates.map((candidate) => ({
+    alias: candidate.alias,
+    aliasDistinctive: candidate.distinctiveTokens,
+    score: scoreAlias(normalizedOperand, operandTokens, candidate),
+    matchType: candidate.abbreviation ? "abbreviation" : "fuzzy_alias",
   }));
-  const abbreviationScores = registryEntry.abbreviations.map((alias) => ({
-    alias,
-    score: scoreAlias(operand, alias, true),
-    matchType: "abbreviation",
-  }));
-  const best = [...aliasScores, ...abbreviationScores].sort(
+  const best = aliasScores.sort(
     (left, right) => right.score - left.score,
   )[0] || { alias: "", score: 0, matchType: "none" };
-  const operandDistinctive = tokensFor(operand).filter(
+  const operandDistinctive = operandTokens.filter(
     (token) => !GENERIC_TOKENS.has(token),
   );
-  const aliasDistinctive = tokensFor(best.alias).filter(
-    (token) => !GENERIC_TOKENS.has(token),
-  );
+  const aliasDistinctive = best.aliasDistinctive || [];
   const distinctiveMatch = aliasDistinctive.some((aliasToken) =>
     operandDistinctive.some(
       (operandToken) => tokenSimilarity(aliasToken, operandToken) >= 0.7,
@@ -267,8 +272,40 @@ const candidateFor = (operand, registryEntry) => {
 };
 
 export const resolveMiraEntityText = (text = "") => {
+  const normalizedText = normalizeMiraEntityText(text);
+  const normalizedTokens = normalizedText.split(" ").filter(Boolean);
+  const exactMatches = miraOfferingRegistry
+    .flatMap((entry) =>
+      entry.aliasCandidates
+        .filter(
+          (candidate) =>
+            candidate.normalized &&
+            (normalizedText === candidate.normalized ||
+              normalizedText.includes(candidate.normalized)),
+        )
+        .map((candidate) => ({ entry, candidate })),
+    )
+    .sort(
+      (left, right) =>
+        right.candidate.normalized.length - left.candidate.normalized.length,
+    );
+  if (exactMatches.length) {
+    const { entry, candidate } = exactMatches[0];
+    const match = {
+      entityId: entry.id,
+      label: entry.label,
+      entity: entry.entity,
+      confidence: candidate.abbreviation ? 1 : 0.99,
+      matchType: candidate.abbreviation ? "abbreviation" : "exact_alias",
+      matchedText: String(text).trim(),
+      matchedAlias: candidate.alias,
+      distinctiveMatch: candidate.distinctiveTokens.length > 0,
+      genericOnlyOperand: candidate.distinctiveTokens.length === 0,
+    };
+    return { status: "resolved", match, candidates: [match] };
+  }
   const candidates = miraOfferingRegistry
-    .map((entry) => candidateFor(text, entry))
+    .map((entry) => candidateFor(text, normalizedText, normalizedTokens, entry))
     .sort((left, right) => right.confidence - left.confidence);
   const best = candidates[0];
   const second = candidates[1];

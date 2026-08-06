@@ -1,4 +1,5 @@
 import {
+  detectRiskFlags,
   runMiraLocalHarness,
   runMiraSafetyGate,
 } from "../../data/agentKnowledge/miraLocalEngine.js";
@@ -681,6 +682,131 @@ export const runMiraResponseAdapter = async ({
 
   const messageNormalization = normalizeMiraUserMessage(message);
   const classificationMessage = messageNormalization.normalizedMessage;
+  const earlyRiskFlags = detectRiskFlags(classificationMessage);
+  const earlySafetyResult = runMiraSafetyGate(classificationMessage);
+  if (earlySafetyResult) {
+    const result = withFallbackMetadata(
+      earlySafetyResult,
+      "pre_call_safety_gate",
+    );
+    return {
+      ...result,
+      messageNormalization,
+      responseMode: {
+        mode: "safety",
+        budget: { maxSentences: 3, shape: "safety_hard_stop" },
+        fastPath: true,
+        skipModel: true,
+      },
+      turnContext: {
+        relationToConversation: "standalone_new_request",
+        usesHistory: false,
+        currentTurnAnswerability: currentTurnAnswerabilityFor(result),
+      },
+    };
+  }
+  const responseMode = classifyMiraResponseMode(
+    classificationMessage,
+    conversationHistory,
+  );
+  const selfContainedCanonicalListing =
+    !earlyRiskFlags.length &&
+    !/\b(?:first|second|third|fourth|last|previous|former|latter|those|these|their|them)\b/i.test(
+      classificationMessage,
+    ) &&
+    ((/\b(?:what are|list|show|give me)\b[^.!?]{0,50}\b(?:your |onesmarter )?platforms?\b/i.test(
+      classificationMessage,
+    ) && !/\bservices?\b/i.test(classificationMessage)) ||
+      /\btechnology solutions\b[^.!?]{0,40}\bservices?\b|\bservices?\b[^.!?]{0,40}\b(?:under|within|belong to)\b[^.!?]{0,20}\btechnology solutions\b/i.test(
+        classificationMessage,
+      ));
+  if (selfContainedCanonicalListing) {
+    const emptyResult = {
+      question: message,
+      normalizedQuestion: classificationMessage.toLowerCase(),
+      riskFlags: [],
+      confidence: "high",
+      matchedEntries: [],
+      answerSeed: "",
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+    };
+    const namesOnlyResolution =
+      responseMode.mode === "names_only"
+        ? resolveMiraNamesOnly(classificationMessage, [])
+        : null;
+    const technologyHierarchyRequest = /\btechnology solutions\b/i.test(
+      classificationMessage,
+    );
+    const hierarchyResolution = technologyHierarchyRequest
+      ? resolveMiraConversationReference(
+          "What services are under Technology Solutions?",
+          [],
+        )
+      : null;
+    const listingResolution = hierarchyResolution
+      ? null
+      : resolveMiraListingRequest(classificationMessage, []);
+    let result = namesOnlyResolution
+      ? {
+          ...emptyResult,
+          matchedEntries: namesOnlyResolution.matchedEntries,
+          answerSeed: namesOnlyResolution.answer,
+          resolvedConversationEntities: namesOnlyResolution.entities,
+          listingHandled: true,
+          fastPathHandled: true,
+        }
+      : hierarchyResolution?.kind === "resolved"
+        ? withResolvedConversationEntities(emptyResult, hierarchyResolution)
+        : !technologyHierarchyRequest &&
+            /^\s*(?:list|show|give me)\b/i.test(classificationMessage)
+          ? {
+              ...emptyResult,
+              matchedEntries: listingResolution?.matchedEntries || [],
+              answerSeed: listingResolution?.answer || "",
+              resolvedConversationEntities: listingResolution?.entities || [],
+              listingIntent: listingResolution?.intent || "list_platforms",
+              listingHandled: true,
+              answerStructureKind: "list",
+            }
+        : !technologyHierarchyRequest
+          ? withPlatformEntities(emptyResult)
+          : listingResolution
+          ? {
+              ...emptyResult,
+              matchedEntries: listingResolution.matchedEntries,
+              answerSeed: listingResolution.answer,
+              resolvedConversationEntities: listingResolution.entities,
+              listingIntent: listingResolution.intent,
+              listingHandled: true,
+            }
+          : emptyResult;
+    result = {
+      ...result,
+      messageNormalization,
+      businessGoals: [],
+      businessGoalConfidence: "low",
+      businessGoalAmbiguous: false,
+      requestDecomposition: {
+        simpleRequest: true,
+        compoundRequest: false,
+        requirements: [],
+        requestedActions: [],
+        constraints: [],
+      },
+      responseMode: { ...responseMode, fastPath: true, skipModel: true },
+      turnContext: {
+        relationToConversation: "standalone_new_request",
+        usesHistory: false,
+        currentTurnAnswerability: "answerable",
+      },
+      mode: LOCAL_HARNESS_MODE,
+      fallbackUsed: false,
+      fallbackReason: "",
+    };
+    return result;
+  }
   const businessGoalResolution = extractMiraBusinessGoals(
     classificationMessage,
   );
@@ -697,10 +823,6 @@ export const runMiraResponseAdapter = async ({
   const goalAwareMessage = goalEvidenceText
     ? `${classificationMessage} ${goalEvidenceText}`
     : classificationMessage;
-  const responseMode = classifyMiraResponseMode(
-    classificationMessage,
-    conversationHistory,
-  );
   const turnContext = classifyMiraTurnContext(
     classificationMessage,
     conversationHistory,
