@@ -365,6 +365,9 @@ const listAnswerSeedForEntities = (entities = [], matchedEntries = []) =>
     ...matchedEntries.map((entry) => `${entry.title}: ${entry.approvedSummary}`),
   ].join("\n");
 
+const canonicalHierarchyAnswerForEntities = (entities = []) =>
+  entities.map((entity) => `- ${entity.label}`).join("\n");
+
 const withResolvedConversationEntities = (
   localResult,
   referenceResolution,
@@ -378,7 +381,9 @@ const withResolvedConversationEntities = (
     confidence: "high",
     matchedEntries,
     answerSeed: referenceResolution.isList
-      ? listAnswerSeedForEntities(referenceResolution.entities, matchedEntries)
+      ? referenceResolution.canonicalHierarchyList
+        ? canonicalHierarchyAnswerForEntities(referenceResolution.entities)
+        : listAnswerSeedForEntities(referenceResolution.entities, matchedEntries)
       : referenceResolution.isComparison
       ? comparisonAnswerSeedForEntities(
           referenceResolution.entities,
@@ -392,7 +397,9 @@ const withResolvedConversationEntities = (
     answerStructureKind: referenceResolution.isComparison
       ? "comparison"
       : referenceResolution.isList
-        ? "list"
+        ? referenceResolution.canonicalHierarchyList
+          ? ""
+          : "list"
         : "",
   };
 };

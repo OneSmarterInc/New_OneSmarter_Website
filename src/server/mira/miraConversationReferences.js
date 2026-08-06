@@ -64,9 +64,10 @@ const ENTITY_DEFINITIONS = {
         type: "service",
         sourceIds: ["technology-solutions-overview"],
         approvedSummary:
-          "Software Support Consolidation is a Technology Solutions service area supported by global delivery and support teams.",
+          "Software Support Consolidation is a Technology Solutions service that coordinates ongoing software maintenance, enhancements, issue resolution, documentation, and knowledge transfer through global delivery and support teams to support operational continuity.",
         sourceFacts: [
-          "Software support consolidation uses global delivery and support teams.",
+          "Software Support Consolidation coordinates software maintenance, enhancements, issue resolution, documentation, and knowledge transfer through global delivery and support teams.",
+          "The service supports operational continuity by consolidating ongoing application support activities.",
         ],
       },
     ],
@@ -489,6 +490,8 @@ export const resolveMiraConversationReference = (
         entities,
         isComparison: false,
         isList: true,
+        canonicalHierarchyList:
+          parent?.id === "technology-solutions-overview",
         hadEntityContext: false,
       };
     }
@@ -520,6 +523,9 @@ export const resolveMiraConversationReference = (
       entities: entitySet,
       isComparison: false,
       isList: true,
+      canonicalHierarchyList: entitySet.every(
+        (entity) => entity.parentId === "technology-solutions-overview",
+      ),
       hadEntityContext: true,
     };
   }
