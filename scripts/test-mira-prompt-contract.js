@@ -41,6 +41,12 @@ const contains = (text, expected) =>
   String(text).toLowerCase().includes(String(expected).toLowerCase());
 
 const performanceCases = [
+  ["faq-company-id", "What does OneSmarter do?", 0, 0, "faq_company_overview"],
+  ["faq-platforms-id", "What platforms do you offer?", 0, 0, "faq_platforms"],
+  ["faq-healthcare-id", "Do you work with healthcare organizations?", 0, 0, "faq_healthcare"],
+  ["faq-soc2-id", "What does SOC 2 Type II Attested mean here?", 0, 0, "faq_soc2_attestation"],
+  ["faq-hipaa-id", "Are you HIPAA certified?", 0, 0, "faq_hipaa_status"],
+  ["faq-contact-id", "How should I contact OneSmarter?", 0, 0, "faq_contact"],
   ["acknowledgement", "ok", 0, 0],
   ["platform-list", "What are your platforms?", 0, 0],
   ["platform-names-only", "Give me platform names only.", 0, 0],
@@ -61,13 +67,19 @@ const performanceCases = [
   ],
   ["adaptive-discovery", "Our legacy applications are costly to maintain.", 1, 1],
   ["phi-safety", "Can I upload patient records?", 0, 0],
+  ["typed-company-faq", "What does OneSmarter do?", 0, 0],
+  ["typed-healthcare-faq", "Do you work with healthcare organizations?", 0, 0],
+  ["typed-soc2-faq", "What does SOC 2 Type II Attested mean here?", 0, 0],
+  ["typed-hipaa-faq", "Are you HIPAA certified?", 0, 0],
+  ["typed-contact-faq", "How should I contact OneSmarter?", 0, 0],
 ];
 
-for (const [id, message, expectedRetrievals, expectedProviderCalls] of performanceCases) {
+for (const [id, message, expectedRetrievals, expectedProviderCalls, suggestedQuestionId] of performanceCases) {
   let retrievalCalls = 0;
   let providerCalls = 0;
   await runMiraResponseAdapter({
     message,
+    suggestedQuestionId,
     conversationHistory: [],
     config: {
       mode: "staging_llm",
@@ -1634,4 +1646,4 @@ if (failures.length) {
 
 console.log("Mira prompt contract tests passed.");
 console.log("Ran prompt construction checks, 18 mocked model output cases, and 24 reference cases.");
-console.log("Ran 10 pipeline call-count performance cases.");
+console.log("Ran 21 pipeline call-count performance cases.");

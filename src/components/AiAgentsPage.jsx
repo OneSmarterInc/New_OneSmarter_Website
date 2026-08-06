@@ -72,31 +72,37 @@ const agents = [
 
 const conversationExamples = [
   {
+    id: "faq_company_overview",
     question: "What does OneSmarter do?",
     answer:
       "OneSmarter builds secure platforms, practical AI workflows, business services, and compliance readiness support for healthcare, financial, telecom, and growing organizations. The work is grounded in useful systems, trusted execution, and careful claim boundaries.",
   },
   {
+    id: "faq_platforms",
     question: "What platforms do you offer?",
     answer:
       "OneSmarter currently presents two platform areas: Secure Ticketing and Case Management, and Bill Audit & Bill Pay. Telecom expense management is treated as a capability within Bill Audit & Bill Pay rather than a separate platform.",
   },
   {
+    id: "faq_healthcare",
     question: "Do you work with healthcare organizations?",
     answer:
       "Yes. OneSmarter's experience includes healthcare workflows, claims-processing services, TPA support, secure case management, and compliance-aware operations. For specific healthcare or regulated-workflow questions, the right next step is to contact care@onesmarter.com.",
   },
   {
+    id: "faq_soc2_attestation",
     question: "What does SOC 2 Type II Attested mean here?",
     answer:
       "OneSmarter uses the phrase SOC 2 Type II Attested to describe its trust posture. The Trust Center provides more context. For formal vendor, security, or procurement review, OneSmarter should provide the appropriate evidence through a direct business process.",
   },
   {
+    id: "faq_hipaa_status",
     question: "Are you HIPAA certified?",
     answer:
       "A safer way to say this is that OneSmarter has completed a HIPAA Security Rule compliance assessment. OneSmarter does not present this as HIPAA certification. For regulated workflows, the Trust Center and a direct business review are the right next steps.",
   },
   {
+    id: "faq_contact",
     question: "How should I contact OneSmarter?",
     answer: "For business inquiries, email care@onesmarter.com.",
   },
@@ -157,7 +163,7 @@ const MIRA_INPUT_LIMIT = 500;
 const MIRA_HISTORY_LIMIT = 6;
 const MIRA_HISTORY_TOTAL_LIMIT = 2000;
 
-const askMiraMockEndpoint = async (message, conversationHistory = []) => {
+const askMiraMockEndpoint = async (message, conversationHistory = [], suggestedQuestionId = "") => {
   const response = await fetch("/api/agents/mira/chat", {
     method: "POST",
     headers: {
@@ -165,6 +171,7 @@ const askMiraMockEndpoint = async (message, conversationHistory = []) => {
     },
     body: JSON.stringify({
       message,
+      ...(suggestedQuestionId ? { suggestedQuestionId } : {}),
       conversationHistory,
       persona: "Warm Guide",
       memoryTheme: "Public website content",
@@ -1101,7 +1108,7 @@ const MiraConversationPanel = () => {
     );
   };
 
-  const requestMiraAnswer = async (message) => {
+  const requestMiraAnswer = async (message, suggestedQuestionId = "") => {
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
     const history = buildMiraConversationHistory(conversationTurns);
@@ -1120,7 +1127,7 @@ const MiraConversationPanel = () => {
     setConversationTurns((turns) => [...turns, userTurn]);
 
     try {
-      const response = await askMiraMockEndpoint(message, history);
+      const response = await askMiraMockEndpoint(message, history, suggestedQuestionId);
       if (requestId !== latestRequestId.current) return;
       setMiraResponse(response);
       setConversationTurns((turns) => [
@@ -1158,7 +1165,7 @@ const MiraConversationPanel = () => {
 
   const handleQuestionClick = async (example, index) => {
     setSelectedIndex(index);
-    const answerRequest = requestMiraAnswer(example.question);
+    const answerRequest = requestMiraAnswer(example.question, example.id);
     guideToAnswerPanel();
     await answerRequest;
   };

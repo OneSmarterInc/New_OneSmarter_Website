@@ -176,6 +176,86 @@ const knowledgeById = new Map(
 const entriesForIds = (ids = []) =>
   ids.map((id) => knowledgeById.get(id)).filter(Boolean);
 
+const FAQ_IDS = new Set([
+  "faq_company_overview",
+  "faq_platforms",
+  "faq_healthcare",
+  "faq_soc2_attestation",
+  "faq_hipaa_status",
+  "faq_contact",
+]);
+
+export const resolveMiraSuggestedFaqFastPath = (
+  message = "",
+  responseMode = {},
+  suggestedQuestionId = "",
+) => {
+  const normalized = String(message).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const requestedId = FAQ_IDS.has(suggestedQuestionId) ? suggestedQuestionId : "";
+  const faqId = requestedId ||
+    (/^(?:what does onesmarter do|tell me what onesmarter does|give me (?:a )?company overview|briefly explain what onesmarter does)$/.test(normalized)
+      ? "faq_company_overview"
+      : /^(?:what platforms do you offer|list your platforms|what are onesmarter s platforms|what are your platforms|list all platforms)$/.test(normalized)
+        ? "faq_platforms"
+        : /^(?:do you work with healthcare organizations|do you provide healthcare services|how does onesmarter support healthcare)$/.test(normalized)
+          ? "faq_healthcare"
+          : /^(?:what does soc 2 type ii attested mean here|what does your soc 2 type ii attestation mean|explain the soc 2 type ii attestation in detail)$/.test(normalized)
+            ? "faq_soc2_attestation"
+            : /^(?:are you hipaa certified|is onesmarter hipaa certified|are your platforms hipaa certified)$/.test(normalized)
+              ? "faq_hipaa_status"
+              : /^(?:how should i contact onesmarter|what is your contact email|how can i reach onesmarter|just give me the contact email)$/.test(normalized)
+                ? "faq_contact"
+                : "");
+  if (!faqId) return null;
+
+  if (faqId === "faq_platforms") return { faqId, platformListing: true };
+  if (faqId === "faq_company_overview") {
+    return {
+      faqId,
+      answer: responseMode.answerShape === "brief"
+        ? "OneSmarter builds secure platforms, practical AI workflows, technology solutions, business services, and compliance-readiness support for healthcare, financial, telecom, and growing organizations."
+        : "OneSmarter builds secure platforms, practical AI workflows, Technology Solutions, Business Services, and compliance and security readiness support for healthcare, financial, telecom, and growing organizations.",
+      matchedEntries: entriesForIds(["company-overview"]),
+      entities: [],
+    };
+  }
+  if (faqId === "faq_healthcare") {
+    return {
+      faqId,
+      answer: "Yes. OneSmarter supports healthcare and TPA operations through Healthcare & TPA Technology Services, Claims Processing Services, and secure workflow capabilities such as Secure Ticketing and Case Management.",
+      matchedEntries: entriesForIds(["technology-solutions-overview", "claims-processing-services", "secure-ticketing-case-management"]),
+      entities: ["healthcare-tpa-technology-services", "claims-processing-services", "secure-ticketing-case-management"].map((id) => groundedConversationEntityForId(id)).filter(Boolean),
+    };
+  }
+  if (faqId === "faq_soc2_attestation") {
+    const detailed = responseMode.mode === "detailed_explanation";
+    return {
+      faqId,
+      answer: detailed
+        ? "The OneSmarter Trust Center states that OneSmarter is SOC 2 Type II Attested as part of its ongoing security and operational controls program. This describes OneSmarter's attestation and does not certify customer systems or mean every service automatically makes a customer compliant. Formal reports and evidence are handled through a direct business process."
+        : "The OneSmarter Trust Center states that OneSmarter is SOC 2 Type II Attested. This describes OneSmarter's attestation; it does not certify customer systems or mean every service automatically makes a customer compliant.",
+      matchedEntries: entriesForIds(["soc2-attested"]),
+      entities: [groundedConversationEntityForId("soc2-attested")].filter(Boolean),
+    };
+  }
+  if (faqId === "faq_hipaa_status") {
+    return {
+      faqId,
+      answer: "No. OneSmarter does not present itself as HIPAA certified. The approved Trust Center wording is “HIPAA Security Rule Compliance Assessment Completed.” This is not a universal certification and does not mean using a platform automatically makes a customer HIPAA compliant.",
+      matchedEntries: entriesForIds(["hipaa-security-rule-assessment"]),
+      entities: [groundedConversationEntityForId("hipaa-security-rule-assessment")].filter(Boolean),
+    };
+  }
+  return {
+    faqId,
+    answer: /^(?:what is your contact email|just give me the contact email)$/.test(normalized)
+      ? "care@onesmarter.com"
+      : "For business inquiries, email care@onesmarter.com.",
+    matchedEntries: entriesForIds(["contact-handoff"]),
+    entities: [groundedConversationEntityForId("contact-handoff")].filter(Boolean),
+  };
+};
+
 export const resolveMiraResponseModeFastPath = (message = "", responseMode = {}) => {
   if (responseMode.mode === "overview") {
     if (responseMode.answerShape === "brief") {

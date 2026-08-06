@@ -1622,7 +1622,7 @@ const modeCases = [
       MIRA_LLM_MODEL: "future-reviewed-model",
       MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
     },
-    message: "What does OneSmarter do?",
+    message: "What services and capabilities does OneSmarter provide?",
     fetchImpl: openAiNestedSuccessFetch(validModelOutput),
     expectedMode: "staging_llm",
     expectedHandoff: false,
@@ -1667,7 +1667,7 @@ const modeCases = [
       MIRA_LLM_MODEL: "future-reviewed-model",
       MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
     },
-    message: "What platforms do you offer?",
+    message: "Tell me about the OneSmarter platform portfolio.",
     fetchImpl: openAiNestedSuccessFetch(validModelOutput),
     expectedMode: "staging_llm",
     expectedHandoff: false,
@@ -2431,7 +2431,7 @@ const modeCases = [
       MIRA_LLM_MODEL: "future-reviewed-model",
       MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
     },
-    message: "Do you work with healthcare organizations?",
+    message: "Tell me about healthcare.",
     fetchImpl: openAiNestedSuccessFetch(validModelOutput),
     expectedMode: "staging_llm",
     expectedHandoff: false,
@@ -2538,6 +2538,7 @@ const modeCases = [
       MIRA_LLM_MODEL: "future-reviewed-model",
       MIRA_LLM_API_KEY: "secret-value-that-must-not-be-exposed",
     },
+    message: "Tell me more about OneSmarter.",
     fetchImpl: openAiNestedSuccessFetch(optionalContactModelOutput),
     expectedMode: "staging_llm",
     expectedHandoff: false,
@@ -2681,8 +2682,7 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedFallbackUsed: true,
-    expectedFallbackReasonIncludes: "pre_call_claim_boundary",
+    expectedFallbackUsed: false,
     expectedHandoffReasonEmpty: true,
     expectedFetchCalls: 0,
     expectedAnswerIncludes: "HIPAA Security Rule Compliance Assessment Completed",
@@ -2725,8 +2725,7 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedFallbackUsed: true,
-    expectedFallbackReasonIncludes: "pre_call_claim_boundary",
+    expectedFallbackUsed: false,
     expectedHandoffReasonEmpty: true,
     expectedFetchCalls: 0,
     expectedAnswerIncludes: "HIPAA Security Rule Compliance Assessment Completed",
@@ -5764,7 +5763,9 @@ for (const modeCase of modeCases) {
         method: "POST",
         headers: { "x-forwarded-for": `192.0.2.${modeCases.indexOf(modeCase) + 1}` },
         body: {
-          message: modeCase.message || "What does OneSmarter do?",
+          message:
+            modeCase.message ||
+            "What services and capabilities does OneSmarter provide?",
           ...(modeCase.conversationHistory
             ? { conversationHistory: modeCase.conversationHistory }
             : {}),
@@ -6478,7 +6479,9 @@ await withEnv(
       handleMiraChatRequest({
         method: "POST",
         headers: { "x-forwarded-for": "192.0.2.200" },
-        body: { message: "What does OneSmarter do?" },
+        body: {
+          message: "What services and capabilities does OneSmarter provide?",
+        },
         now: new Date("2026-07-08T12:00:45.000Z"),
         logger: { log: (line) => safeLogLines.push(line) },
       }),

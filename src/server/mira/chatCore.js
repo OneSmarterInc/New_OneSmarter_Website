@@ -337,6 +337,7 @@ export const handleMiraChatRequest = async ({
     persona,
     memoryTheme,
     empathyState,
+    suggestedQuestionId,
     conversationHistory,
   } = parsedBody;
 
@@ -448,6 +449,8 @@ export const handleMiraChatRequest = async ({
       persona,
       memoryTheme,
       empathyState,
+      suggestedQuestionId:
+        typeof suggestedQuestionId === "string" ? suggestedQuestionId : "",
       conversationHistory: normalizedHistory.history,
       config: runtimeConfig,
     });

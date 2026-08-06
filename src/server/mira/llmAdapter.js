@@ -45,6 +45,7 @@ import {
   RESPONSE_MODE_BUDGETS,
   resolveMiraNamesOnly,
   resolveMiraResponseModeFastPath,
+  resolveMiraSuggestedFaqFastPath,
 } from "./miraResponseModes.js";
 import { normalizeMiraUserMessage } from "./miraUserMessageNormalizer.js";
 import {
@@ -671,6 +672,7 @@ export const runMiraResponseAdapter = async ({
   persona,
   memoryTheme,
   empathyState,
+  suggestedQuestionId = "",
   conversationHistory = [],
   config,
   localHarness = runMiraLocalHarness,
@@ -709,6 +711,63 @@ export const runMiraResponseAdapter = async ({
     classificationMessage,
     conversationHistory,
   );
+  const faqResolution = resolveMiraSuggestedFaqFastPath(
+    classificationMessage,
+    responseMode,
+    suggestedQuestionId,
+  );
+  if (
+    faqResolution &&
+    earlyRiskFlags.every((flag) =>
+      ["hipaa_claim_boundary", "soc2_claim_boundary"].includes(flag),
+    )
+  ) {
+    const emptyResult = {
+      question: message,
+      normalizedQuestion: classificationMessage.toLowerCase(),
+      riskFlags: earlyRiskFlags,
+      confidence: "high",
+      matchedEntries: faqResolution.matchedEntries || [],
+      answerSeed: faqResolution.answer || "",
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+    };
+    const resolved = faqResolution.platformListing
+      ? {
+          ...withPlatformEntities(emptyResult),
+          listingIntent: "list_platforms",
+          listingHandled: true,
+        }
+      : {
+          ...emptyResult,
+          resolvedConversationEntities: faqResolution.entities || [],
+        };
+    return {
+      ...resolved,
+      messageNormalization,
+      businessGoals: [],
+      businessGoalConfidence: "low",
+      businessGoalAmbiguous: false,
+      requestDecomposition: {
+        simpleRequest: true,
+        compoundRequest: false,
+        requirements: [],
+        requestedActions: [],
+        constraints: [],
+      },
+      responseMode: { ...responseMode, fastPath: true, skipModel: true },
+      turnContext: {
+        relationToConversation: "standalone_new_request",
+        usesHistory: false,
+        currentTurnAnswerability: "answerable",
+      },
+      mode: LOCAL_HARNESS_MODE,
+      fallbackUsed: false,
+      fallbackReason: "",
+      faqId: faqResolution.faqId,
+    };
+  }
   const selfContainedCanonicalListing =
     !earlyRiskFlags.length &&
     !/\b(?:first|second|third|fourth|last|previous|former|latter|those|these|their|them)\b/i.test(
