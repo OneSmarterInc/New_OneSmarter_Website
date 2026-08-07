@@ -4,8 +4,80 @@ const splitParagraphs = (text) =>
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 
+const INTERNAL_PRESENTATION_LINE =
+  /^(?:HandoffNeeded|confidence|riskFlags|matchedEntries|decisionState|recommendationStatus|responseMode|providerMetadata)\s*:/i;
+
+const normalizedLineKey = (line = "") =>
+  String(line)
+    .toLowerCase()
+    .replace(/^[-*\u2022]\s+/, "")
+    .replace(/[^a-z0-9@.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export const normalizeMiraAnswerPresentation = (
+  text = "",
+  { suppressHandoff = false, suppressInternal = true } = {},
+) => {
+  const seen = new Set();
+  const prepared = (suppressInternal
+    ? String(text).replace(/\s*Related approved topics:[^.]*\.?/gi, "")
+    : String(text))
+    .replace(
+      /The page uses supporting language such as built for HIPAA-regulated workflows and designed for PHI-sensitive workflows\.?/gi,
+      "It is built for HIPAA-regulated workflows and designed for PHI-sensitive workflows.",
+    );
+  const withoutHandoff = suppressHandoff
+    ? prepared
+        .replace(/\s*Route [^.\n]*care@onesmarter\.com\.?/gi, "")
+        .replace(
+          /\s*For (?:more information|ordinary questions|general questions),? (?:please )?(?:email|contact) care@onesmarter\.com\.?/gi,
+          "",
+        )
+    : prepared;
+  return withoutHandoff
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (
+        !line ||
+        (suppressInternal && INTERNAL_PRESENTATION_LINE.test(line))
+      ) {
+        return false;
+      }
+      return !/^(?:Important context|Separate facts and next steps|Approved facts?)\s*:?$/i.test(
+        line,
+      );
+    })
+    .map((line) => {
+      let normalizedLine = line
+        .replace(/^Bullets\s*:?$/i, "Key capabilities:")
+        .replace(/^Important note\s*:?$/i, "Important limitation:")
+        .replace(/^Approved facts?\s+vs\.?\s+next steps\s*:?$/i, "Next step:")
+        .replace(/^Next steps\s*:?$/i, "Next step:");
+      const labeled = normalizedLine.match(/^([^:]{3,80}):\s+(.+)$/);
+      if (
+        labeled &&
+        labeled[2].toLowerCase().startsWith(labeled[1].toLowerCase())
+      ) {
+        normalizedLine = labeled[2];
+      }
+      return normalizedLine;
+    })
+    .filter((line) => {
+      const key = normalizedLineKey(line);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
 export const formatMiraAnswerBlocks = (text) => {
-  const lines = String(text || "")
+  const lines = normalizeMiraAnswerPresentation(text)
     .replace(/\r\n/g, "\n")
     .replace(/\s+-\s+(?=[A-Z0-9])/g, "\n- ")
     .split("\n")

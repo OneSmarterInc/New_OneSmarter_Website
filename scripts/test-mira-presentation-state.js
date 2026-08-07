@@ -5,11 +5,36 @@ import {
   MIRA_MOOD_SIGNAL_KEYS,
   deriveMiraPresentationState,
 } from "../src/data/agentPresentation/miraPresentationState.js";
-import { formatMiraAnswerBlocks } from "../src/data/agentPresentation/miraAnswerFormatter.js";
+import {
+  formatMiraAnswerBlocks,
+  normalizeMiraAnswerPresentation,
+} from "../src/data/agentPresentation/miraAnswerFormatter.js";
 
 const failures = [];
 
 const fail = (message) => failures.push(message);
+
+const normalizedPresentation = normalizeMiraAnswerPresentation(
+  [
+    "Important context:",
+    "Claims Processing Services are service-oriented healthcare technology support.",
+    "Bullets:",
+    "- Claims workflow modernization",
+    "HandoffNeeded: true",
+    "Related approved topics: AI Agentic Services.",
+    "Route implementation questions to care@onesmarter.com.",
+  ].join("\n"),
+  { suppressHandoff: true },
+);
+if (
+  /Important context|Bullets|HandoffNeeded|Related approved topics|care@onesmarter\.com/i.test(
+    normalizedPresentation,
+  ) ||
+  !normalizedPresentation.includes("Key capabilities:") ||
+  !normalizedPresentation.includes("Claims workflow modernization")
+) {
+  fail("answer-presentation: expected shared heading, metadata, and handoff cleanup.");
+}
 
 const platformAnswerBlocks = formatMiraAnswerBlocks(
   [
@@ -37,13 +62,15 @@ if (
 }
 if (
   !platformAnswerBlocks.some(
+    (block) => block.type === "heading" && block.text === "Important limitation",
+  ) ||
+  !platformAnswerBlocks.some(
     (block) =>
-      block.type === "important-note" &&
-      block.text ===
-        "Broader services are available under Technology Solutions.",
+      block.type === "paragraph" &&
+      block.text === "Broader services are available under Technology Solutions.",
   )
 ) {
-  fail("answer-formatter: expected Important note to remain a separate block.");
+  fail("answer-formatter: expected a standardized limitation section.");
 }
 const unstructuredAnswerBlocks = formatMiraAnswerBlocks(
   "This is an older plain-text Mira response.",

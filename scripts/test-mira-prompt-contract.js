@@ -925,10 +925,10 @@ validateCase({
   localHarnessResult: runMiraLocalHarness("What is Bill Audit & Bill Pay?"),
   expectedValid: true,
   expectedCorrectedIncludes: [
-    "Important context",
     "Supports approval and payment workflows with a clear record of review and payment activity.",
   ],
   expectedCorrectedExcludes: [
+    "Important context",
     "Separate facts and next steps",
     "payment workflows to support payment processing steps and records",
   ],
@@ -949,8 +949,8 @@ validateCase({
   riskFlags: ["business_specific_review"],
   localHarnessResult: runMiraLocalHarness("Can I get implementation evidence?"),
   expectedValid: true,
-  expectedCorrectedIncludes: ["Important note"],
-  expectedCorrectedExcludes: ["Approved fact vs. next steps"],
+  expectedCorrectedIncludes: ["Next step"],
+  expectedCorrectedExcludes: ["Approved fact vs. next steps", "Important note"],
 });
 
 validateCase({

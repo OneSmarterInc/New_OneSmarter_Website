@@ -1,5 +1,6 @@
 import { miraClaimRules } from "../../data/agentKnowledge/miraClaimRules.js";
 import { runMiraLocalHarness } from "../../data/agentKnowledge/miraLocalEngine.js";
+import { normalizeMiraAnswerPresentation } from "../../data/agentPresentation/miraAnswerFormatter.js";
 
 const VALID_GROUNDING_STATUSES = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_OUTPUT_SAFETY_STATUSES = new Set(["passed", "corrected", "refused"]);
@@ -53,9 +54,7 @@ const UNSUPPORTED_EXAMPLE_PATTERNS = [
 ];
 
 export const normalizeMiraPublicAnswerText = (answer = "") =>
-  String(answer)
-    .replace(/\bSeparate facts and next steps\b/gi, "Important context")
-    .replace(/\bApproved facts?\s+vs\.?\s+next steps\b/gi, "Important note")
+  normalizeMiraAnswerPresentation(answer, { suppressInternal: false })
     .replace(
       /\bSupports payment workflows to support payment processing steps and records\.?/gi,
       "Supports approval and payment workflows with a clear record of review and payment activity.",

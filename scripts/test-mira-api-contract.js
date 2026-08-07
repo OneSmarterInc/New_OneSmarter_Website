@@ -1703,11 +1703,11 @@ const modeCases = [
     expectedOutputSafetyStatus: "passed",
     expectedSourceIds: ["bill-audit-bill-pay"],
     expectedAnswerIncludesAll: [
-      "Important context",
       "Supports approval and payment workflows with a clear record of review and payment activity.",
     ],
     expectedAnswerExcludesAll: [
       "Separate facts and next steps",
+      "Important context",
       "Approved fact vs. next steps",
       "payment workflows to support payment processing steps and records",
     ],
@@ -3925,7 +3925,7 @@ const modeCases = [
     expectedStatus: 200,
     expectedExactSourceIds: ["technology-solutions-overview"],
     expectedConversationEntityIds: ["healthcare-tpa-technology-services"],
-    expectedAnswerStartsWith: "Healthcare & TPA Technology Services:",
+    expectedAnswerStartsWith: "Healthcare & TPA Technology Services are",
     expectedAnswerIncludesAll: [
       "healthcare operations and TPA technology work",
       "part of OneSmarter's Technology Solutions",

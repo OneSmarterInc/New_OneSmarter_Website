@@ -3,6 +3,7 @@ import {
   capabilityNamesAnswerForEntities,
   capabilitySummaryAnswerForEntities,
 } from "./miraListingIntents.js";
+import { normalizeMiraAnswerPresentation } from "../../data/agentPresentation/miraAnswerFormatter.js";
 
 const TRAILING_FOLLOW_UP =
   /\n+(?:would|do|can|could|what|which|how)\b[^\n?]*\?\s*$/i;
@@ -126,6 +127,17 @@ const categoryScopedCorrection = (result, answer, scope) => {
 };
 
 export const validateMiraFinalResponse = (result = {}) => {
+  if (!isSafetyResponse(result)) {
+    const preservesContactAnswer = (result.matchedEntries || []).some(
+      (entry) => entry?.id === "contact-handoff",
+    );
+    result = {
+      ...result,
+      answerSeed: normalizeMiraAnswerPresentation(result.answerSeed, {
+        suppressHandoff: !result.handoffNeeded && !preservesContactAnswer,
+      }),
+    };
+  }
   const answer = String(result.answerSeed || "").trim();
   const mode = result.responseMode?.mode || "";
 
