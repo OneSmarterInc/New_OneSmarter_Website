@@ -456,7 +456,8 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
     correctionNamed,
   );
   const referenced =
-    reference.kind === "resolved" && reference.entities.length > 1
+    reference.kind === "resolved" &&
+    (reference.entities.length > 1 || reference.ordinalReference)
       ? reference.entities
       : [];
   const latestComparisonEntities = [...conversationHistory]
@@ -481,13 +482,32 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
     correctionNamed.length === 1 &&
     (referenced.length >= 2 || groundedLatestComparisonEntities.length >= 2)
       ? [
-          (referenced.length ? referenced : groundedLatestComparisonEntities)[0],
+          (referenced.length >= 2
+            ? referenced
+            : groundedLatestComparisonEntities)[0],
           correctionNamed[0],
         ]
+      : [];
+  const mixedReferenceEntities =
+    correctionNamed.length === 1 && referenced.length === 1
+      ? (() => {
+          const normalizedMessage = normalize(message);
+          const namedIndex = normalizedMessage.indexOf(
+            normalize(correctionNamed[0].label),
+          );
+          const ordinalIndex = normalizedMessage.search(
+            /\b(?:first|second|third|fourth|1st|2nd|3rd|4th)\b/,
+          );
+          return namedIndex >= 0 && namedIndex < ordinalIndex
+            ? [correctionNamed[0], referenced[0]]
+            : [referenced[0], correctionNamed[0]];
+        })()
       : [];
   let entities = uniqueEntities(
     correctionEntities.length
       ? correctionEntities
+      : mixedReferenceEntities.length
+        ? mixedReferenceEntities
       : assistantSelection?.entities ||
         (correctionNamed.length >= 2 ? correctionNamed : referenced),
   );

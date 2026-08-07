@@ -1276,6 +1276,29 @@ const referenceCases = [
     true,
   ],
   [
+    "typed-platform-reversed-comparison",
+    "Compare the second platform with the first platform.",
+    platformOnlyHistory,
+    ["bill-audit-bill-pay", "secure-ticketing-case-management"],
+    true,
+  ],
+  [
+    "typed-service-reversed-comparison",
+    "Compare the second service with the first service.",
+    [
+      {
+        role: "assistant",
+        content: "Two grounded services were compared.",
+        conversationEntities: [
+          { id: "ai-agentic-services", level: 1 },
+          { id: "enterprise-software-development", level: 1 },
+        ],
+      },
+    ],
+    ["enterprise-software-development", "ai-agentic-services"],
+    true,
+  ],
+  [
     "offering-first-last",
     "Compare first and last.",
     platformHistory,
@@ -1307,6 +1330,22 @@ for (const [id, message, history, expectedText] of [
   if (result.kind !== "clarification" || !contains(result.clarification, expectedText)) {
     fail(`reference-${id}: expected specific clarification containing ${expectedText}.`);
   }
+}
+
+const staleOrdinalReference = resolveMiraConversationReference(
+  "Compare the second platform with the first platform.",
+  [
+    ...platformOnlyHistory,
+    { role: "user", content: "Tell me about Claims Processing Services." },
+    {
+      role: "assistant",
+      content: "Claims Processing Services was explained.",
+      conversationEntities: [{ id: "claims-processing-services", level: 1 }],
+    },
+  ],
+);
+if (staleOrdinalReference.kind !== "clarification") {
+  fail("reference-stale-topic: an older platform pair must not cross an explicit topic change.");
 }
 
 const canonicalizedReference = resolveMiraConversationReference(

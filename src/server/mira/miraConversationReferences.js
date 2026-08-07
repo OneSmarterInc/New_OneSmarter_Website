@@ -326,6 +326,38 @@ const directlyScopedParent = (message = "") => {
 const recentEntityGroups = (conversationHistory = []) =>
   buildConversationEntityGroups(conversationHistory);
 
+const historyForOrdinalComparison = (message, conversationHistory) => {
+  const ordinalCount = [
+    ...message.matchAll(/\b(?:first|second|third|fourth)\b/g),
+  ].length;
+  if (
+    ordinalCount < 2 ||
+    !/\b(?:compare|compared|different|difference|versus|vs)\b/.test(message)
+  ) {
+    return conversationHistory;
+  }
+
+  const latestAssistantIndex = conversationHistory.findLastIndex(
+    (turn) => turn?.role === "assistant" && turn.conversationEntities?.length,
+  );
+  if (latestAssistantIndex < 0) return conversationHistory;
+  const latestEntities = normalizeGroundedConversationEntities(
+    conversationHistory[latestAssistantIndex].conversationEntities,
+  );
+  if (latestEntities.length !== 1) return conversationHistory;
+
+  const precedingUser = conversationHistory
+    .slice(0, latestAssistantIndex)
+    .findLast((turn) => turn?.role === "user");
+  if (
+    !precedingUser ||
+    hasReferenceLanguage(normalizeReferenceText(precedingUser.content))
+  ) {
+    return conversationHistory;
+  }
+  return conversationHistory.slice(latestAssistantIndex);
+};
+
 const normalizedLabel = (label = "") =>
   String(label).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -461,7 +493,9 @@ export const resolveMiraConversationReference = (
   conversationHistory = [],
 ) => {
   const normalizedMessage = normalizeReferenceText(message);
-  const sets = recentEntityGroups(conversationHistory);
+  const sets = recentEntityGroups(
+    historyForOrdinalComparison(normalizedMessage, conversationHistory),
+  );
   const namedEntity = /\b(under|inside|within)\b/.test(normalizedMessage)
     ? null
     : explicitlyNamedEntity(normalizedMessage, sets);
@@ -556,7 +590,16 @@ export const resolveMiraConversationReference = (
     /\b(compare|compared|different|difference|versus|vs)\b/.test(
       normalizedMessage,
     );
-  return { kind: "resolved", entities, isComparison, hadEntityContext: true };
+  return {
+    kind: "resolved",
+    entities,
+    isComparison,
+    ordinalReference:
+      /\b(?:first|second|third|fourth|1st|2nd|3rd|4th|option\s+[1-4]|number\s+(?:one|two|three|four))\b/.test(
+        normalizedMessage,
+      ),
+    hadEntityContext: true,
+  };
 };
 
 export const matchedEntriesForConversationEntities = (entities = []) =>

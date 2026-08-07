@@ -1,7 +1,7 @@
 const PRIOR_REFERENCE =
   /\b(?:it|that|those|them|each one|both|their capabilities|these (?:platforms|services|offerings|options)|the above (?:two|platforms|services|offerings|options)|the (?:first|second|third|fourth|last) one|the previous option|previous option|what about|tell me more|which (?:one|of those)|under that service|same (?:one|option|service|platform)|(?:explain|describe|tell me about) (?:the )?(?:first|second|third|fourth|last)(?: one| option| platform| service| offering| item)?)\b/i;
 const PRIOR_COMPARISON =
-  /\b(?:compare (?:them|those|the two|first and (?:the )?(?:second|last))|first (?:one|option|platform)? (?:versus|vs\.?|and|compared with) (?:the )?(?:second|last)|which (?:one|of those) is better|difference between them|how is (?:the )?first .+ different from (?:the )?(?:second|last))\b/i;
+  /\b(?:compare (?:them|those|the two|first and (?:the )?(?:second|last)|(?:the )?(?:first|second|third|fourth) (?:one|option|platform|service|offering)?\s+(?:with|to|versus|vs\.?)\s+[^.!?]+)|first (?:one|option|platform)? (?:versus|vs\.?|and|compared with) (?:the )?(?:second|last)|which (?:one|of those) is better|difference between them|how is (?:the )?first .+ different from (?:the )?(?:second|last))\b/i;
 const EXPLICIT_REFINEMENT =
   /^\s*(?:we\s+)?(?:also|additionally|in addition|as well)\b|\b(?:specifically|in particular|more precisely|for that|within that)\b/i;
 const EXPLICIT_FOLLOW_UP =

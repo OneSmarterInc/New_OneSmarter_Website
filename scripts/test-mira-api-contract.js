@@ -1393,6 +1393,52 @@ const modeCases = [
     expectedAnswerStructureKind: "comparison",
   },
   {
+    id: "structured-platform-reversed-typed-ordinal-comparison",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare the second platform with the first platform.",
+    conversationHistory: [{
+      role: "assistant",
+      content: "Two grounded platforms were compared.",
+      conversationEntities: [
+        { id: "secure-ticketing-case-management" },
+        { id: "bill-audit-bill-pay" },
+      ],
+    }],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "bill-audit-bill-pay",
+      "secure-ticketing-case-management",
+    ],
+    expectedConversationEntityTypes: ["platform", "platform"],
+    expectedAnswerStructureKind: "comparison",
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "structured-typed-ordinal-with-explicit-current-entity",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare the second platform with AI Agentic Services.",
+    conversationHistory: [{
+      role: "assistant",
+      content: "Two grounded platforms were compared.",
+      conversationEntities: [
+        { id: "secure-ticketing-case-management" },
+        { id: "bill-audit-bill-pay" },
+      ],
+    }],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedConversationEntityIds: [
+      "bill-audit-bill-pay",
+      "ai-agentic-services",
+    ],
+    expectedConversationEntityTypes: ["platform", "service"],
+    expectedAnswerStructureKind: "comparison",
+    expectedFetchCalls: 0,
+  },
+  {
     id: "structured-offering-first-last-mixed-comparison",
     env: { MIRA_LLM_MODE: "mock" },
     message: "Compare first and last.",
