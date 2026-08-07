@@ -776,6 +776,12 @@ export const runMiraResponseAdapter = async ({
     ((/\b(?:what are|list|show|give me)\b[^.!?]{0,50}\b(?:your |onesmarter )?platforms?\b/i.test(
       classificationMessage,
     ) && !/\bservices?\b/i.test(classificationMessage)) ||
+      /\bwhich offerings? are (?:platforms?|services?)\b/i.test(
+        classificationMessage,
+      ) ||
+      /\b(?:bifurcate|separate|list)\b[^.!?]{0,60}\bplatforms?\b[^.!?]{0,30}\bservices?\b/i.test(
+        classificationMessage,
+      ) ||
       /\btechnology solutions\b[^.!?]{0,40}\bservices?\b|\bservices?\b[^.!?]{0,40}\b(?:under|within|belong to)\b[^.!?]{0,20}\btechnology solutions\b/i.test(
         classificationMessage,
       ));
@@ -807,6 +813,13 @@ export const runMiraResponseAdapter = async ({
     const listingResolution = hierarchyResolution
       ? null
       : resolveMiraListingRequest(classificationMessage, []);
+    const platformSummaryRequest =
+      !technologyHierarchyRequest &&
+      !/\bservices?\b/i.test(classificationMessage) &&
+      /\b(?:main platforms|platforms do you offer|your platforms)\b/i.test(
+        classificationMessage,
+      ) &&
+      !/^\s*(?:list|show|give me)\b/i.test(classificationMessage);
     let result = namesOnlyResolution
       ? {
           ...emptyResult,
@@ -818,20 +831,9 @@ export const runMiraResponseAdapter = async ({
         }
       : hierarchyResolution?.kind === "resolved"
         ? withResolvedConversationEntities(emptyResult, hierarchyResolution)
-        : !technologyHierarchyRequest &&
-            /^\s*(?:list|show|give me)\b/i.test(classificationMessage)
-          ? {
-              ...emptyResult,
-              matchedEntries: listingResolution?.matchedEntries || [],
-              answerSeed: listingResolution?.answer || "",
-              resolvedConversationEntities: listingResolution?.entities || [],
-              listingIntent: listingResolution?.intent || "list_platforms",
-              listingHandled: true,
-              answerStructureKind: "list",
-            }
-        : !technologyHierarchyRequest
+        : platformSummaryRequest
           ? withPlatformEntities(emptyResult)
-          : listingResolution
+        : listingResolution
           ? {
               ...emptyResult,
               matchedEntries: listingResolution.matchedEntries,
@@ -839,6 +841,11 @@ export const runMiraResponseAdapter = async ({
               resolvedConversationEntities: listingResolution.entities,
               listingIntent: listingResolution.intent,
               listingHandled: true,
+              answerStructureKind:
+                listingResolution.intent === "list_services_and_platforms" ||
+                listingResolution.intent === "reorganize_previous_list"
+                  ? ""
+                  : "list",
             }
           : emptyResult;
     result = {

@@ -49,6 +49,9 @@ const performanceCases = [
   ["faq-contact-id", "How should I contact OneSmarter?", 0, 0, "faq_contact"],
   ["acknowledgement", "ok", 0, 0],
   ["platform-list", "What are your platforms?", 0, 0],
+  ["offering-platform-classification", "Which offerings are platforms?", 0, 0],
+  ["offering-service-classification", "Which offerings are services?", 0, 0],
+  ["offering-split-classification", "Bifurcate the available solutions into platforms and services.", 0, 0],
   ["platform-names-only", "Give me platform names only.", 0, 0],
   ["technology-hierarchy", "What services are under Technology Solutions?", 0, 0],
   [
@@ -1646,4 +1649,4 @@ if (failures.length) {
 
 console.log("Mira prompt contract tests passed.");
 console.log("Ran prompt construction checks, 18 mocked model output cases, and 24 reference cases.");
-console.log("Ran 21 pipeline call-count performance cases.");
+console.log("Ran 24 pipeline call-count performance cases.");

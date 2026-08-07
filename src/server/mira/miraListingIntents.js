@@ -30,7 +30,7 @@ const COMPARISON_INTENT =
 const REORGANIZE_INTENT =
   /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type)\b|\b(?:show|list)\b.*\b(?:services?|platforms?)\b.*\bseparately\b/i;
 const LIST_INTENT =
-  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every)\b[^.!?]{0,40}\b(?:platform|service) supports?\b|\bwhat do (?:the|your|both|all) (?:platforms|services) supports?\b|\b(?:each|every|both|all|these|the|your)\b[^.!?]{0,40}\b(?:platforms?|services?)\b.*\b(?:supports?|provide|handle|capabilit(?:y|ies))\b/i;
+  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\bwhich offerings? are (?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every)\b[^.!?]{0,40}\b(?:platform|service) supports?\b|\bwhat do (?:the|your|both|all) (?:platforms|services) supports?\b|\b(?:each|every|both|all|these|the|your)\b[^.!?]{0,40}\b(?:platforms?|services?)\b.*\b(?:supports?|provide|handle|capabilit(?:y|ies))\b/i;
 const CAPABILITY_SCOPE =
   /\b(?:supports?|capabilit(?:y|ies)|handle|provide)\b/i;
 
@@ -100,6 +100,38 @@ const categorizedAnswer = ({ platforms, services, serviceCategories }) =>
     .join("\n")
     .trim();
 
+const categorizedDetailedAnswer = ({ platforms, services, serviceCategories }) =>
+  [
+    ...(platforms.length
+      ? [
+          "Platforms",
+          ...platforms.map(
+            (entity) => `- ${entity.label}: ${entity.approvedSummary}`,
+          ),
+          "",
+        ]
+      : []),
+    ...(services.length
+      ? [
+          "Services",
+          ...services.map(
+            (entity) => `- ${entity.label}: ${entity.approvedSummary}`,
+          ),
+          "",
+        ]
+      : []),
+    ...(serviceCategories.length
+      ? [
+          "Service categories",
+          ...serviceCategories.map(
+            (entity) => `- ${entity.label}: ${entity.approvedSummary}`,
+          ),
+        ]
+      : []),
+  ]
+    .join("\n")
+    .trim();
+
 const approvedCapabilityFacts = (entity) =>
   (entity.sourceFacts || []).filter(
     (fact) =>
@@ -152,6 +184,7 @@ export const resolveMiraListingRequest = (
 ) => {
   const intent = classifyMiraListingIntent(message);
   if (!intent || intent === "compare_entities") return null;
+  if (/\bbusiness services?\b/i.test(message)) return null;
 
   let entities = [];
   if (intent === "list_platforms") {
@@ -179,7 +212,11 @@ export const resolveMiraListingRequest = (
     intent,
     entities: categorized,
     matchedEntries: matchedEntriesForConversationEntities(categorized),
-    answer: CAPABILITY_SCOPE.test(normalizedIntentText(message))
+    answer: /\b(?:explain|describe)\b.*\b(?:each|all)\b|\b(?:each|all)\b.*\b(?:explain|describe)\b/i.test(
+      message,
+    )
+      ? categorizedDetailedAnswer(categories)
+      : CAPABILITY_SCOPE.test(normalizedIntentText(message))
       ? capabilitySummaryAnswerForEntities(categorized)
       : categorizedAnswer(categories),
     capabilitySummary: CAPABILITY_SCOPE.test(normalizedIntentText(message)),
