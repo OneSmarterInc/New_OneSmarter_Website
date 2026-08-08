@@ -270,7 +270,7 @@ const currentMessageCases = [
     name: "vague clarification",
     message: "We need help choosing a platform.",
     status: "needs_clarification",
-    answerIncludes: "What workflow",
+    answerIncludes: "Is your main need",
   },
   {
     name: "current topic overrides history",

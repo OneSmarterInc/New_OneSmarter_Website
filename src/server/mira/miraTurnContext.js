@@ -8,6 +8,8 @@ const EXPLICIT_FOLLOW_UP =
   /^\s*(?:and\s+)?(?:why|how|when|where)\s+(?:does|do|is|are|would|should)\s+(?:it|that|this|they)\b/i;
 const REORGANIZE_PREVIOUS =
   /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type|the above|them)\b/i;
+const CONTEXTUAL_RECOMMENDATION =
+  /\b(?:what (?:would|do) you recommend|what should (?:we|i) choose|which option fits (?:us|me) best)\b/i;
 
 export const isMiraContextualComparisonFollowUp = (message = "") =>
   (/\b(?:another|different|something else|new option)\b/i.test(message) &&
@@ -30,6 +32,8 @@ export const classifyMiraTurnContext = (
     relationToConversation = "standalone_new_request";
   } else if (hasHistory && responseMode === "names_only") {
     relationToConversation = "reference_to_prior_turn";
+  } else if (hasHistory && CONTEXTUAL_RECOMMENDATION.test(message)) {
+    relationToConversation = "refinement";
   } else if (
     hasHistory &&
     (PRIOR_COMPARISON.test(message) ||

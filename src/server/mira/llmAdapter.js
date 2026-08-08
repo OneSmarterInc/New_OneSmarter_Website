@@ -1264,6 +1264,7 @@ export const runMiraResponseAdapter = async ({
       recommendationReady: recommendationResolution.recommendationReady,
       recommendationReadiness:
         recommendationResolution.recommendationReadiness,
+      decisionState: recommendationResolution.decisionState,
       resolvedConversationEntities: recommendationResolution.entities,
       recommendationHandled: true,
       clarificationNeeded:

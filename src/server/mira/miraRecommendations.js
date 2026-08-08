@@ -440,6 +440,8 @@ export const isExplicitMiraComparisonRequest = (message = "") =>
 
 const optionFor = (optionId, position) => {
   const isNested = [
+    "healthcare-tpa-technology-services",
+    "claims-processing-services",
     "ai-agentic-services",
     "ibm-i-as400-services",
     "enterprise-software-development",
@@ -451,14 +453,132 @@ const optionFor = (optionId, position) => {
   });
 };
 
+const preliminaryRecommendation = (
+  message = "",
+  conversationHistory = [],
+) => {
+  const context = [
+    ...conversationHistory
+      .slice(-4)
+      .filter((turn) => turn?.role === "user")
+      .map((turn) => turn.content),
+    message,
+  ].join(" ");
+  const healthcare = /\b(?:healthcare|tpa)\b/i.test(context);
+  const platformOnly = /\bplatform\b/i.test(context) && !/\bservice\b/i.test(message);
+  const serviceOnly = /\bservice\b/i.test(context) && !/\bplatform\b/i.test(message);
+  const guidance = healthcare
+    ? {
+        options: [
+          ["secure-ticketing-case-management", "secure case workflows, role-based access, audit history, and PHI-sensitive operations"],
+          ["claims-processing-services", "claims-processing operations and claims technology support"],
+          ["healthcare-tpa-technology-services", "broader healthcare or TPA technology work"],
+        ],
+        question:
+          "Is your main need secure case management, claims operations, or broader healthcare technology support?",
+      }
+    : platformOnly
+      ? {
+          options: [
+            ["secure-ticketing-case-management", "secure case workflows, role-based access, audit history, and PHI-sensitive operations"],
+            ["bill-audit-bill-pay", "vendor bills, discrepancy review, approvals, payment workflows, and telecom expense use cases"],
+          ],
+          question:
+            "Is your main need secure case management or vendor-bill processing?",
+        }
+      : serviceOnly
+        ? {
+            options: [
+              ["ai-agentic-services", "controlled workflow automation and human-in-the-loop AI workflows"],
+              ["ibm-i-as400-services", "IBM i / AS400 support and modernization"],
+              ["enterprise-software-development", "broader application development and modernization"],
+            ],
+            question:
+              "Is your main need AI automation, IBM i support, or broader application modernization?",
+          }
+        : {
+            options: [
+              ["secure-ticketing-case-management", "secure case-management workflows"],
+              ["bill-audit-bill-pay", "vendor-bill approvals, payments, and telecom expense workflows"],
+              ["ai-agentic-services", "controlled AI workflow automation"],
+            ],
+            question:
+              "Is your main need case management, bill approvals, AI automation, or application modernization?",
+          };
+  const entities = guidance.options
+    .map(([id], index) => optionFor(id, index + 1))
+    .filter(Boolean);
+  const options = entities.map(({ id, label, type }) => ({ id, label, type }));
+  const reasons = guidance.options.map(([, reason]) => reason);
+  const nextBestQuestion = guidance.question;
+  return {
+    recommendation: {
+      status: "needs_clarification",
+      primaryOption: null,
+      reasons,
+      alternatives: options,
+      missingInformation: ["primary workflow"],
+    },
+    entities,
+    matchedEntries: matchedEntriesForConversationEntities(entities),
+    decisionState: {
+      topicKey: healthcare
+        ? "healthcare_workflow"
+        : platformOnly
+          ? "platform_selection"
+          : serviceOnly
+            ? "service_selection"
+            : "offering_selection",
+      currentGoalIds: [],
+      knownDecisionFacts: [],
+      missingDecisionFacts: [
+        {
+          key: "primary_workflow",
+          importance: "high",
+          reason: "The primary workflow determines which preliminary option is the strongest fit.",
+        },
+      ],
+      preliminaryOfferingIds: options.map((option) => option.id),
+      recommendationStatus: "needs_refinement",
+      nextBestQuestion,
+    },
+    answer: [
+      "Preliminary guidance:",
+      ...options.map(
+        (option, index) => `- ${option.label}: ${reasons[index]}.`,
+      ),
+      nextBestQuestion,
+    ].join("\n"),
+  };
+};
+
 export const resolveMiraRecommendation = (message = "", conversationHistory = []) => {
   const current = normalizedText(message);
   const topicShift = classifyMiraTopicShift(message, conversationHistory);
-  const requirementState = buildMiraRequirementState(
+  let requirementState = buildMiraRequirementState(
     message,
     conversationHistory,
   );
   const explicitIntent = BROAD_RECOMMENDATION.test(current);
+  const contextualRecommendation =
+    /\b(?:what (?:would|do) you recommend|what should (?:we|i) choose|which option fits (?:us|me) best)\b/i.test(
+      current,
+    );
+  if (contextualRecommendation && !requirementState.workflows.length) {
+    const recentRequirementTurn = conversationHistory
+      .slice(-4)
+      .findLast(
+        (turn) =>
+          turn?.role === "user" &&
+          extractRequirements(turn.content).workflows.length,
+      );
+    if (recentRequirementTurn) {
+      requirementState = buildMiraRequirementState(
+        recentRequirementTurn.content,
+        [],
+      );
+    }
+  }
   const latestAssistantTurn = [...conversationHistory]
     .reverse()
     .find((turn) => turn?.role === "assistant");
@@ -520,6 +640,20 @@ export const resolveMiraRecommendation = (message = "", conversationHistory = []
     healthcareOnly ||
     !requirementState.recommendationReady
   ) {
+    if (explicitIntent && !matchedNeeds.length) {
+      const preliminary = preliminaryRecommendation(
+        message,
+        conversationHistory,
+      );
+      return {
+        ...preliminary,
+        topicShift,
+        requirementState,
+        missingRequirements: requirementState.missingRequirements,
+        recommendationReady: false,
+        recommendationReadiness: requirementState.recommendationReadiness,
+      };
+    }
     const workflow = requirementState.workflows[0];
     const remaining = (options) =>
       options.filter(
