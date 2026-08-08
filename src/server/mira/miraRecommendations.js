@@ -4,11 +4,11 @@ import {
 } from "./miraConversationReferences.js";
 
 const BROAD_RECOMMENDATION =
-  /\b(recommend|recomend|right for (?:me|us)|best for|which (?:platform|service)|what (?:platform|service) should|help (?:us |our company )?(?:improv|with)|we need|we want)\b/i;
+  /\b(recommend|recomend|right for (?:me|us)|best for|which (?:platform|service)|what (?:platform|service) should|what should (?:i|we) use|help (?:us |our company )?(?:improv|with)|we need|we want)\b/i;
 const CURRENT_GOAL =
   /\b(?:we|i|our company|our team) (?:also )?(?:need|want|are trying|would like)\b/i;
 const REQUIREMENT_STATEMENT =
-  /\b(?:we are|i am|i work (?:for|at)|we (?:process|handle|manage|review|track|approve))\b/i;
+  /\b(?:we are|i am|i work (?:for|at)|we (?:process|handle|manage|review|track|approve)|(?:our|we) .{0,50}(?:taking too long|struggl|keep finding|problems?)|(?:invoice|bill) approvals?.{0,30}taking too long)\b/i;
 const CONTINUATION =
   /\b(?:also|additionally|as well|along with)\b|\btoo\b(?!\s+(?:much|many|little|few))(?=\s*(?:[,.!?]|$))/i;
 const REFINEMENT = /\b(?:specifically|in particular|more precisely|for that|within that)\b/i;
@@ -37,7 +37,8 @@ const NEEDS = [
       /\bvendor bills?\b/i,
       /\bvendor invoices?\b/i,
       /\bvendor billing\b/i,
-      /\bbill (?:audit|processing|approval|payment)\b/i,
+      /\binvoice approvals?\b/i,
+      /\bbill (?:audit|processing|approvals?|payments?)\b/i,
       /\bpayment workflow\b/i,
       /\bapproval tracking\b/i,
     ],
@@ -129,7 +130,7 @@ const extractRequirements = (message = "") => {
     ...(/\baudit (?:history|tracking|trail)\b/i.test(text)
       ? ["audit history"]
       : []),
-    ...(/\bdiscrepanc(?:y|ies) (?:tracking|review)?\b|\btrack discrepancies\b/i.test(
+    ...(/\bdiscrepanc(?:y|ies) (?:tracking|review)?\b|\btrack discrepancies\b|\b(?:mistakes?|errors?) in vendor invoices?\b/i.test(
       text,
     )
       ? ["discrepancy tracking"]
@@ -139,7 +140,7 @@ const extractRequirements = (message = "") => {
     )
       ? ["vendor bill review"]
       : []),
-    ...(/\bapprov(?:als?|e|ing)(?: invoices?| tracking| workflow)?\b/i.test(text)
+    ...(/\bapprov(?:als?|e|ing)(?: invoices?| tracking| workflow)?\b|\binvoice approvals?\b/i.test(text)
       ? ["approval workflow"]
       : []),
     ...(/\bmanage payments?\b|\bpayment workflows?\b/i.test(text)
@@ -263,13 +264,14 @@ const readinessFor = (state) => {
     }
     if (workflow === "vendor-bill-audit-payment") {
       evidence = [
+        "vendor bill review",
         "discrepancy tracking",
         "approval workflow",
         "payment workflow",
         "recurring expense analysis",
       ].filter(has);
       evidenceByWorkflow.set(workflow, evidence);
-      return evidence.length >= 2;
+      return evidence.length >= 1;
     }
     if (workflow === "telecom-expense-management") {
       evidence = [

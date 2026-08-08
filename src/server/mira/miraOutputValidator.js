@@ -57,11 +57,11 @@ export const normalizeMiraPublicAnswerText = (answer = "") =>
   normalizeMiraAnswerPresentation(answer, { suppressInternal: false })
     .replace(
       /\bSupports payment workflows to support payment processing steps and records\.?/gi,
-      "Supports approval and payment workflows with a clear record of review and payment activity.",
+      "Supports vendor bill review, discrepancy tracking, approval workflows, and payment workflows.",
     )
     .replace(
       /\bpayment workflows to support payment processing steps and records\b/gi,
-      "approval and payment workflows with a clear record of review and payment activity",
+      "vendor bill review, discrepancy tracking, approval workflows, and payment workflows",
     );
 
 const isSafeCorrectionContext = (answer, label) => {

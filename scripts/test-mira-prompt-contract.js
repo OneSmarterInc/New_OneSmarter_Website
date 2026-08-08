@@ -925,7 +925,7 @@ validateCase({
   localHarnessResult: runMiraLocalHarness("What is Bill Audit & Bill Pay?"),
   expectedValid: true,
   expectedCorrectedIncludes: [
-    "Supports approval and payment workflows with a clear record of review and payment activity.",
+    "Supports vendor bill review, discrepancy tracking, approval workflows, and payment workflows.",
   ],
   expectedCorrectedExcludes: [
     "Important context",
