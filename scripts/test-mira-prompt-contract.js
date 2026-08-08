@@ -1455,6 +1455,29 @@ const comparisonCases = [
     status: "complete",
   },
   {
+    id: "contextual-assistant-candidate-replacement",
+    message: "Choose another relevant option and compare it.",
+    history: [
+      {
+        role: "user",
+        content: "Compare AI Agentic Services with another modernization service.",
+      },
+      {
+        role: "assistant",
+        content: "Two grounded services were compared.",
+        conversationEntities: [
+          { id: "ai-agentic-services", level: 1 },
+          { id: "enterprise-software-development", level: 1 },
+        ],
+      },
+    ],
+    expectedIds: [
+      "ai-agentic-services",
+      "software-support-consolidation",
+    ],
+    status: "complete",
+  },
+  {
     id: "typo-normalized",
     message: "Compar frist and secnd platfrom.",
     history: platformOnlyHistory,

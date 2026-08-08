@@ -8,6 +8,7 @@ import {
   resolveMiraComparisonEntities,
   resolveMiraEntityText,
 } from "./miraEntityResolver.js";
+import { isMiraContextualComparisonFollowUp } from "./miraTurnContext.js";
 
 const COMPARISON_INTENT =
   /\b(?:compare|side[- ]by[- ]side comparison|comparison (?:between|of)|difference(?:s)?(?: between)?|different from|versus|vs\.?|which (?:one|option|platform|service|offering) is better|which is better|pros and cons|one or both|first (?:one )?compared with (?:the )?second|how (?:is|are) .+ different from|use .+ as (?:the )?second option)\b/i;
@@ -138,7 +139,11 @@ const recommendationContextTagsFor = (message = "") => [
   ...(/\bvendor bill|approval\b/i.test(message) ? ["approval"] : []),
 ];
 
-const selectAssistantComparisonCandidate = (message, explicitEntities) => {
+const selectAssistantComparisonCandidate = (
+  message,
+  explicitEntities,
+  { excludedIds = [] } = {},
+) => {
   const allowsSelection = ASSISTANT_SELECTED_CANDIDATE.test(message);
   const typeConstraint = requestedCandidateType(message);
   if (!allowsSelection && !(typeConstraint === "platform" && explicitEntities.length === 0)) {
@@ -163,6 +168,7 @@ const selectAssistantComparisonCandidate = (message, explicitEntities) => {
   const candidates = CANDIDATE_PROFILES.filter(
     (profile) =>
       profile.id !== explicit.id &&
+      !excludedIds.includes(profile.id) &&
       (!typeConstraint || profile.type === typeConstraint),
   )
     .map((profile, order) => ({
@@ -204,6 +210,43 @@ const explicitlyNamedEntities = (message = "") =>
       (match) => match.entity,
     ),
   );
+
+const latestComparisonContext = (conversationHistory = []) => {
+  const recentHistory = conversationHistory.slice(-4);
+  const latestAssistantIndex = recentHistory.findLastIndex(
+    (turn) => turn?.role === "assistant",
+  );
+  const latestAssistant = recentHistory[latestAssistantIndex];
+  if (!latestAssistant || latestAssistant.conversationEntities?.length < 2) {
+    return null;
+  }
+  const entities = uniqueEntities(
+    latestAssistant.conversationEntities
+      .map((entity) =>
+        groundedConversationEntityForId(entity.id, {
+          level: nestedIds.has(entity.id) ? 1 : 0,
+          position: entity.position,
+        }),
+      )
+      .filter(Boolean),
+  );
+  if (entities.length < 2) return null;
+  const previousUser = recentHistory
+    .slice(0, latestAssistantIndex)
+    .findLast((turn) => turn?.role === "user");
+  if (!previousUser || !COMPARISON_INTENT.test(normalize(previousUser.content))) {
+    return null;
+  }
+  const explicitIds = new Set(
+    explicitlyNamedEntities(previousUser?.content).map((entity) => entity.id),
+  );
+  const anchor =
+    entities.find((entity) => explicitIds.has(entity.id)) || entities[0];
+  const replaceable = entities.find((entity) => entity.id !== anchor.id);
+  return replaceable
+    ? { anchor, replaceable, previousMessage: previousUser?.content || "" }
+    : null;
+};
 
 const requirementSignals = (message = "") => {
   const text = normalize(message);
@@ -336,6 +379,9 @@ export const classifyMiraDecisionIntent = (
   if (EXPLORATORY_COMPARISON.test(normalizedMessage)) {
     return { decisionIntent: "compare_options", signals, reference };
   }
+  if (isMiraContextualComparisonFollowUp(normalizedMessage)) {
+    return { decisionIntent: "compare_options", signals, reference };
+  }
   return { decisionIntent: "none", signals, reference };
 };
 
@@ -439,7 +485,24 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
   }
 
   const reference = classification.reference;
-  const fuzzyResolution = resolveMiraComparisonEntities(message);
+  const contextualInstruction = isMiraContextualComparisonFollowUp(message);
+  const contextualFollowUp = contextualInstruction
+    ? latestComparisonContext(conversationHistory)
+    : null;
+  const explicitContextualTarget = message.match(
+    /\bcompare it (?:with|to)\s+(?!(?:another|a different|different|something else|a new|new)\b)([^.!?]+)/i,
+  )?.[1];
+  const commandOnlyContextualInstruction =
+    contextualInstruction &&
+    (/^\s*(?:choose|pick|select|use|try)\b/i.test(message) ||
+      /\bcompare it (?:with|to)\b/i.test(message) ||
+      /^\s*(?:another|different|something else)(?:\s+(?:one|option|service|platform|offering))?[.!?]*\s*$/i.test(
+        message,
+      ));
+  const fuzzyResolution =
+    commandOnlyContextualInstruction && !explicitContextualTarget
+      ? { matches: [], issues: [] }
+      : resolveMiraComparisonEntities(message);
   const named = uniqueEntities(
     fuzzyResolution.matches.map((match) => match.entity),
   );
@@ -451,10 +514,50 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
     named.length || correctionEntityResolution?.status !== "resolved"
       ? named
       : [correctionEntityResolution.match.entity];
+  const contextualOverride =
+    contextualFollowUp &&
+    correctionNamed.length === 1 &&
+    correctionNamed[0].id !== contextualFollowUp.anchor.id
+      ? [contextualFollowUp.anchor, correctionNamed[0]]
+      : [];
   const assistantSelection = selectAssistantComparisonCandidate(
-    message,
-    correctionNamed,
+    contextualFollowUp
+      ? `${contextualFollowUp.previousMessage} ${message}`
+      : message,
+    contextualFollowUp && !contextualOverride.length
+      ? [contextualFollowUp.anchor]
+      : correctionNamed,
+    contextualFollowUp
+      ? { excludedIds: [contextualFollowUp.replaceable.id] }
+      : undefined,
   );
+  if (
+    contextualFollowUp &&
+    !assistantSelection &&
+    !contextualOverride.length
+  ) {
+    const type =
+      requestedCandidateType(
+        `${contextualFollowUp.previousMessage} ${message}`,
+      ) || contextualFollowUp.anchor.type;
+    const matchedEntries = matchedEntriesForConversationEntities([
+      contextualFollowUp.anchor,
+    ]);
+    const answer = `I don't have another sufficiently relevant approved ${type.replaceAll("_", " ")} to compare in this context.`;
+    return {
+      comparison: {
+        status: "insufficient_evidence",
+        options: [],
+        sharedCapabilities: [],
+        keyDifferences: [],
+        decisionGuidance: answer,
+        evidenceGaps: [`Another grounded ${type.replaceAll("_", " ")} candidate`],
+      },
+      entities: [contextualFollowUp.anchor],
+      matchedEntries,
+      answer,
+    };
+  }
   const referenced =
     reference.kind === "resolved" &&
     (reference.entities.length > 1 || reference.ordinalReference)
@@ -504,7 +607,9 @@ export const resolveMiraComparison = (message = "", conversationHistory = []) =>
         })()
       : [];
   let entities = uniqueEntities(
-    correctionEntities.length
+    contextualOverride.length
+      ? contextualOverride
+      : correctionEntities.length
       ? correctionEntities
       : mixedReferenceEntities.length
         ? mixedReferenceEntities

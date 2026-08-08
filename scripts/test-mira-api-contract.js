@@ -5618,6 +5618,171 @@ const modeCases = [
     expectedAnswerIncludes: "AI Agentic Services",
   },
   {
+    id: "assistant-selected-contextual-replacement",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Choose another relevant option and compare it.",
+    conversationHistory: [
+      {
+        role: "user",
+        content: "Compare AI Agentic Services with another modernization service.",
+      },
+      {
+        role: "assistant",
+        content: "AI Agentic Services was compared with Enterprise Software Development.",
+        conversationEntities: [
+          { id: "ai-agentic-services", level: 1 },
+          { id: "enterprise-software-development", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ai-agentic-services",
+      "software-support-consolidation",
+    ],
+    expectedConversationEntityIds: [
+      "ai-agentic-services",
+      "software-support-consolidation",
+    ],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "assistant-selected-contextual-explicit-override",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "No, compare it with AS400 Services.",
+    conversationHistory: [
+      {
+        role: "user",
+        content: "Compare AI Agentic Services with another service.",
+      },
+      {
+        role: "assistant",
+        content: "AI Agentic Services was compared with Enterprise Software Development.",
+        conversationEntities: [
+          { id: "ai-agentic-services", level: 1 },
+          { id: "enterprise-software-development", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "ai-agentic-services",
+      "ibm-i-as400-services",
+    ],
+  },
+  {
+    id: "assistant-selected-contextual-fresh-clarification",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Choose another relevant option and compare it.",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "needs_clarification",
+    expectedAnswerQuestionCount: 1,
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "assistant-selected-contextual-list-is-not-comparison-state",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Try another option.",
+    conversationHistory: [
+      { role: "user", content: "What platforms do you offer?" },
+      {
+        role: "assistant",
+        content: "Two grounded platforms were listed.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "needs_clarification",
+    expectedAnswerQuestionCount: 1,
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "assistant-selected-contextual-platform-fallback",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Compare it with a different platform.",
+    conversationHistory: [
+      { role: "user", content: "Compare Secure Ticketing with another platform." },
+      {
+        role: "assistant",
+        content: "The two grounded platforms were compared.",
+        conversationEntities: [
+          { id: "secure-ticketing-case-management" },
+          { id: "bill-audit-bill-pay" },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "insufficient_evidence",
+    expectedConversationEntityIds: ["secure-ticketing-case-management"],
+    expectedAnswerIncludes: "another sufficiently relevant approved platform",
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "assistant-selected-contextual-healthcare-service",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Try another service.",
+    conversationHistory: [
+      {
+        role: "user",
+        content: "Compare Claims Processing Services with another healthcare service.",
+      },
+      {
+        role: "assistant",
+        content: "Claims Processing Services was compared with Healthcare & TPA Technology Services.",
+        conversationEntities: [
+          { id: "claims-processing-services", level: 1 },
+          { id: "healthcare-tpa-technology-services", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedComparisonStatus: "complete",
+    expectedComparisonOptionIds: [
+      "claims-processing-services",
+      "ai-agentic-services",
+    ],
+    expectedFetchCalls: 0,
+  },
+  {
+    id: "assistant-selected-contextual-topic-replacement",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Actually tell me about Bill Audit & Bill Pay.",
+    conversationHistory: [
+      { role: "user", content: "Compare AI Agentic Services with another service." },
+      {
+        role: "assistant",
+        content: "Two services were compared.",
+        conversationEntities: [
+          { id: "ai-agentic-services", level: 1 },
+          { id: "enterprise-software-development", level: 1 },
+        ],
+      },
+    ],
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedPrimarySourceId: "bill-audit-bill-pay",
+    expectedConversationEntityIds: ["bill-audit-bill-pay"],
+    expectedComparisonAbsent: true,
+  },
+  {
     id: "assistant-selected-invalid-broad-comparison",
     env: { MIRA_LLM_MODE: "mock" },
     message: "Compare something with something.",

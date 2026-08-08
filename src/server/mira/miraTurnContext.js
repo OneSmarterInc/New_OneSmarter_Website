@@ -9,6 +9,13 @@ const EXPLICIT_FOLLOW_UP =
 const REORGANIZE_PREVIOUS =
   /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type|the above|them)\b/i;
 
+export const isMiraContextualComparisonFollowUp = (message = "") =>
+  (/\b(?:another|different|something else|new option)\b/i.test(message) &&
+    /\b(?:compare|choose|pick|select|use|try|option|one|service|platform|offering)\b/i.test(
+      message,
+    )) ||
+  /\bcompare it (?:with|to)\b/i.test(message);
+
 export const classifyMiraTurnContext = (
   message = "",
   conversationHistory = [],
@@ -23,7 +30,11 @@ export const classifyMiraTurnContext = (
     relationToConversation = "standalone_new_request";
   } else if (hasHistory && responseMode === "names_only") {
     relationToConversation = "reference_to_prior_turn";
-  } else if (hasHistory && PRIOR_COMPARISON.test(message)) {
+  } else if (
+    hasHistory &&
+    (PRIOR_COMPARISON.test(message) ||
+      isMiraContextualComparisonFollowUp(message))
+  ) {
     relationToConversation = "comparison_with_prior_options";
   } else if (hasHistory && PRIOR_REFERENCE.test(message)) {
     relationToConversation = "reference_to_prior_turn";

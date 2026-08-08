@@ -33,6 +33,7 @@ import {
 import {
   classifyMiraTurnContext,
   currentTurnAnswerabilityFor,
+  isMiraContextualComparisonFollowUp,
 } from "./miraTurnContext.js";
 import {
   capabilityNamesAnswerForEntities,
@@ -993,13 +994,14 @@ export const runMiraResponseAdapter = async ({
     relevantConversationHistory,
   );
   const comparisonIntent =
-    responseMode.mode === "comparison" &&
-    (isMiraComparisonIntent(classificationMessage) ||
-    isComparisonIntent(classificationMessage) ||
-    (historyHasPlatformOptions(relevantConversationHistory) &&
-      /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
-        classificationMessage,
-      )));
+    isMiraContextualComparisonFollowUp(classificationMessage) ||
+    (responseMode.mode === "comparison" &&
+      (isMiraComparisonIntent(classificationMessage) ||
+        isComparisonIntent(classificationMessage) ||
+        (historyHasPlatformOptions(relevantConversationHistory) &&
+          /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
+            classificationMessage,
+          ))));
   const initialLocalResult = {
     ...localHarness(retrievalMessage),
     question: message,
