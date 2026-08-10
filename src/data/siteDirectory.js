@@ -22,6 +22,7 @@ const entry = ({
   serviceType = "Information",
   keyOfferings = [],
   complianceNotes = [],
+  approvedContent = [],
   relatedRoutes = [],
   promoted = true,
 }) => ({
@@ -35,6 +36,7 @@ const entry = ({
   keyOfferings,
   trustNotes,
   complianceNotes,
+  approvedContent,
   relatedRoutes,
   promoted,
   markdownSummary: `${shortSummary}${keyOfferings.length ? ` Key offerings include ${keyOfferings.join(", ")}.` : ""}`,
@@ -243,6 +245,10 @@ export const siteDirectory = [
       "EOR and HR services for US companies hiring employees in Asia, including onboarding coordination and workforce documentation.",
     serviceType: "Business service",
     keyOfferings: ["Employer of record support", "Onboarding coordination", "HR administration", "Workforce documentation", "Payroll coordination"],
+    approvedContent: [
+      "Practice hiring support: OneSmarter helps practices hire with focus — job postings written around the exact specialty, skills, and experience the role requires (a PA with specific specialty and procedure experience, not a generic PA posting), candidate screening against those stated requirements, and credentialing tracked from offer through completion.",
+      "Agent-assisted hiring (in development): OneSmarter is building agent support for practice hiring — drafting postings, coordinating candidate communication, and tracking credentialing steps. This capability is in development and is not yet an offered service; no availability date is committed. Practices can express early interest via care@onesmarter.com. Do not describe agent-assisted hiring as currently available.",
+    ],
     relatedRoutes: ["/business-services", "/contact"],
   }),
   entry({

@@ -1,3 +1,14 @@
+import { siteDirectory } from "../siteDirectory.js";
+
+const practiceHiringPage = siteDirectory.find(
+  (page) => page.route === "/business-services/eor-hr",
+);
+const [practiceHiringSupport, agentAssistedHiringBoundary] =
+  practiceHiringPage?.approvedContent || [];
+const isoReadinessPage = siteDirectory.find(
+  (page) => page.route === "/compliance-assurance/iso-27001-readiness",
+);
+
 export const onesmarterPublicKnowledgeBase = [
   {
     id: "company-overview",
@@ -237,6 +248,68 @@ export const onesmarterPublicKnowledgeBase = [
     sourceLabel: "siteDirectory.js: /business-services",
   },
   {
+    id: "practice-hiring-support",
+    route: practiceHiringPage?.route || "/business-services/eor-hr",
+    title: "Practice Hiring Support",
+    category: "Business Services",
+    approvedSummary: practiceHiringSupport,
+    sourceFacts: [practiceHiringSupport, agentAssistedHiringBoundary].filter(Boolean),
+    allowedClaims: [
+      "Specialty-specific job postings",
+      "Candidate screening against stated requirements",
+      "Credentialing tracked from offer through completion",
+      "Agent-assisted hiring is in development",
+      "No availability date is committed",
+      "Early interest may be sent to care@onesmarter.com",
+    ],
+    disallowedClaims: [
+      "Agent-assisted hiring is currently available",
+      "Agent-assisted hiring is launched or production ready",
+      "A committed availability date",
+      "Do not describe agent-assisted hiring as currently available.",
+    ],
+    handoffGuidance:
+      "Practices can express early interest in agent-assisted hiring via care@onesmarter.com.",
+    relatedQuestions: [
+      "Does OneSmarter help practices with hiring?",
+      "Can you help write specialized job postings?",
+      "Do you screen candidates?",
+      "Do you help track credentialing?",
+      "Is agent-assisted hiring available today?",
+    ],
+    sourceLabel: "siteDirectory.js: /business-services/eor-hr approvedContent",
+  },  {
+    id: "iso-27001-readiness-support",
+    route: isoReadinessPage?.route || "/compliance-assurance/iso-27001-readiness",
+    title: "ISO/IEC 27001 Readiness Support",
+    category: "Compliance & Cyber Assurance",
+    approvedSummary: isoReadinessPage?.shortSummary,
+    sourceFacts: [
+      isoReadinessPage?.shortSummary,
+      ...(isoReadinessPage?.keyOfferings || []),
+      "The approved public content establishes client-facing ISO/IEC 27001 readiness support; it does not establish OneSmarter's own ISO/IEC 27001 certification.",
+    ].filter(Boolean),
+    allowedClaims: [
+      "ISO/IEC 27001 readiness support",
+      "ISMS documentation",
+      "Control mapping",
+      "Evidence preparation",
+      "Remediation coordination",
+    ],
+    disallowedClaims: [
+      "OneSmarter is ISO/IEC 27001 certified",
+      "Readiness support proves OneSmarter certification",
+      "OneSmarter issues ISO certificates",
+    ],
+    handoffGuidance:
+      "Route certification evidence or business-specific readiness questions to care@onesmarter.com.",
+    relatedQuestions: [
+      "Do you provide ISO 27001 services?",
+      "Is OneSmarter ISO/IEC 27001 certified?",
+      "Does readiness support mean OneSmarter is certified?",
+    ],
+    sourceLabel: "siteDirectory.js: /compliance-assurance/iso-27001-readiness",
+  },  {
     id: "compliance-cyber-assurance-overview",
     route: "/compliance-assurance",
     title: "Compliance & Cyber Assurance Overview",

@@ -24,6 +24,11 @@ const aiPageUrl = (route) => `${siteBaseUrl}/${markdownPathForRoute(route).repla
 const asList = (items) =>
   items.length ? items.map((item) => `- ${item}`).join("\n") : "- Not specified.";
 
+const approvedContentSection = (page) =>
+  page.approvedContent?.length
+    ? `\n\n## Approved Content\n${asList(page.approvedContent)}`
+    : "";
+
 const hasChildRoutes = (route) =>
   route !== "/" && promotedSiteDirectory.some((page) => page.route.startsWith(`${route}/`));
 
@@ -94,7 +99,7 @@ ${page.category}
 ${page.audience}
 
 ## Key Offerings
-${asList(page.keyOfferings)}
+${asList(page.keyOfferings)}${approvedContentSection(page)}
 
 ## Trust And Compliance Notes
 ${asList([...page.trustNotes, ...page.complianceNotes])}
@@ -177,7 +182,7 @@ Audience: ${page.audience}
 Summary: ${page.markdownSummary}
 
 Key offerings:
-${asList(page.keyOfferings)}
+${asList(page.keyOfferings)}${approvedContentSection(page)}
 
 Trust and compliance notes:
 ${asList([...page.trustNotes, ...page.complianceNotes])}`

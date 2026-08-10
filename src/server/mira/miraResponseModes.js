@@ -265,11 +265,73 @@ export const resolveMiraDirectFactualTopic = (message = "") => {
     directAnswerEligible: true,
   };
 };
+const singleEntryFaqResult = (entry, answer, faqId) => ({
+  faqId,
+  answer,
+  matchedEntries: entry ? [entry] : [],
+  entities: entry
+    ? [groundedConversationEntityForId(entry.id, { includeChildren: false })].filter(Boolean)
+    : [],
+  directAnswerEligible: true,
+});
+
+const resolveCanonicalKnowledgeFaq = (message = "") => {
+  const hiringEntry = knowledgeById.get("practice-hiring-support");
+  if (
+    hiringEntry &&
+    /\b(?:practice hiring|hiring agent|agent-assisted hiring|speciali[sz]ed (?:job )?posting|job posting for|screen candidates?|candidate screening|track credentialing|credentialing steps?|help practices? (?:with )?hiring)\b/i.test(message)
+  ) {
+    const agentQuestion =
+      /\b(?:AI hiring agent|hiring agent|agent-assisted hiring|launch|available|availability|buy)\b/i.test(message);
+    return singleEntryFaqResult(
+      hiringEntry,
+      agentQuestion ? hiringEntry.sourceFacts[1] : hiringEntry.sourceFacts[0],
+      agentQuestion ? "faq_agent_assisted_hiring" : "faq_practice_hiring",
+    );
+  }
+
+  const isoEntry = knowledgeById.get("iso-27001-readiness-support");
+  if (isoEntry && /\bISO(?:(?:\/IEC)?\s*27001|\s+readiness)\b/i.test(message)) {
+    const certificationQuestion =
+      /\b(?:certif(?:ied|ication)|mean .+ certified)\b/i.test(message);
+    const answer = certificationQuestion
+      ? `${isoEntry.approvedSummary} The approved public content establishes client-facing readiness support; it does not confirm OneSmarter's own ISO/IEC 27001 certification.`
+      : isoEntry.approvedSummary;
+    return {
+      ...singleEntryFaqResult(
+        isoEntry,
+        answer,
+        certificationQuestion ? "faq_iso_certification_boundary" : "faq_iso_readiness",
+      ),
+      entities: [],
+    };
+  }
+
+  if (/\bhow many platforms?\b/i.test(message)) {
+    const platforms = [
+      groundedConversationEntityForId("secure-ticketing-case-management"),
+      groundedConversationEntityForId("bill-audit-bill-pay"),
+    ].filter(Boolean);
+    return {
+      faqId: "faq_platform_count",
+      answer: `OneSmarter presents ${platforms.length} platforms: ${platforms
+        .map((platform) => platform.label)
+        .join(" and ")}. Telecom Expense Management is a Bill Audit & Bill Pay use case, not a standalone promoted platform.`,
+      matchedEntries: matchedEntriesForConversationEntities(platforms),
+      entities: platforms,
+      directAnswerEligible: true,
+    };
+  }
+
+  return null;
+};
 export const resolveMiraSuggestedFaqFastPath = (
   message = "",
   responseMode = {},
   suggestedQuestionId = "",
 ) => {
+  const canonicalKnowledgeFaq = resolveCanonicalKnowledgeFaq(message);
+  if (canonicalKnowledgeFaq) return canonicalKnowledgeFaq;
   const directFactualTopic = DIRECT_FACTUAL_RECOMMENDATION.test(message)
     ? null
     : resolveMiraDirectFactualTopic(message);

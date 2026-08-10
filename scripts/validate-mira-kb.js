@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { onesmarterPublicKnowledgeBase } from "../src/data/agentKnowledge/onesmarterPublicKb.js";
 import { miraClaimRules } from "../src/data/agentKnowledge/miraClaimRules.js";
 import { miraTestQuestions } from "../src/data/agentKnowledge/miraTestQuestions.js";
+import { siteDirectory } from "../src/data/siteDirectory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -240,6 +241,59 @@ const validateTestQuestions = () => {
   }
 };
 
+const validateCanonicalSiteKnowledge = () => {
+  const platforms = siteDirectory.filter(
+    (page) => page.promoted && page.serviceType === "Software platform",
+  );
+  if (platforms.length !== 2) {
+    fail(`Canonical site taxonomy must expose exactly 2 promoted software platforms, found ${platforms.length}.`);
+  }
+  const telecomPage = siteDirectory.find(
+    (page) => page.route === "/platforms/telecom-expense-management",
+  );
+  if (
+    !telecomPage ||
+    telecomPage.promoted !== false ||
+    telecomPage.serviceType !== "Use case" ||
+    !telecomPage.shortSummary.includes("Bill Audit & Bill Pay use case")
+  ) {
+    fail("Telecom Expense Management must remain a non-promoted Bill Audit & Bill Pay use case.");
+  }
+
+  const hiringPage = siteDirectory.find(
+    (page) => page.route === "/business-services/eor-hr",
+  );
+  const expectedHiringBlocks = [
+    "Practice hiring support: OneSmarter helps practices hire with focus — job postings written around the exact specialty, skills, and experience the role requires (a PA with specific specialty and procedure experience, not a generic PA posting), candidate screening against those stated requirements, and credentialing tracked from offer through completion.",
+    "Agent-assisted hiring (in development): OneSmarter is building agent support for practice hiring — drafting postings, coordinating candidate communication, and tracking credentialing steps. This capability is in development and is not yet an offered service; no availability date is committed. Practices can express early interest via care@onesmarter.com. Do not describe agent-assisted hiring as currently available.",
+  ];
+  if (JSON.stringify(hiringPage?.approvedContent) !== JSON.stringify(expectedHiringBlocks)) {
+    fail("The two approved practice-hiring blocks must remain verbatim in siteDirectory.js.");
+  }
+  for (const relativePath of [
+    "public/llms-full.txt",
+    "public/ai-pages/business-services/eor-hr.md",
+  ]) {
+    const generated = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+    for (const block of expectedHiringBlocks) {
+      if (!generated.includes(block)) {
+        fail(`${relativePath} is missing a verbatim approved hiring block.`);
+      }
+    }
+  }
+
+  const isoPage = siteDirectory.find(
+    (page) => page.route === "/compliance-assurance/iso-27001-readiness",
+  );
+  if (
+    !isoPage?.shortSummary.includes("ISO/IEC 27001 readiness support") ||
+    /OneSmarter is ISO\/IEC 27001 certified/i.test(
+      [isoPage.metaDescription, isoPage.shortSummary, ...isoPage.keyOfferings].join(" "),
+    )
+  ) {
+    fail("ISO/IEC 27001 readiness must remain distinct from OneSmarter certification wording.");
+  }
+};
 const validateDocs = () => {
   const docsPath = path.join(repoRoot, "docs", "v2-mira-knowledge-base.md");
   if (!fs.existsSync(docsPath)) {
@@ -261,6 +315,7 @@ const validateDocs = () => {
 };
 
 validateKnowledgeBase();
+validateCanonicalSiteKnowledge();
 validateClaimRules();
 validateTestQuestions();
 validateDocs();
