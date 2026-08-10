@@ -53,6 +53,8 @@ const performanceCases = [
   ["offering-service-classification", "Which offerings are services?", 0, 0],
   ["offering-split-classification", "Bifurcate the available solutions into platforms and services.", 0, 0],
   ["platform-names-only", "Give me platform names only.", 0, 0],
+  ["service-names-offered", "Tell me names of services offered.", 0, 0],
+  ["service-list-names-only", "List your services, names only.", 0, 0],
   ["technology-hierarchy", "What services are under Technology Solutions?", 0, 0],
   [
     "technology-hierarchy-names-only",
@@ -1268,6 +1270,10 @@ const referenceCases = [
   ["retained-platform-group", "Explain the second platform.", retainedPlatformHistory, ["bill-audit-bill-pay"]],
   ["retained-offering-group", "Explain the second offering.", retainedPlatformHistory, ["bill-audit-bill-pay"]],
   ["nested-latest-group", "Explain the third one.", technologyServiceHistory, ["ai-agentic-services"]],
+  ["above-third-service", "Explain above third service.", technologyServiceHistory, ["ai-agentic-services"]],
+  ["third-listed-service", "Explain the third listed service.", technologyServiceHistory, ["ai-agentic-services"]],
+  ["service-number-three", "Explain service number three.", technologyServiceHistory, ["ai-agentic-services"]],
+  ["that-third-option", "Explain that third option.", technologyServiceHistory, ["ai-agentic-services"]],
   [
     "platform-first-last",
     "Compare first and last.",

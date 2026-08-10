@@ -777,6 +777,10 @@ export const runMiraResponseAdapter = async ({
     ((/\b(?:what are|list|show|give me)\b[^.!?]{0,50}\b(?:your |onesmarter )?platforms?\b/i.test(
       classificationMessage,
     ) && !/\bservices?\b/i.test(classificationMessage)) ||
+      (!/\b(?:do not|don't|dont|not)\s+list\b/i.test(classificationMessage) &&
+        /\b(?:list|show)\b[^.!?]{0,50}\b(?:your |onesmarter )?services?\b|\b(?:give|tell)\b[^.!?]{0,30}\bnames?\s+of\s+(?:the |your |onesmarter )?services?\b|\bwhat services? (?:does onesmarter|do you) offer\b/i.test(
+          classificationMessage,
+        )) ||
       /\bwhich offerings? are (?:platforms?|services?)\b/i.test(
         classificationMessage,
       ) ||
@@ -1321,10 +1325,11 @@ export const runMiraResponseAdapter = async ({
     ((referenceResolution.kind === "clarification" &&
       (referenceResolution.hadEntityContext ||
         !relevantConversationHistory.length)) ||
-      needsFollowUpClarification(
-        classificationMessage,
-        relevantConversationHistory,
-      )) &&
+      (referenceResolution.kind !== "resolved" &&
+        needsFollowUpClarification(
+          classificationMessage,
+          relevantConversationHistory,
+        ))) &&
     !localResult.riskFlags.length &&
     !localResult.recommendationHandled &&
     !localResult.comparisonHandled &&

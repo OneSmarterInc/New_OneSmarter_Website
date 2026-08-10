@@ -30,7 +30,7 @@ const COMPARISON_INTENT =
 const REORGANIZE_INTENT =
   /\b(?:bifurcate|separate|categorize|organize|group)\b.*\b(?:services?|platforms?|by type)\b|\b(?:show|list)\b.*\b(?:services?|platforms?)\b.*\bseparately\b/i;
 const LIST_INTENT =
-  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\bwhich offerings? are (?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every)\b[^.!?]{0,40}\b(?:platform|service) supports?\b|\bwhat do (?:the|your|both|all) (?:platforms|services) supports?\b|\b(?:each|every|both|all|these|the|your)\b[^.!?]{0,40}\b(?:platforms?|services?)\b.*\b(?:supports?|provide|handle|capabilit(?:y|ies))\b/i;
+  /\b(?:list|give|show|what are|which are)\b.*\b(?:all\s+)?(?:(?:onesmarter|your)\s+)?(?:platforms?|services?)\b|\b(?:tell|give|show)\b[^.!?]{0,30}\bnames?\s+of\s+(?:the\s+|your\s+|onesmarter\s+)?(?:platforms?|services?)\b|\bwhat (?:platforms?|services?) (?:does onesmarter|do you) offer\b|\bwhich offerings? are (?:platforms?|services?)\b|\ball (?:onesmarter )?(?:platforms?|services?)\b|\bwhat does (?:each|every)\b[^.!?]{0,40}\b(?:platform|service) supports?\b|\bwhat do (?:the|your|both|all) (?:platforms|services) supports?\b|\b(?:each|every|both|all|these|the|your)\b[^.!?]{0,40}\b(?:platforms?|services?)\b.*\b(?:supports?|provide|handle|capabilit(?:y|ies))\b/i;
 const CAPABILITY_SCOPE =
   /\b(?:supports?|capabilit(?:y|ies)|handle|provide)\b/i;
 

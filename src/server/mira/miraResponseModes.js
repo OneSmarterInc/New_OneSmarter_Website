@@ -13,7 +13,7 @@ const COMPARISON =
 const COMPARISON_NEGATION =
   /\b(?:do not|don't|dont|not|no)\s+(?:want to\s+)?compar(?:e|ison)\b/i;
 const NAMES_ONLY =
-  /\b(?:names? only|only (?:the )?(?:capability )?names?|just (?:tell|give|show|list)(?: me)? (?:their|the|those)?\s*(?:(?:platform|service|offering|capability)\s+)?names?|give me (?:their|the|those)?\s*(?:(?:platform|service|offering|capability)\s+)?names?|list (?:(?:platform|service|offering|capability)\s+)?names only|no details?)\b/i;
+  /\b(?:names? only|only (?:the )?(?:capability )?names?|just (?:tell|give|show|list)(?: me)? (?:their|the|those)?\s*(?:(?:platform|service|offering|capability)\s+)?names?|(?:tell|give|show)(?: me)? (?:the )?names? of (?:the |your |onesmarter )?(?:platforms?|services?|offerings?|capabilities)|give me (?:their|the|those)?\s*(?:(?:platform|service|offering|capability)\s+)?names?|list (?:(?:platform|service|offering|capability)\s+)?names only|no details?)\b/i;
 const DETAILED =
   /\b(?:in detail|detailed|detail explanation|full explanation|explain .+ thoroughly|deep dive)\b/i;
 const OVERVIEW =
