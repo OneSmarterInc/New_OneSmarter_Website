@@ -49,6 +49,7 @@ import {
   classifyMiraResponseMode,
   RESPONSE_MODE_BUDGETS,
   resolveMiraNamesOnly,
+  resolveMiraDirectFactualTopic,
   resolveMiraResponseModeFastPath,
   resolveMiraSuggestedFaqFastPath,
 } from "./miraResponseModes.js";
@@ -1049,6 +1050,10 @@ export const runMiraResponseAdapter = async ({
   }
 
   const requestDecomposition = decomposeMiraRequest(classificationMessage);
+  const compoundFactualResolution =
+    responseMode.mode === "recommendation"
+      ? resolveMiraDirectFactualTopic(classificationMessage)
+      : null;
 
   const directEntityRequest =
     /\b(?:tell me about|what (?:is|are|does)|explain|describe|details?|detailed information|elaborate|everything)\b/i.test(
@@ -1199,6 +1204,53 @@ export const runMiraResponseAdapter = async ({
       clarificationNeeded: false,
       answerStructureKind: "",
       fastPathHandled: true,
+    };
+  } else if (
+    compoundFactualResolution &&
+    recommendationResolution &&
+    !localResult.riskFlags.length
+  ) {
+    const combinedEntries = [
+      ...compoundFactualResolution.matchedEntries,
+      ...recommendationResolution.matchedEntries,
+    ].filter(
+      (entry, index, entries) =>
+        entries.findIndex((candidate) => candidate.id === entry.id) === index,
+    );
+    const combinedEntities = [
+      ...compoundFactualResolution.entities,
+      ...recommendationResolution.entities,
+    ].filter(
+      (entity, index, entities) =>
+        entities.findIndex((candidate) => candidate.id === entity.id) === index,
+    );
+    const recommendationAnswer =
+      recommendationResolution.recommendation.status === "recommended"
+        ? recommendationResolution.answer
+        : [relevantFactResolution?.answer, recommendationResolution.answer]
+            .filter(Boolean)
+            .join("\n");
+    localResult = {
+      ...localResult,
+      confidence:
+        recommendationResolution.recommendation.status === "recommended"
+          ? "high"
+          : "low",
+      matchedEntries: combinedEntries,
+      answerSeed: [compoundFactualResolution.answer, recommendationAnswer]
+        .filter(Boolean)
+        .join("\n\n"),
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: combinedEntities,
+      recommendation: recommendationResolution.recommendation,
+      recommendationHandled: true,
+      directAnswerEligible: true,
+      compoundRequestHandled: true,
+      clarificationNeeded:
+        recommendationResolution.recommendation.status === "needs_clarification",
+      answerStructureKind: "",
     };
   } else if (unsupportedResolution && !localResult.riskFlags.length) {
     const unsupportedEntities = unsupportedResolution.entity
@@ -1445,6 +1497,7 @@ export const runMiraResponseAdapter = async ({
       fastPathHandled: true,
     };
   }
+
 
   localResult = applyMiraAdaptiveDiscovery({
     message: classificationMessage,

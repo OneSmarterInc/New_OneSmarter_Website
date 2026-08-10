@@ -21,6 +21,9 @@ const TOKEN_ALIASES = new Map([
   ["moderniztion", "modernization"],
   ["abot", "about"],
   ["tickting", "ticketing"],
+  ["hipaaa", "HIPAA"],
+  ["hippa", "HIPAA"],
+  ["whaat", "what"],
 ]);
 
 const INTERPRETATION_VOCABULARY = [

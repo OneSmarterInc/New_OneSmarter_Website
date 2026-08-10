@@ -6877,6 +6877,65 @@ const modeCases = [
     expectedConversationEntityIds: ["ibm-i-as400-services"],
     expectedAnswerIncludes: "IBM i / AS400 Services",
   },
+  {
+    id: "direct-factual-typo-hipaa",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "what is hipaaa and what it related to which service and whaat it do tell briefly",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedResponseMode: "concise_explanation",
+    expectedAnswerIncludes: "HIPAA is a U.S. healthcare privacy and security framework",
+    expectedAnswerExcludesAll: ["AI Agentic Services", "IBM i / AS400 Services", "What technology"],
+    expectedAnswerQuestionCount: 0, expectedFetchCalls: 0,
+  },
+  {
+    id: "direct-factual-soc2", env: { MIRA_LLM_MODE: "mock" },
+    message: "What is SOC 2 and why does it matter?",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "SOC 2 is an assurance framework",
+    expectedAnswerExcludesAll: ["IBM i / AS400 Services", "Which compliance framework"],
+  },
+  {
+    id: "direct-factual-pci-dss", env: { MIRA_LLM_MODE: "mock" },
+    message: "What is PCI DSS and which service is related?",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "Compliance & Cyber Assurance", expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "direct-factual-telecom-hierarchy", env: { MIRA_LLM_MODE: "mock" },
+    message: "What is telecom expense management and which platform is it under?",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "under the Bill Audit & Bill Pay platform",
+  },
+  {
+    id: "direct-factual-as400", env: { MIRA_LLM_MODE: "mock" },
+    message: "What is AS400 and what do you offer for it?",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "IBM i / AS400 Services", expectedAnswerQuestionCount: 0,
+  },
+  {
+    id: "direct-factual-claims", env: { MIRA_LLM_MODE: "mock" },
+    message: "What is claims processing?",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "Claims Processing Services", expectedAnswerExcludes: "AI Agentic Services",
+  },
+  {
+    id: "direct-factual-billing-discovery-preserved", env: { MIRA_LLM_MODE: "mock" },
+    message: "We have too many billing problems.",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "Is the main issue invoice discrepancies", expectedAnswerQuestionCount: 1,
+  },
+  {
+    id: "direct-factual-modernization-discovery-preserved", env: { MIRA_LLM_MODE: "mock" },
+    message: "Our old applications are expensive to maintain.",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludes: "What technology do the applications currently run on?", expectedAnswerQuestionCount: 1,
+  },  {
+    id: "direct-factual-explicit-recommendation-preserved", env: { MIRA_LLM_MODE: "mock" },
+    message: "What is HIPAA and recommend something for secure case tracking.",
+    expectedMode: "local_harness_mock", expectedHandoff: false, expectedStatus: 200,
+    expectedAnswerIncludesAll: ["HIPAA is a U.S. healthcare privacy and security framework", "Secure Ticketing and Case Management"],
+    expectedAnswerExcludesAll: ["AI Agentic Services", "IBM i / AS400 Services"],
+  },
 ];
 
 const consistencyResults = new Map();

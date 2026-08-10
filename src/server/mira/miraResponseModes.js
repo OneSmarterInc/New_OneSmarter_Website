@@ -185,11 +185,95 @@ const FAQ_IDS = new Set([
   "faq_contact",
 ]);
 
+const DIRECT_FACTUAL_REQUEST =
+  /\b(?:what (?:is|does|are)|explain|tell me about|what does .+ mean|how does .+ relate|which (?:service|platform|offering) is related|what is .+ used for|short explanation|briefly explain)\b/i;
+const DIRECT_FACTUAL_RECOMMENDATION =
+  /\b(?:recommend|best for|right for|which (?:platform|service|offering) should|what should (?:i|we) use|help (?:me|us) choose)\b/i;
+
+const DIRECT_FACTUAL_TOPICS = [
+  {
+    pattern: /\bHIPAA\b/i,
+    ids: [
+      "hipaa-security-rule-assessment",
+      "secure-ticketing-case-management",
+      "technology-solutions-overview",
+      "claims-processing-services",
+      "compliance-cyber-assurance-overview",
+    ],
+    answer: [
+      "HIPAA is a U.S. healthcare privacy and security framework for protecting health information, including PHI.",
+      "At OneSmarter, it relates to the Secure Ticketing and Case Management platform, Healthcare & TPA Technology Services, Claims Processing Services, and HIPAA readiness support where their approved healthcare or compliance scope applies.",
+      "OneSmarter has completed an independent HIPAA Security Rule compliance assessment, but using a OneSmarter offering does not automatically make a customer HIPAA compliant.",
+    ].join("\n\n"),
+  },
+  {
+    pattern: /\bSOC\s*2\b/i,
+    ids: ["soc2-attested", "trust-center-overview", "compliance-cyber-assurance-overview"],
+    answer: "SOC 2 is an assurance framework concerning controls relevant to security and operational trust. OneSmarter is SOC 2 Type II Attested, and its Trust Center provides public context for that posture; separate Compliance & Cyber Assurance services can support readiness work. This attestation does not certify customer systems or guarantee customer compliance.",
+  },
+  {
+    pattern: /\bPCI\s*DSS\b/i,
+    ids: ["compliance-cyber-assurance-overview"],
+    answer: "PCI DSS is a security standard for environments that handle payment-card data. OneSmarter's approved Compliance & Cyber Assurance scope includes PCI DSS readiness, evidence preparation, control documentation, framework mapping, VAPT coordination, and remediation support; it is readiness support, not certification or a compliance guarantee.",
+  },
+  {
+    pattern: /\bPHI\b/i,
+    ids: ["secure-ticketing-case-management", "hipaa-security-rule-assessment"],
+    answer: "PHI means protected health information. It matters to Secure Ticketing and Case Management because the platform is built for HIPAA-regulated and PHI-sensitive workflows, including secure intake, role-based access, audit history, controlled communication, and workflow tracking. Do not submit PHI through this public agent.",
+  },
+  {
+    pattern: /\btelecom expense management\b/i,
+    ids: ["bill-audit-bill-pay"],
+    answer: "Telecom expense management is an approved use case under the Bill Audit & Bill Pay platform, not a standalone platform. It includes telecom bill review, contract and rate comparison, usage analysis, discrepancy tracking, and cost reporting.",
+  },
+  {
+    pattern: /\bclaims? processing\b/i,
+    ids: ["claims-processing-services"],
+    answer: "Claims processing covers operational workflows for handling claims. OneSmarter addresses this through Claims Processing Services, a service for claims workflow modernization, claims technology support, member and provider portals, legacy data integration, reporting, and operational visibility; it is not presented as a standalone claims platform.",
+  },
+  {
+    pattern: /\b(?:IBM\s*i|AS\s*\/?\s*400|AS400)\b/i,
+    ids: ["ibm-i-as400-services"],
+    answer: "AS400 commonly refers to the IBM i platform lineage. OneSmarter provides IBM i / AS400 Services within Technology Solutions; the approved public content identifies this service area without establishing additional implementation capabilities.",
+  },
+  {
+    pattern: /\bTrust Center\b/i,
+    ids: ["trust-center-overview"],
+    answer: "OneSmarter's Trust Center explains its own security, privacy, SOC 2, HIPAA, secure-development, and responsible-data-handling posture. It includes SOC 2 Type II Attested and HIPAA Security Rule Compliance Assessment Completed wording, while formal evidence requests follow a direct business process.",
+  },
+];
+
+export const resolveMiraDirectFactualTopic = (message = "") => {
+  if (
+    !DIRECT_FACTUAL_REQUEST.test(message) ||
+    COMPARISON.test(message) ||
+    /\b(?:we|i|our company|my company)\s+(?:need|want|process|handle)\b/i.test(message)
+  ) {
+    return null;
+  }
+  if (/\bHIPAA\b/i.test(message) && /\b(?:assessment|certif(?:ied|ication)?|security rule|compliance status)\b/i.test(message)) return null;
+  if (/\bPHI\b/i.test(message)) return null;
+  const topic = DIRECT_FACTUAL_TOPICS.find(({ pattern }) => pattern.test(message));
+  if (!topic) return null;
+  return {
+    faqId: "direct_factual_topic",
+    answer: topic.answer,
+    matchedEntries: entriesForIds(topic.ids),
+    entities: topic.ids
+      .map((id) => groundedConversationEntityForId(id, { includeChildren: false }))
+      .filter(Boolean),
+    directAnswerEligible: true,
+  };
+};
 export const resolveMiraSuggestedFaqFastPath = (
   message = "",
   responseMode = {},
   suggestedQuestionId = "",
 ) => {
+  const directFactualTopic = DIRECT_FACTUAL_RECOMMENDATION.test(message)
+    ? null
+    : resolveMiraDirectFactualTopic(message);
+  if (directFactualTopic) return directFactualTopic;
   const normalized = String(message).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const requestedId = FAQ_IDS.has(suggestedQuestionId) ? suggestedQuestionId : "";
   const faqId = requestedId ||
