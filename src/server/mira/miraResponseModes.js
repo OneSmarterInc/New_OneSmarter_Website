@@ -325,6 +325,65 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
 
   return null;
 };
+
+const latestAssistantTurn = (conversationHistory = []) =>
+  [...conversationHistory]
+    .slice(-4)
+    .reverse()
+    .find((turn) => turn?.role === "assistant");
+
+export const resolveMiraHiringFollowUp = (
+  message = "",
+  conversationHistory = [],
+) => {
+  const hiringEntry = knowledgeById.get("practice-hiring-support");
+  const latestAssistant = latestAssistantTurn(conversationHistory);
+  if (!hiringEntry || !latestAssistant) return null;
+
+  const latestEntityIds = (latestAssistant.conversationEntities || []).map(
+    ({ id }) => id,
+  );
+  const latestContent = String(latestAssistant.content || "");
+  const hiringIsCurrent =
+    latestEntityIds.includes("practice-hiring-support") ||
+    /\b(?:practice hiring|agent-assisted hiring|AI hiring agent|hiring support)\b/i.test(
+      latestContent,
+    );
+  if (!hiringIsCurrent) return null;
+
+  const agentAlias =
+    /\b(?:AI|agent|automated)[- ](?:version|option|hiring|hiring support)\b|\bagent-assisted (?:option|hiring|service)\b|\bin-development (?:one|option|version)\b/i.test(
+      message,
+    );
+  const agentWasFocused =
+    /\b(?:agent-assisted hiring|AI hiring agent)\b/i.test(latestContent) &&
+    /\b(?:in development|not (?:yet |currently )?(?:an )?offered|no availability date)\b/i.test(
+      latestContent,
+    );
+  const availabilityFollowUp =
+    agentWasFocused &&
+    /\b(?:is (?:it|that) available|can (?:I|we) use (?:it|that)(?: now| today)?|can (?:I|we) buy (?:it|that)(?: now| today)?|when is (?:it|that) available|is (?:it|that) live yet)\b/i.test(
+      message,
+    );
+  const detailFollowUp =
+    agentWasFocused &&
+    /\b(?:what does (?:it|that) do|tell me more about (?:it|that)|explain (?:it|that|that part)|what about that feature)\b/i.test(
+      message,
+    );
+
+  if (!agentAlias && !availabilityFollowUp && !detailFollowUp) return null;
+
+  const answer = availabilityFollowUp
+    ? "Not yet. Agent-assisted hiring is still in development and is not currently offered. No availability date has been committed."
+    : hiringEntry.sourceFacts[1];
+  return singleEntryFaqResult(
+    hiringEntry,
+    answer,
+    availabilityFollowUp
+      ? "faq_agent_assisted_hiring_availability_follow_up"
+      : "faq_agent_assisted_hiring_follow_up",
+  );
+};
 export const resolveMiraSuggestedFaqFastPath = (
   message = "",
   responseMode = {},

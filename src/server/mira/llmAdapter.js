@@ -50,6 +50,7 @@ import {
   RESPONSE_MODE_BUDGETS,
   resolveMiraNamesOnly,
   resolveMiraDirectFactualTopic,
+  resolveMiraHiringFollowUp,
   resolveMiraResponseModeFastPath,
   resolveMiraSuggestedFaqFastPath,
 } from "./miraResponseModes.js";
@@ -779,11 +780,13 @@ export const runMiraResponseAdapter = async ({
     STRONG_CANONICAL_ENTITY_NAME.test(classificationMessage) &&
     !ORDINAL_ENTITY_REFERENCE.test(classificationMessage) &&
     !EXPLICIT_COMPARISON_ACTION.test(classificationMessage);
-  const faqResolution = resolveMiraSuggestedFaqFastPath(
-    classificationMessage,
-    responseMode,
-    suggestedQuestionId,
-  );
+  const faqResolution =
+    resolveMiraHiringFollowUp(classificationMessage, conversationHistory) ||
+    resolveMiraSuggestedFaqFastPath(
+      classificationMessage,
+      responseMode,
+      suggestedQuestionId,
+    );
   if (
     faqResolution &&
     !hasExplicitSingleEntityFocus &&

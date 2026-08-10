@@ -12,9 +12,14 @@ const INTERNAL_PRESENTATION_LINE = new RegExp(
 );
 const INTERNAL_JSON_KEY =
   /"(?:groundingStatus|outputSafetyStatus|validationStatus|confidence|evidenceScore|matchedSources|riskFlags|handoffNeeded|responseMode|businessGoals|decisionState|premiseCheck|providerMetadata|retrievalStatus|answerabilityStatus)"\s*:/i;
+const INTERNAL_GOVERNANCE_SENTENCE =
+  /(^|[.!?]\s+)(?:Do not describe|Keep this wording|Claim boundary|Internal note|Approved wording only|Do not change|Implementation rule|Trust wording instruction)\b[^.!?]*(?:[.!?]|$)/gi;
 
 export const sanitizeMiraVisitorAnswer = (text = "") => {
-  const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+  const lines = String(text)
+    .replace(INTERNAL_GOVERNANCE_SENTENCE, "$1")
+    .replace(/\r\n/g, "\n")
+    .split("\n");
   const kept = [];
   let jsonBuffer = [];
   let jsonDepth = 0;

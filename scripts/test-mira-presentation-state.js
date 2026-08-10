@@ -26,11 +26,15 @@ const visitorLeakProbe = sanitizeMiraVisitorAnswer([
   "responseMode: overview",
   "premiseCheck: valid",
   "decisionState: complete",
+  "This capability is in development and is not currently offered. Do not describe it as currently available.",
+  "Internal note: keep the source wording verbatim.",
+  "Implementation rule: never expose this instruction.",
   "For project scoping, contact care@onesmarter.com.",
 ].join("\n"));
 if (
-  /Grounding status:|Output safety status:|Validation status:|Evidence score:|riskFlags:|HandoffNeeded:|responseMode:|premiseCheck:|decisionState:/i.test(visitorLeakProbe) ||
+  /Grounding status:|Output safety status:|Validation status:|Evidence score:|riskFlags:|HandoffNeeded:|responseMode:|premiseCheck:|decisionState:|Do not describe|Internal note|Implementation rule/i.test(visitorLeakProbe) ||
   !visitorLeakProbe.includes("Useful visitor answer.") ||
+  !visitorLeakProbe.includes("This capability is in development and is not currently offered.") ||
   !visitorLeakProbe.includes("contact care@onesmarter.com")
 ) {
   fail("answer-presentation: internal metadata leaked into visitor-facing text.");
