@@ -239,6 +239,54 @@ const referencesPriorContext = (message = "") =>
     message,
   );
 
+const ENTITY_DETAIL_REQUEST =
+  /\b(?:explain|describe|tell me about|details?|detailed information|detailed explanation|elaborate|everything (?:you know )?about|what does .+ do)\b/i;
+const ENTITY_DEPTH_CONTINUATION =
+  /^(?:can you\s+)?(?:give me\s+)?(?:some\s+)?(?:more|additional|further)\s+(?:details?|information)|^(?:can you\s+)?(?:explain\s+(?:more|further)|describe\s+(?:it|this|that)\s+further|elaborate(?:\s+on (?:that|this|it))?|expand(?:\s+on (?:that|this|it))?)|^(?:please\s+)?(?:tell me more|go deeper|continue|what else|anything more)|\b(?:more about (?:this|it)|explain (?:that|this|it) in detail|detailed explanation)\b/i;
+const EXPLICIT_COMPARISON_ACTION =
+  /\b(?:compare|comparison|versus|vs\.?|difference between|compared with)\b/i;
+const STRONG_CANONICAL_ENTITY_NAME =
+  /\b(?:IBM\s*i|AS\s*\/?\s*400|AS400|Claims Processing(?: Services)?|Software Support Consolidation|Secure Ticketing(?: and Case Management)?|Bill Audit(?:\s*(?:&|and)\s*Bill Pay)?|Healthcare\s*(?:&|and)\s*TPA Technology Services|AI Agentic Services|Enterprise Software Development)\b/i;
+const ORDINAL_ENTITY_REFERENCE =
+  /\b(?:first|second|third|fourth|last|\d+(?:st|nd|rd|th))\s+(?:one|item|option|platform|service|offering)\b/i;
+
+const focusedEntityFromHistory = (conversationHistory = []) => {
+  const turn = [...conversationHistory]
+    .reverse()
+    .find(
+      (candidate) =>
+        candidate?.role === "assistant" &&
+        candidate.conversationEntities?.length === 1,
+    );
+  const priorEntity = turn?.conversationEntities?.[0];
+  if (!priorEntity?.id) return null;
+  return groundedConversationEntityForId(priorEntity.id, {
+    level: priorEntity.level === 1 ? 1 : 0,
+    position: 1,
+  });
+};
+
+const detailedEntityAnswer = (entity, matchedEntries = []) => {
+  const source = matchedEntries.find((entry) =>
+    entity?.sourceIds?.includes(entry.id),
+  );
+  const summary = entity?.approvedSummary || source?.approvedSummary || "";
+  const facts = [...new Set(
+    entity?.level === 1
+      ? entity?.sourceFacts || []
+      : [...(entity?.sourceFacts || []), ...(source?.sourceFacts || [])],
+  )]
+    .filter(Boolean)
+    .slice(0, 6);
+  const details = facts.length
+    ? `\n\nApproved details:\n${facts.map((fact) => `- ${fact}`).join("\n")}`
+    : "";
+  const limitedEvidence = facts.length <= 1
+    ? "\n\nThat is the extent of the approved public information currently available for this service."
+    : "";
+  return `${entity.label}\n\n${summary}${details}${limitedEvidence}`.trim();
+};
+
 const needsFollowUpClarification = (message = "", conversationHistory = []) => {
   const normalizedMessage = String(message).toLowerCase();
   if (!referencesPriorContext(normalizedMessage)) return false;
@@ -720,6 +768,16 @@ export const runMiraResponseAdapter = async ({
     classificationMessage,
     conversationHistory,
   );
+  const earlyExplicitEntityResolution = ENTITY_DETAIL_REQUEST.test(
+    classificationMessage,
+  )
+    ? resolveMiraEntityText(classificationMessage)
+    : null;
+  const hasExplicitSingleEntityFocus =
+    earlyExplicitEntityResolution?.status === "resolved" &&
+    STRONG_CANONICAL_ENTITY_NAME.test(classificationMessage) &&
+    !ORDINAL_ENTITY_REFERENCE.test(classificationMessage) &&
+    !EXPLICIT_COMPARISON_ACTION.test(classificationMessage);
   const faqResolution = resolveMiraSuggestedFaqFastPath(
     classificationMessage,
     responseMode,
@@ -727,6 +785,7 @@ export const runMiraResponseAdapter = async ({
   );
   if (
     faqResolution &&
+    !hasExplicitSingleEntityFocus &&
     earlyRiskFlags.every((flag) =>
       ["hipaa_claim_boundary", "soc2_claim_boundary"].includes(flag),
     )
@@ -926,6 +985,15 @@ export const runMiraResponseAdapter = async ({
     classificationMessage,
     conversationHistory,
   );
+  const continuedFocusedEntity =
+    ENTITY_DEPTH_CONTINUATION.test(classificationMessage) &&
+    !hasExplicitSingleEntityFocus
+      ? focusedEntityFromHistory(conversationHistory)
+      : null;
+  const contextualComparisonFocusedEntity =
+    isMiraContextualComparisonFollowUp(classificationMessage)
+      ? focusedEntityFromHistory(conversationHistory)
+      : null;
   const replacesComparisonCandidate =
     /\b(?:no|instead).+\buse .+ as (?:the )?second option\b/i.test(
       classificationMessage,
@@ -935,6 +1003,7 @@ export const runMiraResponseAdapter = async ({
     turnContext.usesHistory ||
     answersGoalTechnologyClarification ||
     answersAdaptiveDiscovery ||
+    Boolean(continuedFocusedEntity) ||
     replacesComparisonCandidate
     ? conversationHistory
     : [];
@@ -982,7 +1051,7 @@ export const runMiraResponseAdapter = async ({
   const requestDecomposition = decomposeMiraRequest(classificationMessage);
 
   const directEntityRequest =
-    /\b(?:tell me about|what (?:is|are|does)|explain|describe)\b/i.test(
+    /\b(?:tell me about|what (?:is|are|does)|explain|describe|details?|detailed information|elaborate|everything)\b/i.test(
       classificationMessage,
     ) || responseMode.capabilityRequest;
   const implementationSpecificRequest =
@@ -993,7 +1062,33 @@ export const runMiraResponseAdapter = async ({
     directEntityRequest || implementationSpecificRequest
     ? resolveMiraEntityText(classificationMessage)
     : null;
+  const focusedEntity = hasExplicitSingleEntityFocus
+    ? earlyExplicitEntityResolution.match.entity
+    : continuedFocusedEntity;
+  const focusedEntityDepth =
+    ENTITY_DEPTH_CONTINUATION.test(classificationMessage) ||
+    /\b(?:detail|detailed|everything|elaborate|expand|deeper|further)\b/i.test(
+      classificationMessage,
+    )
+      ? "detailed"
+      : "normal";
+  const focusedEntityState = focusedEntity
+    ? {
+        entityId: focusedEntity.id,
+        entityType: focusedEntity.type,
+        source: hasExplicitSingleEntityFocus
+          ? "explicit_current"
+          : "follow_up_reference",
+        requestedDepth: focusedEntityDepth,
+      }
+    : null;
   const interpretationMessage = premiseCheck.interpretationMessage;
+  const comparisonInterpretationMessage = contextualComparisonFocusedEntity
+    ? interpretationMessage.replace(
+        /\bit\b/i,
+        contextualComparisonFocusedEntity.label,
+      )
+    : interpretationMessage;
   const unsupportedResolution = unsupportedImplementationAnswer(
     classificationMessage,
     directEntityResolution,
@@ -1011,14 +1106,15 @@ export const runMiraResponseAdapter = async ({
     relevantConversationHistory,
   );
   const comparisonIntent =
-    isMiraContextualComparisonFollowUp(classificationMessage) ||
-    (responseMode.mode === "comparison" &&
-      (isMiraComparisonIntent(classificationMessage) ||
-        isComparisonIntent(classificationMessage) ||
-        (historyHasPlatformOptions(relevantConversationHistory) &&
-          /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
-            classificationMessage,
-          ))));
+    !hasExplicitSingleEntityFocus &&
+    (isMiraContextualComparisonFollowUp(classificationMessage) ||
+      (responseMode.mode === "comparison" &&
+        (isMiraComparisonIntent(classificationMessage) ||
+          isComparisonIntent(classificationMessage) ||
+          (historyHasPlatformOptions(relevantConversationHistory) &&
+            /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/i.test(
+              classificationMessage,
+            )))));
   const initialLocalResult = {
     ...localHarness(retrievalMessage),
     question: message,
@@ -1053,7 +1149,10 @@ export const runMiraResponseAdapter = async ({
     businessGoalEvidence,
   );
   const comparisonResolution = comparisonIntent
-    ? resolveMiraComparison(interpretationMessage, relevantConversationHistory)
+    ? resolveMiraComparison(
+        comparisonInterpretationMessage,
+        relevantConversationHistory,
+      )
     : null;
   const decisionResolution = frameMiraGoalRecommendation(
     resolveMiraDecisionRequest(
@@ -1119,6 +1218,27 @@ export const runMiraResponseAdapter = async ({
       resolvedConversationEntities: unsupportedEntities,
       clarificationNeeded: false,
       unsupportedHandled: true,
+    };
+  } else if (focusedEntity && !localResult.riskFlags.length) {
+    const focusedEntries = matchedEntriesForConversationEntities([
+      focusedEntity,
+    ]);
+    localResult = {
+      ...localResult,
+      confidence: focusedEntries.length ? "high" : "low",
+      matchedEntries: focusedEntries,
+      answerSeed:
+        focusedEntityDepth === "detailed"
+          ? detailedEntityAnswer(focusedEntity, focusedEntries)
+          : answerSeedForEntity(focusedEntity, focusedEntries),
+      handoffNeeded: false,
+      handoffReason: "",
+      suggestedFollowUps: [],
+      resolvedConversationEntities: [focusedEntity],
+      focusedEntity: focusedEntityState,
+      entityFocusHandled: true,
+      clarificationNeeded: false,
+      answerStructureKind: "",
     };
   } else if (compoundResolution && !localResult.riskFlags.length) {
     localResult = {
@@ -1303,6 +1423,7 @@ export const runMiraResponseAdapter = async ({
     !localResult.compoundRequestHandled &&
     !localResult.comparisonHandled &&
     !localResult.recommendationHandled &&
+    !localResult.entityFocusHandled &&
     !localResult.riskFlags.length
   ) {
     const capabilityNamesOnly =
@@ -1347,6 +1468,7 @@ export const runMiraResponseAdapter = async ({
     !localResult.comparisonHandled &&
     !localResult.listingHandled &&
     !localResult.unsupportedHandled &&
+    !localResult.entityFocusHandled &&
     !localResult.fastPathHandled
   ) {
     localResult = {
@@ -1394,6 +1516,7 @@ export const runMiraResponseAdapter = async ({
     responseMode: {
       ...effectiveResponseMode,
       fastPath: Boolean(
+        localResult.entityFocusHandled ||
         localResult.fastPathHandled ||
           localResult.listingHandled ||
           localResult.evidenceQueryHandled ||
@@ -1402,9 +1525,14 @@ export const runMiraResponseAdapter = async ({
           referenceResolution.kind === "resolved",
       ),
       skipModel:
-        Boolean(localResult.fastPathHandled) &&
-        (effectiveResponseMode.mode === "names_only" ||
-          effectiveResponseMode.answerShape === "capability_summary"),
+        Boolean(
+          localResult.entityFocusHandled &&
+            (localResult.focusedEntity?.source === "follow_up_reference" ||
+              faqResolution),
+        ) ||
+        (Boolean(localResult.fastPathHandled) &&
+          (effectiveResponseMode.mode === "names_only" ||
+            effectiveResponseMode.answerShape === "capability_summary")),
     },
     turnContext: {
       ...turnContext,
@@ -1454,6 +1582,8 @@ export const runMiraResponseAdapter = async ({
       empathyState: typeof empathyState === "string" ? empathyState : "",
       responseGuidance: localResult.premiseCheck?.corrections?.length
         ? "Begin with the supplied grounded premise correction, then answer the useful underlying request. Do not accept the corrected premise elsewhere in the response."
+        : localResult.entityFocusHandled
+        ? "Answer only about the single focused entity represented by the approved context. Preserve the requested depth, do not expand to sibling offerings or a parent catalog, and do not invent details beyond the supplied evidence."
         : localResult.adaptiveDiscoveryHandled
         ? "Preserve the grounded preliminary guidance and ask exactly the one decision-critical question supplied by the local answer plan. Do not add other questions or assume the missing fact."
         : localResult.comparison

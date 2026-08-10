@@ -213,6 +213,7 @@ export const validateMiraFinalResponse = (result = {}) => {
     result.responseMode?.answerShape === "capability_summary" &&
     !result.comparison &&
     !result.recommendation &&
+    !result.entityFocusHandled &&
     !result.compoundRequestHandled
   ) {
     const capabilitySummary = capabilitySummaryAnswerForEntities(
@@ -322,6 +323,18 @@ export const validateMiraFinalResponse = (result = {}) => {
     .map((entity) => entity?.label)
     .filter(Boolean);
   const primaryLabels = selectedLabels(result);
+  if (
+    result.entityFocusHandled &&
+    primaryLabels[0] &&
+    !normalized(answer).includes(normalized(primaryLabels[0]))
+  ) {
+    return correctionResult(
+      result,
+      fallbackAnswerFor(result),
+      ["focused_entity_scope_restored"],
+      "fallback",
+    );
+  }
   if (
     result.premiseCheck?.corrections?.some(
       ({ text }) => !normalized(answer).includes(normalized(text)),
