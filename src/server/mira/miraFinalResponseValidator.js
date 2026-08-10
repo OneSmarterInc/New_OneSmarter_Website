@@ -218,6 +218,13 @@ export const validateMiraFinalResponse = (result = {}) => {
     const capabilitySummary = capabilitySummaryAnswerForEntities(
       result.resolvedConversationEntities || [],
     );
+    const premiseCorrection = (result.premiseCheck?.corrections || [])
+      .map(({ text }) => text)
+      .filter(Boolean)
+      .join(" ");
+    const expectedCapabilityAnswer = premiseCorrection
+      ? `${premiseCorrection}\n\n${capabilitySummary}`
+      : capabilitySummary;
     const hasDetailedPresentation =
       Boolean(result.answerStructureKind) ||
       /^(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+)/m.test(answer) ||
@@ -225,12 +232,12 @@ export const validateMiraFinalResponse = (result = {}) => {
       /care@onesmarter\.com/i.test(answer);
     if (
       capabilitySummary &&
-      (answer !== capabilitySummary || hasDetailedPresentation)
+      (answer !== expectedCapabilityAnswer || hasDetailedPresentation)
     ) {
       return {
         ...correctionResult(
           result,
-          capabilitySummary,
+          expectedCapabilityAnswer,
           ["capability_summary_shape_corrected"],
           "trim",
         ),
@@ -315,6 +322,18 @@ export const validateMiraFinalResponse = (result = {}) => {
     .map((entity) => entity?.label)
     .filter(Boolean);
   const primaryLabels = selectedLabels(result);
+  if (
+    result.premiseCheck?.corrections?.some(
+      ({ text }) => !normalized(answer).includes(normalized(text)),
+    )
+  ) {
+    return correctionResult(
+      result,
+      fallbackAnswerFor(result),
+      ["premise_correction_restored"],
+      "fallback",
+    );
+  }
   if (
     result.answerCompleteness?.status === "needs_refinement" &&
     result.decisionState?.nextBestQuestion &&

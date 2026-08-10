@@ -228,7 +228,16 @@ const disclaimerFor = (result) => {
 
 const buildAnswer = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
-    return "I cannot review PHI, confidential documents, or private operational details here. Please do not submit sensitive information through this public agent. For business-specific questions, email care@onesmarter.com.";
+    const safetyAnswer =
+      "I cannot review PHI, confidential documents, or private operational details here. Please do not submit sensitive information through this public agent. For business-specific questions, email care@onesmarter.com.";
+    const complianceCorrection = (result.premiseCheck?.corrections || [])
+      .filter(({ type }) => type === "compliance")
+      .map(({ text }) => text)
+      .filter(Boolean)
+      .join(" ");
+    return complianceCorrection
+      ? `${complianceCorrection}\n\n${safetyAnswer}`
+      : safetyAnswer;
   }
   return result.answerSeed;
 };

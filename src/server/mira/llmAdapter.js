@@ -8,6 +8,10 @@ import {
   applyMiraAdaptiveDiscovery,
   isMiraAdaptiveDiscoveryFollowUp,
 } from "./miraAdaptiveDiscovery.js";
+import {
+  applyMiraPremiseCorrections,
+  checkMiraPremise,
+} from "./miraPremiseCheck.js";
 import { buildMiraPromptPayload } from "./miraPromptContract.js";
 import { validateMiraModelOutput } from "./miraOutputValidator.js";
 import {
@@ -685,13 +689,17 @@ export const runMiraResponseAdapter = async ({
 
   const messageNormalization = normalizeMiraUserMessage(message);
   const classificationMessage = messageNormalization.normalizedMessage;
+  const premiseCheck = checkMiraPremise({
+    message: classificationMessage,
+    conversationHistory,
+  });
   const earlyRiskFlags = detectRiskFlags(classificationMessage);
   const earlySafetyResult = runMiraSafetyGate(classificationMessage);
   if (earlySafetyResult) {
-    const result = withFallbackMetadata(
+    const result = applyMiraPremiseCorrections(withFallbackMetadata(
       earlySafetyResult,
       "pre_call_safety_gate",
-    );
+    ), premiseCheck);
     return {
       ...result,
       messageNormalization,
@@ -744,8 +752,12 @@ export const runMiraResponseAdapter = async ({
           ...emptyResult,
           resolvedConversationEntities: faqResolution.entities || [],
         };
+    const correctedResolved = applyMiraPremiseCorrections(
+      resolved,
+      premiseCheck,
+    );
     return {
-      ...resolved,
+      ...correctedResolved,
       messageNormalization,
       businessGoals: [],
       businessGoalConfidence: "low",
@@ -981,6 +993,7 @@ export const runMiraResponseAdapter = async ({
     directEntityRequest || implementationSpecificRequest
     ? resolveMiraEntityText(classificationMessage)
     : null;
+  const interpretationMessage = premiseCheck.interpretationMessage;
   const unsupportedResolution = unsupportedImplementationAnswer(
     classificationMessage,
     directEntityResolution,
@@ -1040,7 +1053,7 @@ export const runMiraResponseAdapter = async ({
     businessGoalEvidence,
   );
   const comparisonResolution = comparisonIntent
-    ? resolveMiraComparison(classificationMessage, relevantConversationHistory)
+    ? resolveMiraComparison(interpretationMessage, relevantConversationHistory)
     : null;
   const decisionResolution = frameMiraGoalRecommendation(
     resolveMiraDecisionRequest(
@@ -1320,7 +1333,6 @@ export const runMiraResponseAdapter = async ({
     comparisonIntent,
     localResult,
   });
-
   if (
     ((referenceResolution.kind === "clarification" &&
       (referenceResolution.hadEntityContext ||
@@ -1350,6 +1362,7 @@ export const runMiraResponseAdapter = async ({
       clarificationNeeded: true,
     };
   }
+  localResult = applyMiraPremiseCorrections(localResult, premiseCheck);
 
   localResult = localResult.adaptiveDiscoveryHandled
     ? localResult
@@ -1439,7 +1452,9 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: localResult.adaptiveDiscoveryHandled
+      responseGuidance: localResult.premiseCheck?.corrections?.length
+        ? "Begin with the supplied grounded premise correction, then answer the useful underlying request. Do not accept the corrected premise elsewhere in the response."
+        : localResult.adaptiveDiscoveryHandled
         ? "Preserve the grounded preliminary guidance and ask exactly the one decision-critical question supplied by the local answer plan. Do not add other questions or assume the missing fact."
         : localResult.comparison
         ? "Provide only the grounded comparison and decision guidance represented by the supplied approved context. Do not invent pricing, integrations, implementation timelines, performance claims, guarantees, or unsupported limitations."
