@@ -8,11 +8,33 @@ import {
 import {
   formatMiraAnswerBlocks,
   normalizeMiraAnswerPresentation,
+  sanitizeMiraVisitorAnswer,
 } from "../src/data/agentPresentation/miraAnswerFormatter.js";
 
 const failures = [];
 
 const fail = (message) => failures.push(message);
+
+const visitorLeakProbe = sanitizeMiraVisitorAnswer([
+  "Useful visitor answer.",
+  "Grounding status: grounded",
+  "Output safety status: passed",
+  "Validation status: passed",
+  "Evidence score: 0.92",
+  "riskFlags: []",
+  "HandoffNeeded: true",
+  "responseMode: overview",
+  "premiseCheck: valid",
+  "decisionState: complete",
+  "For project scoping, contact care@onesmarter.com.",
+].join("\n"));
+if (
+  /Grounding status:|Output safety status:|Validation status:|Evidence score:|riskFlags:|HandoffNeeded:|responseMode:|premiseCheck:|decisionState:/i.test(visitorLeakProbe) ||
+  !visitorLeakProbe.includes("Useful visitor answer.") ||
+  !visitorLeakProbe.includes("contact care@onesmarter.com")
+) {
+  fail("answer-presentation: internal metadata leaked into visitor-facing text.");
+}
 
 const normalizedPresentation = normalizeMiraAnswerPresentation(
   [

@@ -48,6 +48,7 @@ export const buildMiraSystemPrompt = ({ claimRules = miraClaimRules } = {}) => {
     "Use natural visitor-facing headings such as Important context or Important note.",
     "Do not use internal labels such as Separate facts and next steps or Approved fact vs. next steps.",
     "When describing Bill Audit & Bill Pay, use approved capability wording such as vendor bill review, discrepancy tracking, approval workflows, and payment workflows.",
+    "Never expose internal execution metadata or status labels in the visitor-facing answer; keep those values only in dedicated JSON fields.",
     "Do not use raw HTML.",
     "Do not invent examples, customers, contracts, BAAs, integrations, clinical workflows, combined platform implementations, or customer outcomes.",
     "Do not imply platforms are integrated unless the retrieved approved context explicitly says so.",

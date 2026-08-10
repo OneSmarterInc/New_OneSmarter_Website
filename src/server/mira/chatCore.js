@@ -9,6 +9,7 @@ import {
 import { buildMiraAnswerStructure } from "./miraAnswerStructure.js";
 import { applyMiraAnswerCompleteness } from "./miraAnswerCompleteness.js";
 import { validateMiraFinalResponse } from "./miraFinalResponseValidator.js";
+import { sanitizeMiraVisitorAnswer } from "../../data/agentPresentation/miraAnswerFormatter.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -235,11 +236,29 @@ const buildAnswer = (result) => {
       .map(({ text }) => text)
       .filter(Boolean)
       .join(" ");
-    return complianceCorrection
+    return sanitizeMiraVisitorAnswer(complianceCorrection
       ? `${complianceCorrection}\n\n${safetyAnswer}`
-      : safetyAnswer;
+      : safetyAnswer);
   }
-  return result.answerSeed;
+  return sanitizeMiraVisitorAnswer(result.answerSeed);
+};
+
+const sanitizeAnswerStructure = (structure) => {
+  if (!structure) return structure;
+  const sanitizeSection = (section) => ({
+    ...section,
+    heading: sanitizeMiraVisitorAnswer(section.heading),
+    summary: sanitizeMiraVisitorAnswer(section.summary),
+    bullets: (section.bullets || []).map(sanitizeMiraVisitorAnswer).filter(Boolean),
+    children: (section.children || []).map(sanitizeSection),
+  });
+  return {
+    ...structure,
+    introduction: sanitizeMiraVisitorAnswer(structure.introduction),
+    sections: (structure.sections || []).map(sanitizeSection),
+    importantNote: sanitizeMiraVisitorAnswer(structure.importantNote),
+    followUpQuestion: sanitizeMiraVisitorAnswer(structure.followUpQuestion),
+  };
 };
 
 export const handleMiraChatRequest = async ({
@@ -469,10 +488,10 @@ export const handleMiraChatRequest = async ({
     const responseConversationEntities = result.resolvedConversationEntities?.length
       ? normalizeGroundedConversationEntities(result.resolvedConversationEntities)
       : buildGroundedConversationEntities(result.matchedEntries);
-    const answerStructure = buildMiraAnswerStructure({
+    const answerStructure = sanitizeAnswerStructure(buildMiraAnswerStructure({
       result,
       conversationEntities: responseConversationEntities,
-    });
+    }));
     const responseBody = {
       requestId,
       timestamp,

@@ -4,8 +4,47 @@ const splitParagraphs = (text) =>
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 
-const INTERNAL_PRESENTATION_LINE =
-  /^(?:HandoffNeeded|confidence|riskFlags|matchedEntries|decisionState|recommendationStatus|responseMode|providerMetadata)\s*:/i;
+const INTERNAL_PRESENTATION_LABEL =
+  "(?:Grounding status|Output safety status|Safety status|Validation status|Confidence|Evidence score|Evidence confidence|Matched sources|Risk flags|HandoffNeeded|Handoff needed|Response mode|Intent|Business goals?|Decision state|Premise status|Premise check|premiseCheck|Internal notes?|Debug info|Provider mode|Provider metadata|Retrieval status|Answerability status|matchedEntries|decisionState|recommendationStatus|responseMode|riskFlags)";
+const INTERNAL_PRESENTATION_LINE = new RegExp(
+  `^(?:[-*\\u2022]\\s*)?${INTERNAL_PRESENTATION_LABEL}\\s*:`,
+  "i",
+);
+const INTERNAL_JSON_KEY =
+  /"(?:groundingStatus|outputSafetyStatus|validationStatus|confidence|evidenceScore|matchedSources|riskFlags|handoffNeeded|responseMode|businessGoals|decisionState|premiseCheck|providerMetadata|retrievalStatus|answerabilityStatus)"\s*:/i;
+
+export const sanitizeMiraVisitorAnswer = (text = "") => {
+  const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+  const kept = [];
+  let jsonBuffer = [];
+  let jsonDepth = 0;
+
+  const flushJson = () => {
+    const block = jsonBuffer.join("\n");
+    if (block && !INTERNAL_JSON_KEY.test(block)) kept.push(...jsonBuffer);
+    jsonBuffer = [];
+    jsonDepth = 0;
+  };
+
+  for (const line of lines) {
+    if (jsonBuffer.length || ["[", "{"].includes(line.trim())) {
+      jsonBuffer.push(line);
+      jsonDepth += [...line].filter((character) => "[{".includes(character)).length;
+      jsonDepth -= [...line].filter((character) => "]}".includes(character)).length;
+      if (jsonDepth <= 0) flushJson();
+      continue;
+    }
+    if (
+      !INTERNAL_PRESENTATION_LINE.test(line.trim()) &&
+      !INTERNAL_JSON_KEY.test(line)
+    ) {
+      kept.push(line);
+    }
+  }
+  if (jsonBuffer.length) flushJson();
+
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+};
 
 const normalizedLineKey = (line = "") =>
   String(line)
@@ -21,7 +60,7 @@ export const normalizeMiraAnswerPresentation = (
 ) => {
   const seen = new Set();
   const prepared = (suppressInternal
-    ? String(text).replace(/\s*Related approved topics:[^.]*\.?/gi, "")
+    ? sanitizeMiraVisitorAnswer(text).replace(/\s*Related approved topics:[^.]*\.?/gi, "")
     : String(text))
     .replace(
       /The page uses supporting language such as built for HIPAA-regulated workflows and designed for PHI-sensitive workflows\.?/gi,
