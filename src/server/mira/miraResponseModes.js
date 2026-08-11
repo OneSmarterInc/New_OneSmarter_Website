@@ -291,17 +291,41 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
   }
 
   const isoEntry = knowledgeById.get("iso-27001-readiness-support");
-  if (isoEntry && /\bISO(?:(?:\/IEC)?\s*27001|\s+readiness)\b/i.test(message)) {
+  if (isoEntry && /\bISO(?:\/IEC)?(?:\s*27001)?\b/i.test(message)) {
+    const customerCertificationQuestion =
+      /\b(?:are|will|would)\s+(?:we|I)\s+(?:automatically\s+)?certified\b|\bautomatically\s+(?:certif(?:y|ies)|make(?:s)?)\s+(?:us|me)\b|\bmake(?:s)?\s+(?:us|me)\s+certified\b/i.test(
+        message,
+      );
+    const issuingQuestion =
+      /\b(?:OneSmarter|you)\s+(?:issue|provide|grant)\b.{0,30}\bISO certificates?\b/i.test(
+        message,
+      );
     const certificationQuestion =
-      /\b(?:certif(?:ied|ication)|mean .+ certified)\b/i.test(message);
-    const answer = certificationQuestion
-      ? `${isoEntry.approvedSummary} The approved public content establishes client-facing readiness support; it does not confirm OneSmarter's own ISO/IEC 27001 certification.`
-      : isoEntry.approvedSummary;
+      /\b(?:certif(?:ied|ication)|certificate|logo)\b/i.test(message);
+    const definitionQuestion = /\bwhat is ISO(?:\/IEC)?\s*27001\b/i.test(message);
+    let answer = isoEntry.approvedSummary;
+    let faqId = "faq_iso_readiness";
+    if (customerCertificationQuestion) {
+      answer = "No. ISO/IEC 27001 readiness support does not automatically certify a customer. OneSmarter supports ISMS documentation, control mapping, evidence preparation, and remediation coordination, but it does not issue ISO certificates.";
+      faqId = "faq_iso_customer_certification_boundary";
+    } else if (issuingQuestion) {
+      answer = "No. OneSmarter provides ISO/IEC 27001 readiness support for clients; it does not issue ISO certificates.";
+      faqId = "faq_iso_certificate_issuer_boundary";
+    } else if (certificationQuestion) {
+      const logoContext = /\blogo\b/i.test(message)
+        ? "A logo alone is not sufficient approved evidence of certification. "
+        : "";
+      answer = `${logoContext}OneSmarter provides ISO/IEC 27001 readiness support for clients. Mira is not currently presenting OneSmarter certificate details or certification status as approved public information.`;
+      faqId = "faq_iso_certification_placeholder";
+    } else if (definitionQuestion) {
+      answer = "ISO/IEC 27001 is an information-security management system standard. OneSmarter provides readiness support for clients through ISMS documentation, control mapping, evidence preparation, and remediation coordination.";
+      faqId = "faq_iso_definition";
+    }
     return {
       ...singleEntryFaqResult(
         isoEntry,
         answer,
-        certificationQuestion ? "faq_iso_certification_boundary" : "faq_iso_readiness",
+        faqId,
       ),
       entities: [],
     };

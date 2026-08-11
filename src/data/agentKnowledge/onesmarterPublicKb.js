@@ -283,11 +283,12 @@ export const onesmarterPublicKnowledgeBase = [
     route: isoReadinessPage?.route || "/compliance-assurance/iso-27001-readiness",
     title: "ISO/IEC 27001 Readiness Support",
     category: "Compliance & Cyber Assurance",
+    certificationStatus: "not_published",
     approvedSummary: isoReadinessPage?.shortSummary,
     sourceFacts: [
       isoReadinessPage?.shortSummary,
       ...(isoReadinessPage?.keyOfferings || []),
-      "The approved public content establishes client-facing ISO/IEC 27001 readiness support; it does not establish OneSmarter's own ISO/IEC 27001 certification.",
+      "OneSmarter provides client-facing ISO/IEC 27001 readiness support. Mira does not currently present OneSmarter certificate details or certification status as approved public information.",
     ].filter(Boolean),
     allowedClaims: [
       "ISO/IEC 27001 readiness support",
@@ -297,10 +298,10 @@ export const onesmarterPublicKnowledgeBase = [
       "Remediation coordination",
     ],
     disallowedClaims: [
-      "OneSmarter is ISO/IEC 27001 certified",
       "Readiness support proves OneSmarter certification",
       "OneSmarter issues ISO certificates",
     ],
+    withheldClaims: ["OneSmarter is ISO/IEC 27001 certified"],
     handoffGuidance:
       "Route certification evidence or business-specific readiness questions to care@onesmarter.com.",
     relatedQuestions: [
