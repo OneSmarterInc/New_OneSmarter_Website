@@ -1,7 +1,7 @@
 const trustNotes = [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
-  "ISO/IEC 27001 Certified",
+  "OneSmarter is ISO/IEC 27001 Certified",
   "Secure software development",
   "Responsible data handling",
   "Compliance-aware operations",

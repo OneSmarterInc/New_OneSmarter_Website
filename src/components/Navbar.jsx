@@ -117,6 +117,10 @@ const navGroups = [
         path: "/trust-center/soc2",
       },
       {
+        label: "ISO/IEC 27001",
+        path: "/trust-center/iso-27001",
+      },
+      {
         label: "HIPAA",
         path: "/trust-center/hipaa",
       },

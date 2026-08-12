@@ -512,46 +512,8 @@ const pageContent = {
       "SOC 2 Type II Attested.",
       "HIPAA Security Rule Compliance Assessment Completed.",
       "ISO/IEC 27001 Certified.",
+      "Secure delivery practices for sensitive operational workflows.",
       "Privacy and compliance-aware operations across technology and business services.",
-    ],
-    collection: "trustCenter",
-  },
-  trustSoc2: {
-    eyebrow: "Trust Center",
-    title: "SOC 2",
-    body:
-      "OneSmarter is SOC 2 Type II Attested. This Trust Center page summarizes OneSmarter's own trust posture for clients evaluating secure software delivery and operational support.",
-    points: [
-      "SOC 2 Type II Attested.",
-      "Controls-oriented operating practices for secure delivery.",
-      "Security and availability considerations for client-facing workflows.",
-      "Trust documentation available through appropriate client review channels.",
-    ],
-    collection: "trustCenter",
-  },
-  trustHipaa: {
-    eyebrow: "Trust Center",
-    title: "HIPAA",
-    body:
-      "OneSmarter has completed a HIPAA Security Rule Compliance Assessment and designs selected systems for HIPAA-regulated workflows and PHI-sensitive workflows.",
-    points: [
-      "HIPAA Security Rule Compliance Assessment Completed.",
-      "Built for HIPAA-regulated workflows where applicable.",
-      "Designed for PHI-sensitive workflows where applicable.",
-      "Administrative and technical safeguards considered in healthcare workflow design.",
-    ],
-    collection: "trustCenter",
-  },
-  trustIso27001: {
-    eyebrow: "Trust Center",
-    title: "ISO/IEC 27001",
-    body:
-      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system (ISMS).",
-    points: [
-      "ISO/IEC 27001 Certified.",
-      "Information security management system aligned with international standards.",
-      "Risk assessment, treatment, and continual improvement practices.",
-      "Certification decisions and scope governed by an accredited certification body.",
     ],
     collection: "trustCenter",
   },
