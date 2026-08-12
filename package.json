@@ -13,6 +13,7 @@
     "test:mira-api": "node scripts/test-mira-api-contract.js",
     "test:mira-prompt": "node scripts/test-mira-prompt-contract.js",
     "test:mira-presentation": "node scripts/test-mira-presentation-state.js",
+    "test:mira-runtime": "node scripts/test-mira-runtime-hardening.js",
     "test:mira-voice-samples": "node scripts/test-mira-voice-samples.js",
     "test:mira-visual-states": "node scripts/test-mira-visual-states.js"
   },

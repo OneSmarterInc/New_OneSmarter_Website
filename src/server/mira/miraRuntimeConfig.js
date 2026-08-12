@@ -1,6 +1,7 @@
 import process from "node:process";
 
-const ALLOWED_MODES = new Set(["off", "mock", "staging_llm", "production_llm"]);
+const ALLOWED_MODES = new Set(["off", "mock", "staging_llm"]);
+const ALLOWED_PROVIDERS = new Set(["openai"]);
 const ALLOWED_REASONING_EFFORTS = new Set(["minimal", "low", "medium", "high"]);
 const DEFAULT_MODE = "mock";
 const DEFAULT_REASONING_EFFORT = "minimal";
@@ -26,10 +27,20 @@ const readString = (value, fallback = "") =>
 export const readMiraRuntimeConfig = (env = process.env) => {
   const requestedMode = readString(env.MIRA_LLM_MODE, DEFAULT_MODE).toLowerCase();
   const mode = ALLOWED_MODES.has(requestedMode) ? requestedMode : DEFAULT_MODE;
-  const provider = readString(env.MIRA_LLM_PROVIDER, "");
+  const requestedProvider = readString(env.MIRA_LLM_PROVIDER, "");
+  const provider = requestedProvider.toLowerCase();
   const model = readString(env.MIRA_LLM_MODEL, "");
   const apiKey = readString(env.MIRA_LLM_API_KEY, "");
   const apiKeyConfigured = Boolean(apiKey);
+  const providerWasValid = !provider || ALLOWED_PROVIDERS.has(provider);
+  const llmModeEnabled = mode === "staging_llm";
+  const providerConfigComplete = Boolean(
+    llmModeEnabled &&
+      providerWasValid &&
+      provider === "openai" &&
+      model &&
+      apiKeyConfigured,
+  );
   const requestedReasoningEffort = readString(
     env.MIRA_LLM_REASONING_EFFORT,
     DEFAULT_REASONING_EFFORT,
@@ -43,9 +54,13 @@ export const readMiraRuntimeConfig = (env = process.env) => {
     requestedMode,
     modeWasValid: mode === requestedMode,
     provider,
+    requestedProvider,
+    providerWasValid,
     model,
     apiKeyConfigured,
-    providerConfigComplete: Boolean(provider && model && apiKeyConfigured),
+    providerConfigComplete,
+    liveConfigurationValid:
+      llmModeEnabled && mode === requestedMode && providerConfigComplete,
     timeoutMs: readNumber(env.MIRA_LLM_TIMEOUT_MS, 8000),
     maxTokens: readNumber(env.MIRA_LLM_MAX_TOKENS, 600),
     temperature: readNumber(env.MIRA_LLM_TEMPERATURE, 0.2),

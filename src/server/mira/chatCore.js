@@ -2,6 +2,11 @@ import crypto from "node:crypto";
 import { runMiraResponseAdapter } from "./llmAdapter.js";
 import { readMiraRuntimeConfig } from "./miraRuntimeConfig.js";
 import {
+  createMiraRateLimitStore,
+  createMiraMemoryRateLimitStore,
+  resetMiraMemoryRateLimitStoreForTests,
+} from "./miraRateLimitStore.js";
+import {
   buildConversationEntityGroups,
   buildGroundedConversationEntities,
   normalizeGroundedConversationEntities,
@@ -17,12 +22,11 @@ const MODE = "local_harness_mock";
 const ENDPOINT = "/api/agents/mira/chat";
 const PRIVACY_REMINDER =
   "Do not submit PHI, confidential documents, or private operational details through this public agent.";
-const RATE_LIMIT_MAX_REQUESTS = 20;
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_CONVERSATION_HISTORY_MESSAGES = 6;
 const MAX_CONVERSATION_HISTORY_TOTAL_CHARS = 2000;
 const MAX_CONVERSATION_HISTORY_MESSAGE_CHARS = 700;
-const rateLimitBuckets = new Map();
+const runtimeConfigLogSignatures = new Set();
+const degradedRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
 
 const createRequestId = (providedRequestId) => {
   if (typeof providedRequestId === "string" && providedRequestId.trim()) {
@@ -161,29 +165,10 @@ const getRateLimitKey = (headers = {}) => {
   return forwardedIp || realIp || "anonymous";
 };
 
-const checkRateLimit = (key, nowMs = Date.now()) => {
-  const existing = rateLimitBuckets.get(key);
-  if (!existing || nowMs >= existing.resetAt) {
-    rateLimitBuckets.set(key, {
-      count: 1,
-      resetAt: nowMs + RATE_LIMIT_WINDOW_MS,
-    });
-    return { allowed: true, retryAfterSeconds: 0 };
-  }
-
-  if (existing.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - nowMs) / 1000)),
-    };
-  }
-
-  existing.count += 1;
-  return { allowed: true, retryAfterSeconds: 0 };
-};
-
 export const resetMiraRateLimitForTests = () => {
-  rateLimitBuckets.clear();
+  resetMiraMemoryRateLimitStoreForTests();
+  degradedRateLimitStore.reset();
+  runtimeConfigLogSignatures.clear();
 };
 
 const safeLogEvent = (event, logger = console) => {
@@ -194,6 +179,34 @@ const safeLogEvent = (event, logger = console) => {
       ...event,
     }),
   );
+};
+
+const logMiraRuntimeConfigOnce = (config, rateLimitStore, logger = console) => {
+  if (!logger?.log) return;
+  const diagnostic = {
+    event: "mira_runtime_configuration",
+    mode: config.mode,
+    requestedMode: config.requestedMode,
+    modeWasValid: config.modeWasValid,
+    provider: config.provider || "none",
+    providerWasValid: config.providerWasValid,
+    providerConfigComplete: config.providerConfigComplete,
+    model: config.model || "none",
+    timeoutMs: config.timeoutMs,
+    maxTokens: config.maxTokens,
+    temperature: config.temperature,
+    reasoningEffort: config.reasoningEffort,
+    postValidationEnabled: config.postValidationEnabled,
+    rateLimitBackend: rateLimitStore?.kind || "memory",
+    sharedRateLimitConfigured: Boolean(rateLimitStore?.sharedStoreConfigured),
+    sharedRateLimitConfigComplete: Boolean(
+      rateLimitStore?.sharedStoreConfigComplete,
+    ),
+  };
+  const signature = JSON.stringify(diagnostic);
+  if (runtimeConfigLogSignatures.has(signature)) return;
+  runtimeConfigLogSignatures.add(signature);
+  safeLogEvent(diagnostic, logger);
 };
 
 const compactSources = (matchedEntries) =>
@@ -267,6 +280,7 @@ export const handleMiraChatRequest = async ({
   headers = {},
   now = new Date(),
   logger = console,
+  rateLimitStore,
 } = {}) => {
   const timestamp = now.toISOString();
   let parsedBody = {};
@@ -330,7 +344,28 @@ export const handleMiraChatRequest = async ({
     return errorResult;
   }
 
-  const rateLimit = checkRateLimit(getRateLimitKey(headers), now.getTime());
+  const activeRateLimitStore = rateLimitStore || createMiraRateLimitStore();
+  let rateLimit;
+  try {
+    rateLimit = await activeRateLimitStore.consume(
+      getRateLimitKey(headers),
+      now.getTime(),
+    );
+  } catch {
+    safeLogEvent(
+      {
+        ...logBase,
+        event: "mira_rate_limit_store_failure",
+        rateLimitBackend: activeRateLimitStore?.kind || "unknown",
+        errorCode: "rate_limit_store_unavailable",
+      },
+      logger,
+    );
+    rateLimit = await degradedRateLimitStore.consume(
+      getRateLimitKey(headers),
+      now.getTime(),
+    );
+  }
   if (!rateLimit.allowed) {
     const errorResult = jsonError(
       429,
@@ -471,6 +506,7 @@ export const handleMiraChatRequest = async ({
 
   try {
     const runtimeConfig = readMiraRuntimeConfig();
+    logMiraRuntimeConfigOnce(runtimeConfig, activeRateLimitStore, logger);
     let result = await runMiraResponseAdapter({
       message: trimmedMessage,
       conversationId,
