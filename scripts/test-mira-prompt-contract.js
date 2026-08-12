@@ -758,6 +758,7 @@ for (const expectedUiText of [
 for (const phrase of [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
+  "ISO/IEC 27001 Certified",
   "HIPAA Certified",
   "HIPAA Certification",
   "SOC 2 Certified",
@@ -1001,6 +1002,40 @@ validateCase({
   localHarnessResult: runMiraLocalHarness("Are you SOC 2 certified?"),
   expectedValid: false,
   expectedViolationIncludes: ["SOC 2 Certified"],
+});
+
+validateCase({
+  id: "approved-iso-certification-output-passes",
+  output: {
+    answer:
+      "Yes. OneSmarter is ISO/IEC 27001 Certified. This describes OneSmarter's own organizational credential and does not certify customer systems.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  message: "Is OneSmarter ISO/IEC 27001 certified?",
+  localHarnessResult: runMiraLocalHarness(
+    "Is OneSmarter ISO/IEC 27001 certified?",
+  ),
+  expectedValid: true,
+});
+
+validateCase({
+  id: "iso-customer-certification-claim-rejected",
+  output: {
+    answer: "OneSmarter certifies customer systems through its ISO readiness service.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  message: "Do you certify us?",
+  localHarnessResult: runMiraLocalHarness("Do you certify us?"),
+  expectedValid: false,
+  expectedViolationIncludes: ["OneSmarter certifies customer systems"],
 });
 
 validateCase({
@@ -1716,5 +1751,5 @@ if (failures.length) {
 }
 
 console.log("Mira prompt contract tests passed.");
-console.log("Ran prompt construction checks, 18 mocked model output cases, and 24 reference cases.");
+console.log("Ran prompt construction checks, 20 mocked model output cases, and 24 reference cases.");
 console.log("Ran 24 pipeline call-count performance cases.");

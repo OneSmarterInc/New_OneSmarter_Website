@@ -194,7 +194,7 @@ const historyHasPlatformOptions = (conversationHistory = []) => {
 };
 
 const historyHasKnownApprovedTopic = (conversationHistory = []) =>
-  /\bsecure ticketing\b|\bcase management\b|\bbill audit\b|\bbill pay\b|\bsoc\s*2\b|\bsoc2\b|\bhipaa\b|\bclaims processing\b|\bai agentic\b|\bmira\b/.test(
+  /\bsecure ticketing\b|\bcase management\b|\bbill audit\b|\bbill pay\b|\bsoc\s*2\b|\bsoc2\b|\bhipaa\b|\biso(?:\/iec)?\s*27001\b|\biso certified\b|\bclaims processing\b|\bai agentic\b|\bmira\b/.test(
     recentHistoryText(conversationHistory),
   );
 
@@ -328,6 +328,9 @@ const resolveActiveSubject = (message = "", conversationHistory = []) => {
   const recentTurns = conversationHistory.slice(-4).reverse();
   for (const turn of recentTurns) {
     const content = String(turn?.content || "").toLowerCase();
+    if (/\biso(?:\/iec)?\s*27001\b|\biso certified\b/.test(content)) {
+      return "iso-27001-certified";
+    }
     if (/\bsoc\s*2\b|\bsoc2\b/.test(content)) return "soc2-attested";
     if (/\bbill audit\b|\bbill pay\b/.test(content)) {
       return "bill-audit-bill-pay";
@@ -337,6 +340,9 @@ const resolveActiveSubject = (message = "", conversationHistory = []) => {
     }
   }
 
+  if (/\biso(?:\/iec)?\s*27001\b|\biso certified\b/.test(history)) {
+    return "iso-27001-certified";
+  }
   if (/\bsoc\s*2\b|\bsoc2\b/.test(history)) return "soc2-attested";
   if (/\bbill audit\b|\bbill pay\b/.test(history)) return "bill-audit-bill-pay";
   if (/\bsecure ticketing\b|\bcase management\b/.test(history)) {
@@ -609,7 +615,9 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
       /\b(which one|which is better|which one is better|how (?:is|are) (?:that|they|those) different)\b/.test(
         normalizedMessage,
       ));
-  if (!conversationHistory.length && !comparisonIntent) return message;
+  const directIsoCredentialIntent =
+    /\bISO(?:\/IEC)?(?:\s*27001)?\b|\bISO certified\b|\bcertifications?\b/i.test(message);
+  if (!conversationHistory.length && !comparisonIntent && !directIsoCredentialIntent) return message;
 
   const history = recentHistoryText(conversationHistory);
   const userHistory = recentUserHistoryText(conversationHistory);
@@ -618,6 +626,12 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
   const currentHasSensitiveSubmissionIntent =
     SENSITIVE_SUBMISSION_INTENT_PATTERN.test(normalizedMessage);
   const activeSubject = resolveActiveSubject(message, conversationHistory);
+
+  if (directIsoCredentialIntent) {
+    hints.push(
+      "ISO/IEC 27001 Certified OneSmarter own organizational credential ISO/IEC 27001 readiness support customer preparation Trust Center",
+    );
+  }
 
   if (comparisonIntent) {
     hints.push(
@@ -666,12 +680,16 @@ const buildContextualRetrievalMessage = (message = "", conversationHistory = [])
       hints.push("Secure Ticketing and Case Management Secure Ticketing and Case Management HIPAA regulated workflows case management healthcare organization");
     } else if (activeSubject === "soc2-attested") {
       hints.push("SOC 2 Type II Attested Trust Center security operational controls");
+    } else if (activeSubject === "iso-27001-certified") {
+      hints.push("ISO/IEC 27001 Certified OneSmarter own organizational credential Trust Center");
     } else if (/\bbill audit\b|\bbill pay\b|\bvendor bill\b|\btelecom\b/.test(history)) {
       hints.push("Bill Audit & Bill Pay telecom expense management vendor bills");
     } else if (/\bsecure ticketing\b|\bcase management\b|\bphi\b|\bhipaa\b/.test(history)) {
       hints.push("Secure Ticketing and Case Management HIPAA regulated workflows");
     } else if (/\bsoc\s*2\b|\bsoc2\b/.test(history)) {
       hints.push("SOC 2 Type II Attested Trust Center");
+    } else if (/\biso(?:\/iec)?\s*27001\b|\biso certified\b/.test(history)) {
+      hints.push("ISO/IEC 27001 Certified ISO/IEC 27001 readiness support Trust Center");
     } else if (/\bhipaa\b/.test(history)) {
       hints.push("HIPAA Security Rule Compliance Assessment Completed Trust Center");
     } else if (/\bai agentic\b|\bai agents?\b|\bmira\b/.test(history)) {

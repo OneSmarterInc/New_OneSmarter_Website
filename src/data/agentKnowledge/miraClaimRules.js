@@ -2,6 +2,7 @@ export const miraClaimRules = {
   approvedPhrases: [
     "SOC 2 Type II Attested",
     "HIPAA Security Rule Compliance Assessment Completed",
+    "ISO/IEC 27001 Certified",
     "Built for HIPAA-regulated workflows",
     "Designed for PHI-sensitive workflows",
     "Compliance readiness support",
@@ -24,6 +25,12 @@ export const miraClaimRules = {
     "Claims Processing System",
     "Claims Processing Platform",
     "Staffing Services",
+    "OneSmarter issues ISO certificates",
+    "OneSmarter certifies customer systems",
+    "OneSmarter certifies customers",
+    "ISO certification guarantees customer compliance",
+    "certification means customer systems are certified",
+    "readiness support automatically results in certification",
   ],
   replacementWording: [
     {
@@ -39,6 +46,19 @@ export const miraClaimRules = {
     {
       risky: "SOC 2 Certified",
       safer: "SOC 2 Type II Attested.",
+    },
+    {
+      risky: "ISO certified",
+      safer: "ISO/IEC 27001 Certified when referring to OneSmarter's approved credential.",
+    },
+    {
+      risky: "ISO 27001 certified",
+      safer: "ISO/IEC 27001 Certified.",
+    },
+    {
+      risky: "ISO 27001 compliant",
+      safer:
+        "Use ISO/IEC 27001 Certified only when referring to OneSmarter's approved credential; do not treat compliant as a synonym for certified.",
     },
     {
       risky: "guaranteed compliance",
@@ -147,6 +167,10 @@ export const miraClaimRules = {
     "Do not guarantee compliance.",
     "Use \"SOC 2 Type II Attested\".",
     "Use \"HIPAA Security Rule Compliance Assessment Completed\".",
+    "Use \"ISO/IEC 27001 Certified\" for OneSmarter's own approved credential.",
+    "Keep OneSmarter's own ISO/IEC 27001 certification separate from client-facing ISO/IEC 27001 readiness support.",
+    "Do not say OneSmarter issues ISO certificates or certifies customer systems.",
+    "Do not imply ISO readiness automatically results in certification or that certification guarantees customer compliance.",
     "Route business-specific compliance/security requests to care@onesmarter.com.",
     "Answer only from approved OneSmarter public content.",
     "Do not browse the internet in the first production version.",

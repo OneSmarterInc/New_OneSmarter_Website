@@ -239,7 +239,7 @@ const DIRECT_FACTUAL_TOPICS = [
   {
     pattern: /\bTrust Center\b/i,
     ids: ["trust-center-overview"],
-    answer: "OneSmarter's Trust Center explains its own security, privacy, SOC 2, HIPAA, secure-development, and responsible-data-handling posture. It includes SOC 2 Type II Attested and HIPAA Security Rule Compliance Assessment Completed wording, while formal evidence requests follow a direct business process.",
+    answer: "OneSmarter's Trust Center explains its own security, privacy, ISO/IEC 27001, SOC 2, HIPAA, secure-development, and responsible-data-handling posture. It includes ISO/IEC 27001 Certified, SOC 2 Type II Attested, and HIPAA Security Rule Compliance Assessment Completed wording, while formal evidence requests follow a direct business process.",
   },
 ];
 
@@ -290,44 +290,101 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
     );
   }
 
-  const isoEntry = knowledgeById.get("iso-27001-readiness-support");
-  if (isoEntry && /\bISO(?:\/IEC)?(?:\s*27001)?\b/i.test(message)) {
+  const isoReadinessEntry = knowledgeById.get("iso-27001-readiness-support");
+  const isoCertificationEntry = knowledgeById.get("iso-27001-certified");
+  if (
+    isoCertificationEntry &&
+    /\bwhat (?:certifications?|security credentials?|trust credentials?) (?:does OneSmarter|do you) have\b/i.test(message)
+  ) {
+    const trustEntry = knowledgeById.get("trust-center-overview");
+    return {
+      faqId: "faq_trust_credentials",
+      answer: "OneSmarter's approved trust posture includes ISO/IEC 27001 Certified, SOC 2 Type II Attested, and HIPAA Security Rule Compliance Assessment Completed. These phrases describe different forms of evidence and should not be treated as customer certification or a compliance guarantee.",
+      matchedEntries: [isoCertificationEntry, trustEntry].filter(Boolean),
+      entities: [],
+      directAnswerEligible: true,
+    };
+  }
+  if (
+    isoReadinessEntry &&
+    isoCertificationEntry &&
+    /\b(?:do you certify (?:us|me|customers?)|can (?:OneSmarter|you) certify (?:us|me|my company|our company|customers?))\b/i.test(message)
+  ) {
+    return {
+      ...singleEntryFaqResult(
+        isoReadinessEntry,
+        "No. OneSmarter does not certify customer systems or issue ISO certificates. It provides ISO/IEC 27001 readiness support to help clients prepare for an independent certification process.",
+        "faq_iso_customer_certification_boundary",
+      ),
+      entities: [],
+    };
+  }
+  if (
+    isoReadinessEntry &&
+    isoCertificationEntry &&
+    (/\bISO(?:\/IEC)?(?:\s*27001)?\b/i.test(message) ||
+      /\breadiness service\b.{0,50}\bown certification\b/i.test(message))
+  ) {
+    const differenceQuestion =
+      /\b(?:difference|distinguish|separate)\b|\breadiness\b.{0,50}\b(?:own|itself|OneSmarter)\b.{0,30}\bcertif/i.test(message);
     const customerCertificationQuestion =
-      /\b(?:are|will|would)\s+(?:we|I)\s+(?:automatically\s+)?certified\b|\bautomatically\s+(?:certif(?:y|ies)|make(?:s)?)\s+(?:us|me)\b|\bmake(?:s)?\s+(?:us|me)\s+certified\b/i.test(
+      /\b(?:are|will|would)\s+(?:we|I|our systems?|customer systems?)\s+(?:automatically\s+)?certified\b|\bautomatically\s+(?:certif(?:y|ies)|make(?:s)?)\s+(?:us|me|customers?)\b|\bmake(?:s)?\s+(?:us|me|customers?)\s+certified\b|\bmean\b.{0,30}\b(?:our|customer) systems?\b.{0,20}\bcertified\b/i.test(
         message,
       );
     const issuingQuestion =
       /\b(?:OneSmarter|you)\s+(?:issue|provide|grant)\b.{0,30}\bISO certificates?\b/i.test(
         message,
       );
+    const guaranteeQuestion =
+      /\b(?:guarantee|guarantees|guaranteed)\b.{0,25}\b(?:compliance|compliant)\b/i.test(message);
+    const certificateDetailQuestion =
+      /\b(?:certificate number|who issued|issuing body|certification scope|certificate scope|issue date|issued on|expiry|expire|expiration)\b/i.test(message);
+    const readinessQuestion =
+      /\b(?:readiness|services?|support|prepare|preparation|ISMS|control mapping|evidence preparation|remediation)\b/i.test(message);
     const certificationQuestion =
       /\b(?:certif(?:ied|ication)|certificate|logo)\b/i.test(message);
     const definitionQuestion = /\bwhat is ISO(?:\/IEC)?\s*27001\b/i.test(message);
-    let answer = isoEntry.approvedSummary;
+    let answer = isoReadinessEntry.approvedSummary;
     let faqId = "faq_iso_readiness";
-    if (customerCertificationQuestion) {
-      answer = "No. ISO/IEC 27001 readiness support does not automatically certify a customer. OneSmarter supports ISMS documentation, control mapping, evidence preparation, and remediation coordination, but it does not issue ISO certificates.";
+    let matchedEntries = [isoReadinessEntry];
+    if (differenceQuestion) {
+      answer = "OneSmarter's ISO/IEC 27001 certification is its own organizational credential. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and OneSmarter does not issue ISO certificates.";
+      faqId = "faq_iso_readiness_vs_certification";
+      matchedEntries = [isoCertificationEntry, isoReadinessEntry];
+    } else if (customerCertificationQuestion) {
+      answer = "No. OneSmarter's ISO/IEC 27001 certification does not certify customer systems. ISO/IEC 27001 readiness support helps clients prepare, but certification is not automatic and OneSmarter does not issue ISO certificates.";
       faqId = "faq_iso_customer_certification_boundary";
     } else if (issuingQuestion) {
       answer = "No. OneSmarter provides ISO/IEC 27001 readiness support for clients; it does not issue ISO certificates.";
       faqId = "faq_iso_certificate_issuer_boundary";
+    } else if (guaranteeQuestion) {
+      answer = "No. ISO/IEC 27001 certification does not guarantee customer compliance, and OneSmarter's certification does not certify customer systems.";
+      faqId = "faq_iso_compliance_guarantee_boundary";
+      matchedEntries = [isoCertificationEntry];
+    } else if (certificateDetailQuestion) {
+      answer = "OneSmarter is ISO/IEC 27001 Certified, but Mira's approved knowledge does not include the requested certificate number, issuing body, exact scope, issue date, or expiry date. For documentary certificate evidence, contact care@onesmarter.com.";
+      faqId = "faq_iso_certificate_details";
+      matchedEntries = [isoCertificationEntry];
+    } else if (readinessQuestion && !/\b(?:own certification|your certification|OneSmarter certified|are you certified)\b/i.test(message)) {
+      answer = "OneSmarter provides ISO/IEC 27001 readiness support for clients through ISMS documentation, control mapping, evidence preparation, and remediation coordination. This service supports preparation; it does not issue certificates or guarantee certification or compliance.";
+      faqId = "faq_iso_readiness";
     } else if (certificationQuestion) {
       const logoContext = /\blogo\b/i.test(message)
-        ? "A logo alone is not sufficient approved evidence of certification. "
+        ? "A logo alone should not be treated as certification evidence. "
         : "";
-      answer = `${logoContext}OneSmarter provides ISO/IEC 27001 readiness support for clients. Mira is not currently presenting OneSmarter certificate details or certification status as approved public information.`;
-      faqId = "faq_iso_certification_placeholder";
+      answer = `${logoContext}Yes. OneSmarter is ISO/IEC 27001 Certified. This describes OneSmarter's own organizational credential and does not certify customer systems.`;
+      faqId = "faq_iso_certification";
+      matchedEntries = [isoCertificationEntry];
     } else if (definitionQuestion) {
       answer = "ISO/IEC 27001 is an information-security management system standard. OneSmarter provides readiness support for clients through ISMS documentation, control mapping, evidence preparation, and remediation coordination.";
       faqId = "faq_iso_definition";
     }
     return {
-      ...singleEntryFaqResult(
-        isoEntry,
-        answer,
-        faqId,
-      ),
+      faqId,
+      answer,
+      matchedEntries,
       entities: [],
+      directAnswerEligible: true,
     };
   }
 

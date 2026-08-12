@@ -283,12 +283,11 @@ export const onesmarterPublicKnowledgeBase = [
     route: isoReadinessPage?.route || "/compliance-assurance/iso-27001-readiness",
     title: "ISO/IEC 27001 Readiness Support",
     category: "Compliance & Cyber Assurance",
-    certificationStatus: "not_published",
     approvedSummary: isoReadinessPage?.shortSummary,
     sourceFacts: [
       isoReadinessPage?.shortSummary,
       ...(isoReadinessPage?.keyOfferings || []),
-      "OneSmarter provides client-facing ISO/IEC 27001 readiness support. Mira does not currently present OneSmarter certificate details or certification status as approved public information.",
+      "ISO/IEC 27001 readiness support is a client-facing service. Separately, OneSmarter holds its own ISO/IEC 27001 certification.",
     ].filter(Boolean),
     allowedClaims: [
       "ISO/IEC 27001 readiness support",
@@ -300,8 +299,11 @@ export const onesmarterPublicKnowledgeBase = [
     disallowedClaims: [
       "Readiness support proves OneSmarter certification",
       "OneSmarter issues ISO certificates",
+      "OneSmarter certifies customer systems",
+      "ISO certification guarantees customer compliance",
+      "OneSmarter's certification automatically certifies customers",
+      "ISO readiness automatically results in certification",
     ],
-    withheldClaims: ["OneSmarter is ISO/IEC 27001 certified"],
     handoffGuidance:
       "Route certification evidence or business-specific readiness questions to care@onesmarter.com.",
     relatedQuestions: [
@@ -310,7 +312,42 @@ export const onesmarterPublicKnowledgeBase = [
       "Does readiness support mean OneSmarter is certified?",
     ],
     sourceLabel: "siteDirectory.js: /compliance-assurance/iso-27001-readiness",
-  },  {
+  },
+  {
+    id: "iso-27001-certified",
+    route: "/trust-center/iso-27001",
+    title: "ISO/IEC 27001 Certified",
+    category: "Trust Center",
+    approvedSummary:
+      "OneSmarter is ISO/IEC 27001 Certified. This is OneSmarter's own organizational credential and does not certify customer systems or guarantee customer compliance.",
+    sourceFacts: [
+      "Use the exact phrase ISO/IEC 27001 Certified.",
+      "This certification describes OneSmarter's own organizational information-security management posture.",
+      "ISO/IEC 27001 readiness support is a separate client-facing service for organizations preparing for their own certification journey.",
+      "Approved Mira knowledge does not include a certificate number, issuing body, exact certification scope, issue date, or expiry date.",
+    ],
+    allowedClaims: [
+      "ISO/IEC 27001 Certified",
+      "Organizational information-security management credential",
+      "OneSmarter's own certification",
+    ],
+    disallowedClaims: [
+      "OneSmarter certifies customer systems",
+      "OneSmarter issues ISO certificates",
+      "ISO certification guarantees customer compliance",
+      "OneSmarter's certification automatically certifies customers",
+      "ISO readiness automatically results in certification",
+    ],
+    handoffGuidance:
+      "Route requests for certificate evidence, certificate number, issuing body, exact scope, issue date, or expiry date to care@onesmarter.com.",
+    relatedQuestions: [
+      "Is OneSmarter ISO/IEC 27001 certified?",
+      "What is OneSmarter's ISO certification scope?",
+      "What is the difference between ISO readiness support and OneSmarter's certification?",
+    ],
+    sourceLabel: "Approved Mira ISO/IEC 27001 certification reconciliation",
+  },
+  {
     id: "compliance-cyber-assurance-overview",
     route: "/compliance-assurance",
     title: "Compliance & Cyber Assurance Overview",
@@ -351,15 +388,17 @@ export const onesmarterPublicKnowledgeBase = [
     title: "Trust Center Overview",
     category: "Trust Center",
     approvedSummary:
-      "The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture.",
+      "The Trust Center explains OneSmarter's own security, privacy, ISO/IEC 27001, SOC 2, HIPAA, secure development, and responsible data handling posture.",
     sourceFacts: [
       "Trust Center describes OneSmarter's own posture, not client-facing compliance services.",
-      "Trust Center includes SOC 2, HIPAA, Security Practices, and Privacy.",
+      "Trust Center includes ISO/IEC 27001, SOC 2, HIPAA, Security Practices, and Privacy.",
+      "The ISO/IEC 27001 Trust Center page is /trust-center/iso-27001.",
       "Formal evidence requests should route to care@onesmarter.com.",
     ],
     allowedClaims: [
       "SOC 2 Type II Attested",
       "HIPAA Security Rule Compliance Assessment Completed",
+      "ISO/IEC 27001 Certified",
       "Security practices",
       "Privacy and responsible data handling",
     ],

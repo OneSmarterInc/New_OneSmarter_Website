@@ -106,6 +106,11 @@ if (!MIRA_LANGUAGE_DEMOS.some((language) => language.status === "planned")) {
   fail("language-demos: future language samples must be marked planned.");
 }
 
+const carefulSample = miraVoiceSamples.find((sample) => sample.id === "careful");
+if (!carefulSample?.transcript.includes("ISO/IEC 27001 Certified")) {
+  fail("voice-samples: careful trust-evidence sample must include approved ISO/IEC 27001 Certified wording.");
+}
+
 const componentSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 const presentationSource = readFileSync(
   "src/data/agentPresentation/miraVoiceSamples.js",

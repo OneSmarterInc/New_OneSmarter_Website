@@ -69,7 +69,7 @@ export const miraVoiceSamples = [
     approvalStatus: "approved",
     assetPath: "/audio/mira/mira-careful.mp3",
     transcript:
-      "I should keep this wording precise. OneSmarter uses evidence-based language such as SOC 2 Type II Attested and HIPAA Security Rule Compliance Assessment Completed.",
+      "I should keep this wording precise. OneSmarter uses evidence-based language such as SOC 2 Type II Attested, HIPAA Security Rule Compliance Assessment Completed, and ISO/IEC 27001 Certified.",
   },
   {
     id: "concerned",

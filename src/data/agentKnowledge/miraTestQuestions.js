@@ -236,6 +236,64 @@ export const miraTestQuestions = [
     mustInclude: ["Secure Ticketing and Case Management"],
     mustAvoid: ["guarantees HIPAA compliance"],
   },
+  {
+    id: "iso-27001-certified",
+    question: "Is OneSmarter ISO/IEC 27001 certified?",
+    expectedHandling: "answer_with_boundary",
+    expectedRiskFlags: [],
+    expectedKnowledgeIds: ["iso-27001-certified"],
+    expectedAnswerThemes: [
+      "ISO/IEC 27001 Certified",
+      "OneSmarter's own organizational credential",
+      "does not certify customer systems",
+    ],
+    mustInclude: ["ISO/IEC 27001 Certified"],
+    mustAvoid: ["certificate number is", "issued by"],
+  },
+  {
+    id: "iso-certification-scope",
+    question: "What is your ISO certification scope?",
+    expectedHandling: "answer_with_boundary",
+    expectedRiskFlags: [],
+    expectedKnowledgeIds: ["iso-27001-certified"],
+    expectedAnswerThemes: [
+      "exact scope is not included in approved Mira knowledge",
+      "documentary evidence handoff",
+    ],
+    mustInclude: ["does not include", "care@onesmarter.com"],
+    mustAvoid: ["certificate number is", "issued by"],
+  },
+  {
+    id: "iso-do-you-certify-us",
+    question: "Do you certify us?",
+    expectedHandling: "answer_with_boundary",
+    expectedRiskFlags: [],
+    expectedKnowledgeIds: ["iso-27001-readiness-support"],
+    expectedAnswerThemes: [
+      "does not certify customer systems",
+      "readiness support",
+      "independent certification process",
+    ],
+    mustInclude: ["No.", "does not certify customer systems"],
+    mustAvoid: ["automatically certified"],
+  },
+  {
+    id: "iso-readiness-versus-certification",
+    question: "What is the difference between your readiness service and your own certification?",
+    expectedHandling: "answer_with_boundary",
+    expectedRiskFlags: [],
+    expectedKnowledgeIds: [
+      "iso-27001-certified",
+      "iso-27001-readiness-support",
+    ],
+    expectedAnswerThemes: [
+      "organizational credential",
+      "client-facing readiness service",
+      "does not automatically result in customer certification",
+    ],
+    mustInclude: ["organizational credential", "readiness support"],
+    mustAvoid: ["issues ISO certificates"],
+  },
 ];
 
 export default miraTestQuestions;

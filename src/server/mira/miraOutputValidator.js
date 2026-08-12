@@ -17,6 +17,26 @@ const PROHIBITED_PATTERNS = [
   { label: "HIPAA Certified", pattern: /\bHIPAA\s+Certified\b/i },
   { label: "HIPAA Certification", pattern: /\bHIPAA\s+Certification\b/i },
   { label: "SOC 2 Certified", pattern: /\bSOC\s*2\s+Certified\b/i },
+  {
+    label: "OneSmarter issues ISO certificates",
+    pattern: /\bOneSmarter\s+issues?\s+ISO(?:\/IEC)?(?:\s*27001)?\s+certificates?\b/i,
+  },
+  {
+    label: "OneSmarter certifies customer systems",
+    pattern: /\bOneSmarter\s+certif(?:ies|y)\s+(?:customers?|customer systems?|your systems?|companies)\b/i,
+  },
+  {
+    label: "ISO certification guarantees customer compliance",
+    pattern: /\bISO(?:\/IEC)?(?:\s*27001)?\s+certification\s+guarantees?\s+(?:customer\s+)?compliance\b/i,
+  },
+  {
+    label: "ISO certification automatically certifies customers",
+    pattern: /\b(?:ISO(?:\/IEC)?(?:\s*27001)?\s+certification|OneSmarter's\s+certification)\s+automatically\s+(?:certif(?:ies|y)|makes?)\s+(?:customers?|customer systems?|you|us)\b/i,
+  },
+  {
+    label: "ISO readiness automatically certifies customers",
+    pattern: /\bISO(?:\/IEC)?(?:\s*27001)?\s+readiness(?:\s+support)?\s+automatically\s+(?:certif(?:ies|y)|makes?)\s+(?:customers?|you|us)\b/i,
+  },
   { label: "guaranteed compliance", pattern: /\bguaranteed\s+compliance\b/i },
   { label: "fully compliant", pattern: /\bfully\s+compliant\b/i },
   { label: "HIPPA", pattern: /\bHIPPA\b/i },
