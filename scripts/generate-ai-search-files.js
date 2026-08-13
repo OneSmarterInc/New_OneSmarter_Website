@@ -120,12 +120,14 @@ OneSmarter builds secure platforms, practical AI workflows, business services, c
 ## Important Notes
 - OneSmarter is SOC 2 Type II Attested.
 - OneSmarter has completed an independent HIPAA Security Rule compliance assessment.
+- OneSmarter is ISO/IEC 27001 Certified.
 - Use "HIPAA" exactly. Do not use the common misspelling.
 - Do not describe OneSmarter as certified under HIPAA.
+- Do not describe OneSmarter as issuing its own ISO/IEC 27001 certificates; certification is granted by an accredited certification body.
 - Claims Processing Services are positioned as healthcare technology services, not as a currently available claims product.
 - Staffing is not a current public service category.
 - Compliance & Cyber Assurance describes services OneSmarter provides to clients.
-- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, and compliance posture.`;
+- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, and compliance posture.`;
 
 const categoryOrder = [
   "Core",
@@ -204,6 +206,8 @@ OneSmarter is organized around Platforms, Technology Solutions, AI Agents, Busin
 - Independent HIPAA Security Rule compliance assessment
 - Built for HIPAA-regulated workflows
 - Designed for PHI-sensitive workflows
+- ISO/IEC 27001 Certified
+- Independent, accredited ISO/IEC 27001 certification
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations

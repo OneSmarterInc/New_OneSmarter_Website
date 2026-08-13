@@ -5,12 +5,14 @@ OneSmarter builds secure platforms, practical AI workflows, business services, c
 ## Important Notes
 - OneSmarter is SOC 2 Type II Attested.
 - OneSmarter has completed an independent HIPAA Security Rule compliance assessment.
+- OneSmarter is ISO/IEC 27001 Certified.
 - Use "HIPAA" exactly. Do not use the common misspelling.
 - Do not describe OneSmarter as certified under HIPAA.
+- Do not describe OneSmarter as issuing its own ISO/IEC 27001 certificates; certification is granted by an accredited certification body.
 - Claims Processing Services are positioned as healthcare technology services, not as a currently available claims product.
 - Staffing is not a current public service category.
 - Compliance & Cyber Assurance describes services OneSmarter provides to clients.
-- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, and compliance posture.
+- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, and compliance posture.
 
 ## Core
 - [OneSmarter | Secure Platforms, Practical AI, Trusted Execution](https://www.onesmarter.com/ai-pages/index.md): OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency. Website: https://www.onesmarter.com
@@ -52,9 +54,10 @@ OneSmarter builds secure platforms, practical AI workflows, business services, c
 - [Compliance Operations Support | OneSmarter](https://www.onesmarter.com/ai-pages/compliance-assurance/compliance-operations.md): Managed compliance operations for recurring evidence collection, control tracking, remediation follow-up, documentation maintenance, and reporting. Website: https://www.onesmarter.com/compliance-assurance/compliance-operations
 
 ## Trust Center
-- [Trust Center | OneSmarter](https://www.onesmarter.com/ai-pages/trust-center/index.md): The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture. Website: https://www.onesmarter.com/trust-center
+- [Trust Center | OneSmarter](https://www.onesmarter.com/ai-pages/trust-center/index.md): The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, secure development, and responsible data handling posture. Website: https://www.onesmarter.com/trust-center
 - [SOC 2 Type II Attested | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/soc2.md): OneSmarter is SOC 2 Type II Attested as part of its ongoing security and operational controls program. Website: https://www.onesmarter.com/trust-center/soc2
 - [HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/hipaa.md): OneSmarter has completed an independent HIPAA Security Rule compliance assessment covering applicable safeguards and practices. Website: https://www.onesmarter.com/trust-center/hipaa
+- [ISO/IEC 27001 Certified | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/iso-27001.md): OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system. Website: https://www.onesmarter.com/trust-center/iso-27001
 - [Security Practices | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/security-practices.md): OneSmarter security practices cover secure software development, access control, least privilege, change management, risk review, and incident response readiness. Website: https://www.onesmarter.com/trust-center/security-practices
 - [Privacy & Responsible Data Handling | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/privacy.md): OneSmarter privacy practices emphasize client confidentiality, limited access, privacy-aware operations, and careful handling of sensitive information. Website: https://www.onesmarter.com/trust-center/privacy
 

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import logo from "../assets/logo2.png";
 
@@ -117,6 +117,10 @@ const navGroups = [
         path: "/trust-center/soc2",
       },
       {
+        label: "ISO/IEC 27001",
+        path: "/trust-center/iso-27001",
+      },
+      {
         label: "HIPAA",
         path: "/trust-center/hipaa",
       },
@@ -143,6 +147,11 @@ const Navbar = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mobileOpenGroup, setMobileOpenGroup] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isWhiteHeroRoute =
+    location.pathname.startsWith("/trust-center") ||
+    location.pathname.startsWith("/aboutus");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -181,7 +190,9 @@ const Navbar = () => {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
           ? "bg-[#0c0c0c]/95 backdrop-blur-sm shadow-md py-2"
-          : "bg-transparent py-4"
+          : isWhiteHeroRoute
+            ? "bg-white shadow-md py-4"
+            : "bg-transparent py-4"
         }`}
     >
       <div
@@ -242,7 +253,7 @@ const Navbar = () => {
             <li key={link.path}>
               <Link
                 to={link.path}
-                className="whitespace-nowrap text-[13px] font-medium text-red-600 transition-all duration-300 hover:text-white lg:text-[14px] xl:text-[15px]"
+                className="whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-600 transition-all duration-300 hover:bg-zinc-950/80 hover:text-white lg:text-[14px] xl:text-[15px]"
               >
                 {link.label}
               </Link>

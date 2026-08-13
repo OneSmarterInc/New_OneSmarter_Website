@@ -18,6 +18,7 @@ import bannerImage from "../assets/home-banner.png";
 import bgImage from "../assets/bg-1.jpg";
 import soclogo from "../assets/soc-2-transparent.png";
 import hipaaLogo from "../assets/Hippa-transparent.png";
+import isoLogo from "../assets/ISO2.png";
 
 const offeringCards = [
   {
@@ -53,7 +54,7 @@ const offeringCards = [
     path: "/trust-center",
     icon: LockKeyhole,
     summary: "OneSmarter's own security and compliance posture.",
-    points: ["SOC 2 Type II Attested", "HIPAA Security Rule assessment", "Security practices and privacy"],
+    points: ["SOC 2 Type II Attested", "HIPAA Security Rule assessment", "ISO/IEC 27001 Certified", "Security practices and privacy"],
   },
 ];
 
@@ -179,9 +180,9 @@ const Banner = () => {
 
             <div className="mt-8 h-px w-24 bg-red-500/60" />
 
-            <div className="mt-6 flex w-full max-w-3xl min-w-0 flex-col divide-y divide-white/10 sm:flex-row sm:items-center sm:divide-x sm:divide-y-0">
-              <div className="flex min-w-0 items-center gap-4 pb-5 sm:pb-0 sm:pr-6">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white sm:h-28 sm:w-28">
+            <div className="mt-6 flex w-full max-w-3xl min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-0">
+              <div className="flex min-w-0 w-full items-center gap-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 lg:w-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:h-32 lg:gap-6 lg:px-0 lg:pr-8">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white lg:h-28 lg:w-28">
                   <img
                     src={soclogo}
                     alt="AICPA SOC 2 Type II Attested"
@@ -189,34 +190,54 @@ const Banner = () => {
                   />
                 </div>
                 <span className="min-w-0 whitespace-nowrap font-bold uppercase leading-tight tracking-wide text-white">
-                  <span className="text-base sm:text-lg">SOC 2</span>
+                  <span className="text-base lg:text-lg">SOC 2</span>
+                  <br/>
+                  <span className="text-base lg:text-lg">Type II</span>
                   <br />
-                  <span className="text-base sm:text-lg">Type II</span>
-                  <br />
-                  <span className="text-xs text-red-500 sm:text-sm">Attested</span>
+                  <span className="text-xs text-red-500 lg:text-sm">Attested</span>
                 </span>
               </div>
-              <div className="flex min-w-0 items-center gap-4 pt-5 sm:pl-6 sm:pt-0">
+              <div className="flex min-w-0 w-full items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 lg:w-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:h-32 lg:gap-1 lg:px-8">
                 <img
                   src={hipaaLogo}
                   alt="HIPAA Security Rule Compliance Assessed"
-                  className="h-28 w-28 shrink-0 object-contain sm:h-32 sm:w-32"
+                  className="h-20 w-20 shrink-0 object-contain lg:h-32 lg:w-32"
                 />
                 <span className="min-w-0 font-bold uppercase leading-tight tracking-wide text-white">
-                  <span className="whitespace-nowrap text-base sm:text-lg">
+                  <span className="whitespace-nowrap text-base lg:text-lg">
                     HIPAA
                   </span>
                   <br />
-                  <span className="whitespace-nowrap text-xs sm:text-sm">
+                  <span className="whitespace-nowrap text-xs lg:text-sm">
                     Security Rule
                   </span>
                   <br />
-                  <span className="whitespace-nowrap text-xs sm:text-sm">
+                  <span className="whitespace-nowrap text-xs lg:text-sm">
                     Compliance
                   </span>
                   <br />
-                  <span className="whitespace-nowrap text-xs text-red-500 sm:text-sm">
+                  <span className="whitespace-nowrap text-xs text-red-500 lg:text-sm">
                     Assessed
+                  </span>
+                </span>
+              </div>
+              <div className="flex min-w-0 w-full items-center gap-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 lg:w-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:h-32 lg:gap-6 lg:px-0 lg:pl-16">
+                {/* TODO: swap the placeholder mark for the official ISO/IEC 27001 certification-body mark once received */}
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-2 lg:h-28 lg:w-28">
+                  <img
+                    src={isoLogo}
+                    alt="ISO/IEC 27001 Certified"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                <span className="min-w-0 whitespace-nowrap font-bold uppercase leading-tight tracking-wide text-white">
+                  <span className="text-base lg:text-lg">ISO/IEC</span>
+                  <br />
+                  <span className="text-sm lg:text-lg">27001</span>
+                  <br/>
+                  <span className="text-xs text-red-500 lg:text-sm">
+                    Certified
                   </span>
                 </span>
               </div>
@@ -352,7 +373,7 @@ const Banner = () => {
         </div>
       </section>
 
-      <section className="bg-zinc-200 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
+      <section className="bg-neutral-50 px-4 py-16 sm:px-6 lg:px-12 lg:py-24">
         <div className="qa-container mx-auto grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <p className="text-sm font-semibold uppercase text-red-600">
@@ -415,11 +436,11 @@ const Banner = () => {
               Security and compliance for work that requires trust.
             </h2>
             <p className="mt-5 max-w-3xl text-base leading-8 text-gray-300">
-              OneSmarter has completed a SOC 2 Type II attestation and an
-              independent HIPAA Security Rule compliance assessment. These
-              milestones reflect our ongoing commitment to secure software
-              development, responsible data handling, and dependable client
-              service.
+              OneSmarter has completed a SOC 2 Type II attestation, an
+              independent HIPAA Security Rule compliance assessment, and is
+              ISO/IEC 27001 certified. These milestones reflect our ongoing
+              commitment to secure software development, responsible data
+              handling, and dependable client service.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">

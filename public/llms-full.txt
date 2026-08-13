@@ -11,6 +11,8 @@ OneSmarter is organized around Platforms, Technology Solutions, AI Agents, Busin
 - Independent HIPAA Security Rule compliance assessment
 - Built for HIPAA-regulated workflows
 - Designed for PHI-sensitive workflows
+- ISO/IEC 27001 Certified
+- Independent, accredited ISO/IEC 27001 certification
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -22,7 +24,7 @@ OneSmarter is organized around Platforms, Technology Solutions, AI Agents, Busin
 - AI Agents: Practical AI Agents for Secure, Accountable Workflows | OneSmarter
 - Business Services: Business Services | OneSmarter; Accounting, Bookkeeping & Tax Support | OneSmarter; EOR & HR Services | OneSmarter; Third-Party Payment Services | OneSmarter; Benefits & Back Office Support | OneSmarter
 - Compliance & Cyber Assurance: Compliance & Cyber Assurance | OneSmarter; SOC Readiness Support | OneSmarter; HIPAA Audit Readiness Support | OneSmarter; ISO/IEC 27001 Readiness Support | OneSmarter; PCI DSS Readiness Support | OneSmarter; Framework Mapping | OneSmarter; VAPT & Remediation Support | OneSmarter; CMMI Readiness Support | OneSmarter; Compliance Operations Support | OneSmarter
-- Trust Center: Trust Center | OneSmarter; SOC 2 Type II Attested | OneSmarter Trust Center; HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center; Security Practices | OneSmarter Trust Center; Privacy & Responsible Data Handling | OneSmarter Trust Center
+- Trust Center: Trust Center | OneSmarter; SOC 2 Type II Attested | OneSmarter Trust Center; HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center; ISO/IEC 27001 Certified | OneSmarter Trust Center; Security Practices | OneSmarter Trust Center; Privacy & Responsible Data Handling | OneSmarter Trust Center
 - Legal: Privacy Policy | OneSmarter; Terms Of Use | OneSmarter
 
 ## Page Directory
@@ -49,6 +51,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -72,6 +75,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -98,6 +102,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -128,6 +133,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -154,6 +160,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -179,6 +186,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -206,6 +214,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -233,6 +242,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -259,6 +269,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -290,6 +301,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -316,6 +328,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -342,6 +355,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -367,6 +381,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -393,6 +408,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -423,6 +439,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -448,6 +465,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -474,6 +492,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -501,6 +520,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -527,6 +547,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -553,6 +574,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -579,6 +601,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -606,6 +629,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -632,6 +656,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -657,6 +682,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -682,6 +708,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -708,6 +735,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -722,17 +750,19 @@ Category: Trust Center
 
 Audience: Organizations evaluating OneSmarter services.
 
-Summary: The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture. Key offerings include SOC 2 Type II Attested, HIPAA Security Rule Compliance Assessment Completed, Security Practices, Privacy.
+Summary: The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, secure development, and responsible data handling posture. Key offerings include SOC 2 Type II Attested, HIPAA Security Rule Compliance Assessment Completed, ISO/IEC 27001 Certified, Security Practices, Privacy.
 
 Key offerings:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- ISO/IEC 27001 Certified
 - Security Practices
 - Privacy
 
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -758,6 +788,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -785,11 +816,41 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
 - HIPAA Security Rule Compliance Assessment Completed
 - Do not describe this assessment as a certification
+
+## ISO/IEC 27001 Certified | OneSmarter Trust Center
+
+Website URL: https://www.onesmarter.com/trust-center/iso-27001
+
+AI mirror URL: https://www.onesmarter.com/ai-pages/trust-center/iso-27001.md
+
+Category: Trust Center
+
+Audience: Organizations evaluating OneSmarter services.
+
+Summary: OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system. Key offerings include Information security management system, Risk assessment and treatment, Access control, Continual improvement, Certification scope.
+
+Key offerings:
+- Information security management system
+- Risk assessment and treatment
+- Access control
+- Continual improvement
+- Certification scope
+
+Trust and compliance notes:
+- SOC 2 Type II Attested
+- HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
+- Secure software development
+- Responsible data handling
+- Compliance-aware operations
+- ISO/IEC 27001 Certified
+- Certification decisions and scope are governed by an accredited certification body
 
 ## Security Practices | OneSmarter Trust Center
 
@@ -814,6 +875,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -839,6 +901,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -863,6 +926,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -885,6 +949,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -907,6 +972,7 @@ Key offerings:
 Trust and compliance notes:
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations

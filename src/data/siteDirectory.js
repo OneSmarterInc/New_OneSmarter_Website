@@ -1,6 +1,7 @@
 const trustNotes = [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
+  "OneSmarter is ISO/IEC 27001 Certified",
   "Secure software development",
   "Responsible data handling",
   "Compliance-aware operations",
@@ -391,13 +392,13 @@ export const siteDirectory = [
     route: "/trust-center",
     title: "Trust Center | OneSmarter",
     metaDescription:
-      "OneSmarter's Trust Center explains its own SOC 2, HIPAA, security, privacy, secure development, and responsible data handling posture.",
+      "OneSmarter's Trust Center explains its own SOC 2, HIPAA, ISO/IEC 27001, security, privacy, secure development, and responsible data handling posture.",
     category: "Trust Center",
     shortSummary:
-      "The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture.",
+      "The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, secure development, and responsible data handling posture.",
     serviceType: "Trust information",
-    keyOfferings: ["SOC 2 Type II Attested", "HIPAA Security Rule Compliance Assessment Completed", "Security Practices", "Privacy"],
-    relatedRoutes: ["/trust-center/soc2", "/trust-center/hipaa", "/trust-center/security-practices", "/trust-center/privacy"],
+    keyOfferings: ["SOC 2 Type II Attested", "HIPAA Security Rule Compliance Assessment Completed", "ISO/IEC 27001 Certified", "Security Practices", "Privacy"],
+    relatedRoutes: ["/trust-center/soc2", "/trust-center/hipaa", "/trust-center/iso-27001", "/trust-center/security-practices", "/trust-center/privacy"],
   }),
   entry({
     route: "/trust-center/soc2",
@@ -423,6 +424,19 @@ export const siteDirectory = [
     serviceType: "Trust information",
     keyOfferings: ["Administrative safeguards", "Technical safeguards", "Physical safeguards", "Access management", "Ongoing risk awareness"],
     complianceNotes: ["HIPAA Security Rule Compliance Assessment Completed", "Do not describe this assessment as a certification"],
+    relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
+  }),
+  entry({
+    route: "/trust-center/iso-27001",
+    title: "ISO/IEC 27001 Certified | OneSmarter Trust Center",
+    metaDescription:
+      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system.",
+    category: "Trust Center",
+    shortSummary:
+      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system.",
+    serviceType: "Trust information",
+    keyOfferings: ["Information security management system", "Risk assessment and treatment", "Access control", "Continual improvement", "Certification scope"],
+    complianceNotes: ["ISO/IEC 27001 Certified", "Certification decisions and scope are governed by an accredited certification body"],
     relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
   }),
   entry({

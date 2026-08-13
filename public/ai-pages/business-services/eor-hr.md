@@ -25,6 +25,7 @@ US companies hiring employees in Asia.
 ## Trust And Compliance Notes
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations

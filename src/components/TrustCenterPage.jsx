@@ -1,7 +1,28 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, LockKeyhole, FileCheck2, Eye, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck,
+  LockKeyhole,
+  FileCheck2,
+  Eye,
+  ArrowRight,
+  ClipboardCheck,
+  Settings,
+  RefreshCw,
+  Handshake,
+  ClipboardList,
+  KeyRound,
+  Building2,
+  UserCog,
+  Code2,
+  AlertTriangle,
+  SearchCheck,
+  Siren,
+  Users,
+  TrendingUp,
+} from "lucide-react";
 import soclogo from "../assets/soc1.png";
+import isoLogo from "../assets/ISO2.png";
 import HipaaBadge from "./HipaaBadge";
 
 const trustLinks = [
@@ -14,6 +35,11 @@ const trustLinks = [
     title: "HIPAA",
     path: "/trust-center/hipaa",
     copy: "Independent HIPAA Security Rule compliance assessment for applicable safeguards and practices.",
+  },
+  {
+    title: "ISO/IEC 27001",
+    path: "/trust-center/iso-27001",
+    copy: "Independent ISO/IEC 27001 certification supporting OneSmarter's information security management system.",
   },
   {
     title: "Security Practices",
@@ -30,6 +56,7 @@ const trustLinks = [
 const highlights = [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
+  "ISO/IEC 27001 Certified",
   "Secure Software Development Practices",
   "Responsible Data Handling",
   "Compliance-Aware Operations",
@@ -104,6 +131,44 @@ const detailPages = {
         title: "Ongoing Risk Awareness",
         copy:
           "HIPAA-related safeguards are treated as part of ongoing risk awareness, operational review, and responsible delivery.",
+      },
+    ],
+  },
+  iso27001: {
+    eyebrow: "Trust Center",
+    title: "ISO/IEC 27001 Certified",
+    intro:
+      "OneSmarter is ISO/IEC 27001 certified, reflecting an independent, accredited assessment of its information security management system (ISMS). The Trust Center summarizes this posture in factual, client-review-friendly terms.",
+    sections: [
+      {
+        title: "Information Security Management System",
+        copy:
+          "OneSmarter maintains an ISMS covering governance, risk management, and information security controls aligned with ISO/IEC 27001.",
+      },
+      {
+        title: "Risk Assessment and Treatment",
+        copy:
+          "Risk assessment and treatment processes identify, evaluate, and address information security risks across systems and workflows.",
+      },
+      {
+        title: "Access Control",
+        copy:
+          "Access control practices support role-appropriate permissions, least-privilege principles, and secure handling of sensitive information.",
+      },
+      {
+        title: "Continual Improvement",
+        copy:
+          "OneSmarter treats information security as an ongoing practice, with periodic review, internal audit, and continual improvement of the ISMS.",
+      },
+      {
+        title: "Certification Scope",
+        copy:
+          "Certification decisions and scope are governed by an accredited certification body; OneSmarter does not issue its own ISO/IEC 27001 certificates.",
+      },
+      {
+        title: "Client Trust",
+        copy:
+          "ISO/IEC 27001 certification gives clients an internationally recognized basis for evaluating OneSmarter's information security practices.",
       },
     ],
   },
@@ -197,36 +262,64 @@ const detailPages = {
 
 const detailIcons = [LockKeyhole, FileCheck2, ShieldCheck, Eye];
 
+const sectionIconByTitle = {
+  "Independent Attestation": ClipboardCheck,
+  "Security Controls": LockKeyhole,
+  "Operational Discipline": Settings,
+  "Ongoing Monitoring and Improvement": RefreshCw,
+  "Client Trust": Handshake,
+  "Administrative Safeguards": ClipboardList,
+  "Technical Safeguards": KeyRound,
+  "Physical Safeguards": Building2,
+  "Access Management": UserCog,
+  "Secure Development and Operations": Code2,
+  "Ongoing Risk Awareness": AlertTriangle,
+  "Information Security Management System": ShieldCheck,
+  "Risk Assessment and Treatment": AlertTriangle,
+  "Continual Improvement": RefreshCw,
+  "Certification Scope": ClipboardCheck,
+  "Secure Software Development": Code2,
+  "Access Control": KeyRound,
+  "Encryption Practices Where Applicable": LockKeyhole,
+  "Change Management": RefreshCw,
+  "Risk Review": SearchCheck,
+  "Incident Response Readiness": Siren,
+  "Vendor Awareness": Handshake,
+  "Workforce Security Awareness": Users,
+  "Ongoing Improvement": TrendingUp,
+};
+
 const TrustBadges = () => (
-  <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-    <div className="flex min-w-0 flex-col items-start gap-4 rounded border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-        <img
-          src={soclogo}
-          alt="SOC 2 Type II Attested"
-          className="h-full w-full object-cover"
-        />
-      </div>
-      <div className="min-w-0">
-        <p className="break-words font-semibold text-white">
-          SOC 2 Type II Attested
-        </p>
-        <p className="break-words text-sm leading-6 text-gray-400">
-          Independent attestation for OneSmarter's trust posture.
-        </p>
-      </div>
+  <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">    <div className="flex min-w-0 items-center gap-4 rounded border border-white/10 bg-white/[0.04] p-4 xl:flex-col xl:justify-center xl:text-center">
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+      <img
+        src={soclogo}
+        alt="SOC 2 Type II Attested"
+        className="h-full w-full object-cover"
+      />
+    </div>
+    <p className="min-w-0 font-semibold leading-6 text-white">
+      SOC 2 Type II Attested
+    </p>
+  </div>
+
+    <div className="flex min-w-0 items-center gap-4 rounded border border-white/10 bg-white/[0.04] p-4 xl:flex-col xl:justify-center xl:text-center">
+      <HipaaBadge className="h-14 w-14 shrink-0 object-contain" />
+      <p className="min-w-0 font-semibold leading-6 text-white">
+        HIPAA Security Rule Compliance Assessment Completed
+      </p>
     </div>
 
-    <div className="flex min-w-0 flex-col items-start gap-4 rounded border border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-center">
-      <HipaaBadge compact />
-      <div className="min-w-0">
-        <p className="break-words font-semibold text-white">
-          HIPAA Security Rule Compliance Assessment Completed
-        </p>
-        <p className="break-words text-sm leading-6 text-gray-400">
-          Independent HIPAA Security Rule compliance assessment.
-        </p>
-      </div>
+    <div className="flex min-w-0 items-center gap-4 rounded border border-white/10 bg-white/[0.04] p-4 xl:flex-col xl:justify-center xl:text-center">
+      {/* TODO: swap the placeholder mark for the official ISO/IEC 27001 certification-body mark once received */}
+      <img
+        src={isoLogo}
+        alt="ISO/IEC 27001 Certified"
+        className="h-14 w-14 shrink-0 object-contain"
+      />
+      <p className="min-w-0 font-semibold leading-6 text-white">
+        ISO/IEC 27001 Certified
+      </p>
     </div>
   </div>
 );
@@ -256,22 +349,24 @@ const DetailPage = ({ page }) => {
       <section className="px-4 py-14 sm:px-6 lg:px-12 lg:py-20">
         <div className="qa-container mx-auto grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {content.sections.map((section, index) => {
-            const SectionIcon = detailIcons[index % detailIcons.length];
+            const SectionIcon =
+              sectionIconByTitle[section.title] ||
+              detailIcons[index % detailIcons.length];
 
             return (
               <article
                 key={section.title}
                 className="rounded border border-gray-200 bg-white p-6 shadow-sm"
               >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded bg-red-600 text-white">
-                <SectionIcon className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <h2 className="break-words text-xl font-semibold text-gray-950">
-                {section.title}
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-gray-600">
-                {section.copy}
-              </p>
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded bg-red-600 text-white">
+                  <SectionIcon className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <h2 className="break-words text-xl font-semibold text-gray-950">
+                  {section.title}
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-gray-600">
+                  {section.copy}
+                </p>
               </article>
             );
           })}

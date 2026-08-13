@@ -147,6 +147,12 @@ const trustCenter = [
       "OneSmarter's HIPAA Security Rule Compliance Assessment Completed posture and healthcare workflow safeguards.",
   },
   {
+    title: "ISO/IEC 27001",
+    path: "/trust-center/iso-27001",
+    summary:
+      "OneSmarter's ISO/IEC 27001 Certified posture and information security management system.",
+  },
+  {
     title: "Security Practices",
     path: "/trust-center/security-practices",
     summary:
@@ -501,38 +507,13 @@ const pageContent = {
     eyebrow: "Trust Center",
     title: "Trust Center",
     body:
-      "OneSmarter's Trust Center presents the company's own SOC 2, HIPAA, security, privacy, and compliance posture for clients evaluating secure technology and operational support.",
+      "OneSmarter's Trust Center presents the company's own SOC 2, HIPAA, ISO/IEC 27001, security, privacy, and compliance posture for clients evaluating secure technology and operational support.",
     points: [
       "SOC 2 Type II Attested.",
       "HIPAA Security Rule Compliance Assessment Completed.",
+      "ISO/IEC 27001 Certified.",
       "Secure delivery practices for sensitive operational workflows.",
       "Privacy and compliance-aware operations across technology and business services.",
-    ],
-    collection: "trustCenter",
-  },
-  trustSoc2: {
-    eyebrow: "Trust Center",
-    title: "SOC 2",
-    body:
-      "OneSmarter is SOC 2 Type II Attested. This Trust Center page summarizes OneSmarter's own trust posture for clients evaluating secure software delivery and operational support.",
-    points: [
-      "SOC 2 Type II Attested.",
-      "Controls-oriented operating practices for secure delivery.",
-      "Security and availability considerations for client-facing workflows.",
-      "Trust documentation available through appropriate client review channels.",
-    ],
-    collection: "trustCenter",
-  },
-  trustHipaa: {
-    eyebrow: "Trust Center",
-    title: "HIPAA",
-    body:
-      "OneSmarter has completed a HIPAA Security Rule Compliance Assessment and designs selected systems for HIPAA-regulated workflows and PHI-sensitive workflows.",
-    points: [
-      "HIPAA Security Rule Compliance Assessment Completed.",
-      "Built for HIPAA-regulated workflows where applicable.",
-      "Designed for PHI-sensitive workflows where applicable.",
-      "Administrative and technical safeguards considered in healthcare workflow design.",
     ],
     collection: "trustCenter",
   },

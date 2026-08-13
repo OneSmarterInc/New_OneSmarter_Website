@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import soclogo from "../assets/soc.jpg";
 import hipaaLogo from "../assets/Hippa-transparent.png";
+import isoLogo from "../assets/ISO2.png";
 
 const footerColumns = [
   {
@@ -45,6 +46,7 @@ const footerColumns = [
     links: [
       { label: "Trust Center", path: "/trust-center" },
       { label: "SOC 2", path: "/trust-center/soc2" },
+      { label: "ISO/IEC 27001", path: "/trust-center/iso-27001" },
       { label: "HIPAA", path: "/trust-center/hipaa" },
       { label: "Privacy", path: "/trust-center/privacy" },
     ],
@@ -110,6 +112,17 @@ const Footer = () => {
                     Assessment Completed
                   </p>
                 </div>
+              </div>
+              <div className="flex min-w-0 items-center gap-4 rounded-xl border border-white/10 p-4">
+                {/* TODO: swap the placeholder mark for the official ISO/IEC 27001 certification-body mark once received */}
+                <img
+                  src={isoLogo}
+                  alt="ISO/IEC 27001 Certified"
+                  className="h-14 w-14 shrink-0 rounded-lg bg-white object-contain p-1"
+                />
+                <p className="min-w-0 break-words font-semibold text-white">
+                  ISO/IEC 27001 Certified
+                </p>
               </div>
             </div>
           </div>

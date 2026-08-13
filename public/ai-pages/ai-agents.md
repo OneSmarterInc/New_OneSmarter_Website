@@ -21,6 +21,7 @@ Organizations evaluating practical AI agents for secure, accountable workflows.
 ## Trust And Compliance Notes
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
