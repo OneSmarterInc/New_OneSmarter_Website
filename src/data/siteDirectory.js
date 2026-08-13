@@ -165,13 +165,20 @@ export const siteDirectory = [
     route: "/ai-agents",
     title: "Practical AI Agents for Secure, Accountable Workflows | OneSmarter",
     metaDescription:
-      "Meet OneSmarter's named digital agent team and practical AI direction for public-content guidance, AI readability, trust readiness, compliance language review, and workflow support.",
+      "Meet Mira Vale, OneSmarter's live AI website guide answering from approved public content, and the wider named agent team OneSmarter is developing.",
     category: "AI Agents",
     audience: "Organizations evaluating practical AI agents for secure, accountable workflows.",
     shortSummary:
-      "The AI Agents showcase introduces OneSmarter's named digital agent team, starting with Mira Vale as a public-content website guide concept and future agents for readability, compliance language, operations, and strategy.",
+      "The AI Agents page introduces OneSmarter's named digital agent team. Mira Vale is live and answers visitor questions from approved public content within stated guardrails. Theo, Elena, Ravi and Selene are agents in development, and the Café is where their off-duty conversations will appear once published.",
     serviceType: "AI showcase",
-    keyOfferings: ["Mira Vale website guide concept", "AI Readability Scan concept", "Trust Center Readiness Scan concept", "Compliance Language Review concept", "Agent world vision"],
+    keyOfferings: [
+      "Mira Vale live website guide",
+      "Theo Mercer agent in development",
+      "Elena Cross agent in development",
+      "Ravi Sen agent in development",
+      "Selene Hart agent in development",
+      "The Café",
+    ],
     complianceNotes: ["Answers from approved public content only", "No PHI", "No confidential uploads", "No legal or medical advice", "No compliance guarantees"],
     relatedRoutes: ["/technology-solutions/ai-agentic-services", "/trust-center", "/compliance-assurance", "/contact"],
   }),

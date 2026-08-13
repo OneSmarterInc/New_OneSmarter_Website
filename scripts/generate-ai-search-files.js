@@ -11,6 +11,9 @@ import {
 
 const publicDir = path.resolve("public");
 
+// Flip to true only when the production domain is pointed at this deployment.
+const siteIsPubliclyIndexable = false;
+
 const writeFile = (relativePath, content) => {
   const targetPath = path.join(publicDir, relativePath);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -240,10 +243,13 @@ promotedSiteDirectory.forEach((page) => {
 
 writeFile(
   "robots.txt",
-  `User-agent: *
+  siteIsPubliclyIndexable
+    ? `User-agent: *
 Allow: /
 
 Sitemap: ${siteBaseUrl}/sitemap.xml`
+    : `User-agent: *
+Disallow: /`
 );
 
 const root = create({ version: "1.0" }).ele("urlset", {

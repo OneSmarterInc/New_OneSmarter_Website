@@ -33,7 +33,7 @@ OneSmarter builds secure platforms, practical AI workflows, business services, c
 - [Software Support Consolidation | OneSmarter](https://www.onesmarter.com/ai-pages/technology-solutions/software-support-consolidation.md): Software support consolidation through global delivery and support teams for maintenance, enhancements, documentation, and continuity. Website: https://www.onesmarter.com/technology-solutions/software-support-consolidation
 
 ## AI Agents
-- [Practical AI Agents for Secure, Accountable Workflows | OneSmarter](https://www.onesmarter.com/ai-pages/ai-agents.md): The AI Agents showcase introduces OneSmarter's named digital agent team, starting with Mira Vale as a public-content website guide concept and future agents for readability, compliance language, operations, and strategy. Website: https://www.onesmarter.com/ai-agents
+- [Practical AI Agents for Secure, Accountable Workflows | OneSmarter](https://www.onesmarter.com/ai-pages/ai-agents.md): The AI Agents page introduces OneSmarter's named digital agent team. Mira Vale is live and answers visitor questions from approved public content within stated guardrails. Theo, Elena, Ravi and Selene are agents in development, and the Café is where their off-duty conversations will appear once published. Website: https://www.onesmarter.com/ai-agents
 
 ## Business Services
 - [Business Services | OneSmarter](https://www.onesmarter.com/ai-pages/business-services/index.md): Business services for finance, HR, payment, benefits, and back-office workflows. Website: https://www.onesmarter.com/business-services
