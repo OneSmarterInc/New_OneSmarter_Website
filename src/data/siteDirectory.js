@@ -171,7 +171,7 @@ export const siteDirectory = [
       "The AI Agents showcase introduces OneSmarter's named digital agent team, starting with Mira Vale as a public-content website guide concept and future agents for readability, compliance language, operations, and strategy.",
     serviceType: "AI showcase",
     keyOfferings: ["Mira Vale website guide concept", "AI Readability Scan concept", "Trust Center Readiness Scan concept", "Compliance Language Review concept", "Agent world vision"],
-    complianceNotes: ["Static V2 concept only", "No PHI", "No confidential uploads", "No legal or medical advice", "No compliance guarantees"],
+    complianceNotes: ["Answers from approved public content only", "No PHI", "No confidential uploads", "No legal or medical advice", "No compliance guarantees"],
     relatedRoutes: ["/technology-solutions/ai-agentic-services", "/trust-center", "/compliance-assurance", "/contact"],
   }),
   entry({

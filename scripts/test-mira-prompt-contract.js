@@ -35,10 +35,40 @@ import {
 
 const failures = [];
 const aiAgentsPageSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
+const siteDirectorySource = readFileSync("src/data/siteDirectory.js", "utf8");
 
 const fail = (message) => failures.push(message);
 const contains = (text, expected) =>
   String(text).toLowerCase().includes(String(expected).toLowerCase());
+
+for (const stalePageStatement of [
+  "askMiraMockEndpoint",
+  "live agent runtime remains out of scope",
+  "Static V2 concept only",
+]) {
+  if (aiAgentsPageSource.includes(stalePageStatement)) {
+    fail(`ai-agents-publication: stale statement remains: ${stalePageStatement}.`);
+  }
+}
+if (!aiAgentsPageSource.includes('fetch("/api/agents/mira/chat"')) {
+  fail("ai-agents-publication: Mira must continue using the existing chat endpoint.");
+}
+if (
+  !aiAgentsPageSource.includes(
+    'question: "What is the difference between your readiness service and your own certification?"',
+  ) ||
+  !aiAgentsPageSource.includes("ISO/IEC 27001 readiness support") ||
+  !aiAgentsPageSource.includes("does not automatically certify a customer") ||
+  !aiAgentsPageSource.includes("does not issue ISO certificates")
+) {
+  fail("ai-agents-publication: approved ISO readiness/certification example is missing or incomplete.");
+}
+if (
+  siteDirectorySource.includes("Static V2 concept only") ||
+  !siteDirectorySource.includes("Answers from approved public content only")
+) {
+  fail("ai-agents-publication: /ai-agents compliance note is stale.");
+}
 
 const performanceCases = [
   ["faq-company-id", "What does OneSmarter do?", 0, 0, "faq_company_overview"],
@@ -46,6 +76,13 @@ const performanceCases = [
   ["faq-healthcare-id", "Do you work with healthcare organizations?", 0, 0, "faq_healthcare"],
   ["faq-soc2-id", "What does SOC 2 Type II Attested mean here?", 0, 0, "faq_soc2_attestation"],
   ["faq-hipaa-id", "Are you HIPAA certified?", 0, 0, "faq_hipaa_status"],
+  [
+    "faq-iso-readiness-certification-id",
+    "What is the difference between your readiness service and your own certification?",
+    0,
+    0,
+    "faq_iso_readiness_vs_certification",
+  ],
   ["faq-contact-id", "How should I contact OneSmarter?", 0, 0, "faq_contact"],
   ["acknowledgement", "ok", 0, 0],
   ["platform-list", "What are your platforms?", 0, 0],

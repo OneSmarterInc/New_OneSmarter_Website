@@ -24,7 +24,7 @@ Organizations evaluating practical AI agents for secure, accountable workflows.
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
-- Static V2 concept only
+- Answers from approved public content only
 - No PHI
 - No confidential uploads
 - No legal or medical advice

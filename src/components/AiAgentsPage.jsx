@@ -102,6 +102,12 @@ const conversationExamples = [
       "A safer way to say this is that OneSmarter has completed a HIPAA Security Rule compliance assessment. OneSmarter does not present this as HIPAA certification. For regulated workflows, the Trust Center and a direct business review are the right next steps.",
   },
   {
+    id: "faq_iso_readiness_vs_certification",
+    question: "What is the difference between your readiness service and your own certification?",
+    answer:
+      "OneSmarter's ISO/IEC 27001 certification is its own organizational credential. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and OneSmarter does not issue ISO certificates.",
+  },
+  {
     id: "faq_contact",
     question: "How should I contact OneSmarter?",
     answer: "For business inquiries, email care@onesmarter.com.",
@@ -163,7 +169,7 @@ const MIRA_INPUT_LIMIT = 500;
 const MIRA_HISTORY_LIMIT = 6;
 const MIRA_HISTORY_TOTAL_LIMIT = 2000;
 
-const askMiraMockEndpoint = async (message, conversationHistory = [], suggestedQuestionId = "") => {
+const askMiraEndpoint = async (message, conversationHistory = [], suggestedQuestionId = "") => {
   const response = await fetch("/api/agents/mira/chat", {
     method: "POST",
     headers: {
@@ -590,16 +596,11 @@ const MiraMoodSignalPanel = ({ presentationState }) => (
   </aside>
 );
 
-const MiraVisualPresencePanel = ({ presentationState }) => {
+const MiraVisualPresencePanel = ({ presentationState, showPresentationDebug }) => {
   const visualState = getMiraVisualStateForPosture(presentationState?.posture);
   const [failedAssetIds, setFailedAssetIds] = useState([]);
   const imageUnavailable = failedAssetIds.includes(visualState.id);
   const hasApprovedAsset = visualState.assetStatus === "available" && !imageUnavailable;
-  const showPresentationDebug =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname.includes("vercel.app"));
-
   useEffect(() => {
     setFailedAssetIds((currentIds) =>
       currentIds.filter((assetId) => assetId !== visualState.id),
@@ -659,6 +660,9 @@ const MiraVisualPresencePanel = ({ presentationState }) => {
               </p>
             </div>
           )}
+          <p className="mt-2 text-center text-[11px] font-medium text-zinc-400">
+            AI-generated portrait
+          </p>
         </div>
 
         <div className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
@@ -1046,6 +1050,8 @@ const MiraConversationPanel = () => {
     isLoading,
     hasError: Boolean(errorMessage),
   });
+  const showPresentationDebug =
+    typeof window !== "undefined" && window.location.hostname === "localhost";
   const responseText = formattedResponse.mainSentences.join(" ").toLowerCase();
   const showPrivacyReminder =
     miraResponse?.privacyReminder && !responseText.includes("do not submit");
@@ -1127,7 +1133,7 @@ const MiraConversationPanel = () => {
     setConversationTurns((turns) => [...turns, userTurn]);
 
     try {
-      const response = await askMiraMockEndpoint(message, history, suggestedQuestionId);
+      const response = await askMiraEndpoint(message, history, suggestedQuestionId);
       if (requestId !== latestRequestId.current) return;
       setMiraResponse(response);
       setConversationTurns((turns) => [
@@ -1508,8 +1514,13 @@ const MiraConversationPanel = () => {
           )}
 
           <div className="mt-6 grid min-w-0 max-w-full grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
-            <MiraVisualPresencePanel presentationState={presentationState} />
-            <MiraMoodSignalPanel presentationState={presentationState} />
+            <MiraVisualPresencePanel
+              presentationState={presentationState}
+              showPresentationDebug={showPresentationDebug}
+            />
+            {showPresentationDebug && (
+              <MiraMoodSignalPanel presentationState={presentationState} />
+            )}
           </div>
 
           <p className="mt-6 max-w-full break-words rounded-md border border-white/10 bg-white/[0.04] px-3 py-3 text-xs leading-5 text-zinc-400 [overflow-wrap:anywhere] sm:px-4">
@@ -1649,7 +1660,7 @@ const AiAgentsPage = () => {
             </p>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-200">
               <span className="rounded-full border border-white/15 bg-white/5 px-4 py-2">
-                Static V2 concept
+                Live grounded guide
               </span>
               <span className="rounded-full border border-white/15 bg-white/5 px-4 py-2">
                 First guide: Mira
@@ -1813,8 +1824,11 @@ const AiAgentsPage = () => {
               business inquiries to care@onesmarter.com.
             </p>
             <p className="mt-5 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
-              The interaction previews use prepared questions and responses
-              while the live agent runtime remains out of scope.
+              Mira answers visitor questions live using approved public
+              OneSmarter content and defined guardrails. Responses may contain
+              errors or omit context, so do not submit sensitive, confidential,
+              or PHI information; business follow-up may be directed to
+              care@onesmarter.com when appropriate.
             </p>
           </div>
 

@@ -153,6 +153,21 @@ if (!componentSource.includes("Static artwork only")) {
   fail("visual-ui: helper text should state static artwork only.");
 }
 
+if (!componentSource.includes("AI-generated portrait")) {
+  fail("visual-ui: Mira's likeness must have a persistent AI-generated disclosure.");
+}
+
+if (!componentSource.includes("window.location.hostname === \"localhost\"")) {
+  fail("visual-ui: presentation debug output must be limited to localhost.");
+}
+
+if (
+  !componentSource.includes("{showPresentationDebug && (") ||
+  !componentSource.includes("<MiraMoodSignalPanel presentationState={presentationState} />")
+) {
+  fail("visual-ui: conversation posture instrumentation must use the presentation debug gate.");
+}
+
 if (failures.length) {
   console.error("Mira visual state tests failed:");
   for (const failure of failures) {
