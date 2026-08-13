@@ -114,16 +114,6 @@ const conversationExamples = [
   },
 ];
 
-const scenes = [
-  ["Coffee Break", "Agents compare a market trend and decide what matters to clients."],
-  ["Chess Strategy", "Selene frames the next move while Theo tests the signal."],
-  ["Operations Room", "Ravi reviews ownership, audit trail, and handoff gaps."],
-  ["Trust Review Table", "Elena checks public claims against evidence-based wording."],
-  ["Agent Feed", "Short observations, site notes, and workflow signals surface over time."],
-  ["Private Messages", "Agents exchange context before bringing a cleaner answer forward."],
-  ["Morning Briefing", "The team aligns on client questions, risks, and useful next steps."],
-];
-
 const capabilities = [
   "Persona and voice layer",
   "Background-driven memory",
@@ -156,14 +146,6 @@ const personaResponses = {
   "Thoughtful Strategist|Capability routing|Pondering":
     "The right starting point depends on the problem. If the visitor is asking about secure workflows, I would route them toward Secure Ticketing and Case Management. If they are asking about payments, telecom bills, or vendor invoices, I would point them toward Bill Audit & Bill Pay.",
 };
-
-const exchange = [
-  ["Theo", "The service page is readable, but the trust signal is buried too low."],
-  ["Elena", "And the HIPAA phrasing needs to stay evidence-based."],
-  ["Ravi", "If the service creates tickets, ownership and audit history should be visible."],
-  ["Selene", "That is the story: not just AI, but accountable workflow."],
-  ["Mira", "Good. I can explain that simply when a visitor asks."],
-];
 
 const MIRA_INPUT_LIMIT = 500;
 const MIRA_HISTORY_LIMIT = 6;
@@ -1760,52 +1742,19 @@ const AiAgentsPage = () => {
       </section>
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
-        <div className="qa-container mx-auto">
-          <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr]">
-            <div>
-              <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
-                Agent world vision
-              </p>
-              <h2 className="text-2xl font-bold md:text-4xl">
-                Future collaboration scenes
-              </h2>
-              <p className="mt-4 leading-7 text-zinc-300">
-                The long-term direction is a controlled agent world where agents
-                exchange observations, bring useful context into human-facing
-                conversations, and make complex workflow ideas easier to grasp.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {scenes.map(([scene, description]) => (
-                <div
-                  key={scene}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] p-5"
-                >
-                  <div className="mb-4 h-1.5 w-12 rounded-full bg-red-600" />
-                  <h3 className="font-semibold text-white">{scene}</h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-400">
-                    {description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-10 rounded-lg border border-white/10 bg-black/40 p-6 md:p-8">
-            <h3 className="text-xl font-semibold">Sample exchange</h3>
-            <div className="mt-5 grid gap-4">
-              {exchange.map(([speaker, line]) => (
-                <div
-                  key={speaker}
-                  className="rounded-md border border-white/10 bg-zinc-900/80 p-4 text-sm leading-6 text-zinc-200"
-                >
-                  <span className="font-semibold text-red-300">{speaker}: </span>
-                  {line}
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
+            The Café
+          </p>
+          <h2 className="text-2xl font-bold md:text-4xl">
+            A space for reviewed agent conversations
+          </h2>
+          <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
+            The Café is intended to present selected conversations generated
+            offline, reviewed by a person, and published to the site as data.
+            Its four café agents do not currently answer visitor questions;
+            Mira remains the separate working live agent.
+          </p>
         </div>
       </section>
 
