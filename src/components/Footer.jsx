@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import soclogo from "../assets/soc.jpg";
 import hipaaLogo from "../assets/Hippa-transparent.png";
-import isoLogo from "../assets/ISO2.png";
+import isoLogo from "../assets/ISO.jpeg";
 
 const footerColumns = [
   {

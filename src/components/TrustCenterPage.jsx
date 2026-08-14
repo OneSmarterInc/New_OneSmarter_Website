@@ -22,7 +22,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import soclogo from "../assets/soc1.png";
-import isoLogo from "../assets/ISO2.png";
+import isoLogo from "../assets/ISO.jpeg";
 import HipaaBadge from "./HipaaBadge";
 
 const trustLinks = [
@@ -134,7 +134,7 @@ const detailPages = {
       },
     ],
   },
-  iso27001: {
+  ISO7001: {
     eyebrow: "Trust Center",
     title: "ISO/IEC 27001 Certified",
     intro:

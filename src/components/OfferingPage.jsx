@@ -425,7 +425,7 @@ const pageContent = {
     ],
     collection: "complianceAssurance",
   },
-  iso27001Readiness: {
+  ISO7001Readiness: {
     eyebrow: "Compliance & Cyber Assurance",
     title: "ISO/IEC 27001 Readiness",
     body:
@@ -621,10 +621,10 @@ const OfferingPage = ({ page }) => {
                   to={item.path}
                   className="block border border-gray-200 rounded p-5 hover:border-red-600 transition"
                 >
-                <h2 className="break-words text-xl font-semibold mb-3">
-                  {item.title}
-                </h2>
-                <p className="break-words text-sm leading-relaxed text-gray-700">
+                  <h2 className="break-words text-xl font-semibold mb-3">
+                    {item.title}
+                  </h2>
+                  <p className="break-words text-sm leading-relaxed text-gray-700">
                     {item.summary}
                   </p>
                 </Link>

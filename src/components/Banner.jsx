@@ -18,7 +18,7 @@ import bannerImage from "../assets/home-banner.png";
 import bgImage from "../assets/bg-1.jpg";
 import soclogo from "../assets/soc-2-transparent.png";
 import hipaaLogo from "../assets/Hippa-transparent.png";
-import isoLogo from "../assets/ISO2.png";
+import isoLogo from "../assets/ISO.jpeg";
 
 const offeringCards = [
   {
@@ -191,7 +191,7 @@ const Banner = () => {
                 </div>
                 <span className="min-w-0 whitespace-nowrap font-bold uppercase leading-tight tracking-wide text-white">
                   <span className="text-base lg:text-lg">SOC 2</span>
-                  <br/>
+                  <br />
                   <span className="text-base lg:text-lg">Type II</span>
                   <br />
                   <span className="text-xs text-red-500 lg:text-sm">Attested</span>
@@ -235,7 +235,7 @@ const Banner = () => {
                   <span className="text-base lg:text-lg">ISO/IEC</span>
                   <br />
                   <span className="text-sm lg:text-lg">27001</span>
-                  <br/>
+                  <br />
                   <span className="text-xs text-red-500 lg:text-sm">
                     Certified
                   </span>
