@@ -381,7 +381,7 @@ const Banner = () => {
             </p>
             <h2 className="mt-3 break-words text-2xl font-bold sm:text-4xl">
               Built for teams that need dependable systems and accountable
-              support.
+              support..
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
