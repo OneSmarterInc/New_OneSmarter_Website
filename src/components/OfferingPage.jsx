@@ -425,7 +425,7 @@ const pageContent = {
     ],
     collection: "complianceAssurance",
   },
-  ISO7001Readiness: {
+  iso27001Readiness: {
     eyebrow: "Compliance & Cyber Assurance",
     title: "ISO/IEC 27001 Readiness",
     body:

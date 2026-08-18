@@ -7,6 +7,7 @@ export const cafeGenerationConstraints = [
   "Do not make negative character judgments about identifiable real people; neutral or positive references may be acceptable.",
 ];
 
+// generationNotes is optional; absence intentionally means no special generation handling is required.
 export const cafePersonas = [
   {
     id: "theo-mercer",

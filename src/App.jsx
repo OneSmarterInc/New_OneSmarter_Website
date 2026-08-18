@@ -193,7 +193,7 @@ const App = () => {
           />
           <Route
             path="/compliance-assurance/iso-27001-readiness"
-            element={<OfferingPage page="ISO7001Readiness" />}
+            element={<OfferingPage page="iso27001Readiness" />}
           />
           <Route
             path="/compliance-assurance/pci-dss-readiness"
@@ -229,7 +229,7 @@ const App = () => {
           />
           <Route
             path="/trust-center/iso-27001"
-            element={<TrustCenterPage page="ISO7001" />}
+            element={<TrustCenterPage page="iso27001" />}
           />
           <Route
             path="/trust-center/security-practices"

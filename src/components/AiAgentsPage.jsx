@@ -21,6 +21,7 @@ const agents = [
     personality: "Warm, clear, composed, welcoming.",
     background: "Front-door guide for onboarding, executive briefings, and plain-language service explanations.",
     status: "First guide concept",
+    presence: "at_work",
     accent: "bg-red-600",
     memoryThemes: ["Simple explanations", "Capability routing", "Trust language", "Email handoff"],
   },
@@ -32,6 +33,7 @@ const agents = [
     personality: "Thoughtful, observant, precise.",
     background: "Reads websites through search behavior, AI-readability, and buyer-intent signals.",
     status: "Future scan concept",
+    presence: "in_cafe",
     accent: "bg-sky-700",
     memoryThemes: ["Crawler view", "Metadata", "Service clarity", "Buyer signals"],
   },
@@ -43,6 +45,7 @@ const agents = [
     personality: "Careful, calm, serious when needed.",
     background: "Built around security questionnaires, vendor-risk language, and public trust claims.",
     status: "Future review concept",
+    presence: "at_work",
     accent: "bg-zinc-800",
     memoryThemes: ["HIPAA boundaries", "SOC 2 boundaries", "Safer wording", "Review readiness"],
   },
@@ -54,6 +57,7 @@ const agents = [
     personality: "Practical, direct, grounded.",
     background: "Shaped by operations rooms, service backlogs, audit trails, and process handoffs.",
     status: "Future workflow concept",
+    presence: "in_cafe",
     accent: "bg-red-800",
     memoryThemes: ["Case management", "Ticket routing", "Escalations", "Audit trails"],
   },
@@ -65,6 +69,7 @@ const agents = [
     personality: "Creative, reflective, composed.",
     background: "Connects transformation programs, operating models, and technical capability to business direction.",
     status: "Future strategy concept",
+    presence: "at_work",
     accent: "bg-slate-700",
     memoryThemes: ["AI adoption", "Positioning", "Collaboration", "Executive outcomes"],
   },
@@ -150,6 +155,9 @@ const personaResponses = {
 const MIRA_INPUT_LIMIT = 500;
 const MIRA_HISTORY_LIMIT = 6;
 const MIRA_HISTORY_TOTAL_LIMIT = 2000;
+
+const isPresentationDebugEnabled = () =>
+  typeof window !== "undefined" && window.location.hostname === "localhost";
 
 const askMiraEndpoint = async (message, conversationHistory = [], suggestedQuestionId = "") => {
   const response = await fetch("/api/agents/mira/chat", {
@@ -738,36 +746,57 @@ const AgentNetwork = () => (
   </div>
 );
 
-const AgentCard = ({ agent }) => (
-  <article className="group flex min-w-0 flex-col rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg">
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-4">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${agent.accent} text-sm font-bold text-white`}>
-          {agent.initials}
-        </div>
-        <div className="min-w-0">
-          <h3 className="break-words text-lg font-semibold">{agent.name}</h3>
-          <p className="mt-1 text-sm font-semibold text-red-600">{agent.title}</p>
-        </div>
-      </div>
-      <span className="shrink-0 rounded-full bg-zinc-950 px-3 py-1 text-[11px] font-semibold text-white">
-        {agent.status}
-      </span>
-    </div>
+const AgentCard = ({ agent }) => {
+  const isInCafe = agent.presence === "in_cafe";
 
-    <p className="mt-5 text-sm font-semibold text-zinc-950">{agent.role}</p>
-    <p className="mt-2 text-sm text-gray-600">{agent.personality}</p>
-    <p className="mt-4 text-sm leading-6 text-gray-700">{agent.background}</p>
-
-    <div className="mt-5 flex flex-wrap gap-2">
-      {agent.memoryThemes.map((theme) => (
-        <span key={theme} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-          {theme}
+  return (
+    <article
+      className={`group flex min-w-0 flex-col rounded-lg border p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${isInCafe
+          ? "border-zinc-300 bg-zinc-100 hover:border-zinc-400"
+          : "border-gray-200 bg-white hover:border-red-200"
+        }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${isInCafe ? "bg-zinc-500" : agent.accent}`}
+          >
+            {agent.initials}
+          </div>
+          <div className="min-w-0">
+            <h3 className="break-words text-lg font-semibold">{agent.name}</h3>
+            <p className={`mt-1 text-sm font-semibold ${isInCafe ? "text-zinc-600" : "text-red-600"}`}>
+              {agent.title}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-zinc-950 px-3 py-1 text-[11px] font-semibold text-white">
+          {agent.status}
         </span>
-      ))}
-    </div>
-  </article>
-);
+      </div>
+
+      {isInCafe && (
+        <span
+          className={`mt-4 inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${expressionMarkerClasses.unavailable}`}
+        >
+          Back shortly
+        </span>
+      )}
+
+      <p className="mt-5 text-sm font-semibold text-zinc-950">{agent.role}</p>
+      <p className="mt-2 text-sm text-gray-600">{agent.personality}</p>
+      <p className="mt-4 text-sm leading-6 text-gray-700">{agent.background}</p>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {agent.memoryThemes.map((theme) => (
+          <span key={theme} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            {theme}
+          </span>
+        ))}
+      </div>
+    </article>
+  );
+};
 
 const MiraVoiceSamplesPanel = () => {
   const audioRef = useRef(null);
@@ -1032,8 +1061,7 @@ const MiraConversationPanel = () => {
     isLoading,
     hasError: Boolean(errorMessage),
   });
-  const showPresentationDebug =
-    typeof window !== "undefined" && window.location.hostname === "localhost";
+  const showPresentationDebug = isPresentationDebugEnabled();
   const responseText = formattedResponse.mainSentences.join(" ").toLowerCase();
   const showPrivacyReminder =
     miraResponse?.privacyReminder && !responseText.includes("do not submit");
@@ -1622,6 +1650,11 @@ const PersonaLayerPrototype = () => {
 };
 
 const AiAgentsPage = () => {
+  const showPresentationDebug = isPresentationDebugEnabled();
+  const cafeAgents = agents.filter(
+    (agent) => agent.presence === "in_cafe" && agent.name !== "Mira Vale",
+  );
+
   return (
     <main className="overflow-x-hidden bg-zinc-950 text-white">
       <section className="relative px-5 pb-20 pt-36 md:px-12 md:pb-24 md:pt-48">
@@ -1741,22 +1774,40 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
-        <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
-            The Café
-          </p>
-          <h2 className="text-2xl font-bold md:text-4xl">
-            A space for reviewed agent conversations
-          </h2>
-          <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
-            The Café is intended to present selected conversations generated
-            offline, reviewed by a person, and published to the site as data.
-            Its four café agents do not currently answer visitor questions;
-            Mira remains the separate working live agent.
-          </p>
-        </div>
-      </section>
+      {showPresentationDebug && (
+        <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
+          <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
+              The Café
+            </p>
+            <h2 className="text-2xl font-bold md:text-4xl">
+              Who is in the Café
+            </h2>
+            <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
+              This Phase 2 preview shows hand-set presence only. Café
+              conversations are not active.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {cafeAgents.map((agent) => (
+                <article
+                  key={agent.name}
+                  className="flex min-w-0 items-center gap-4 rounded-lg border border-white/10 bg-black/30 p-4"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-sm font-bold text-white">
+                    {agent.initials}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="break-words font-semibold text-white">
+                      {agent.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-zinc-400">In the Café</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="bg-white px-5 py-16 text-black md:px-12">
         <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[1fr_0.75fr]">

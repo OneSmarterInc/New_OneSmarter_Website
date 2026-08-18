@@ -134,7 +134,7 @@ const detailPages = {
       },
     ],
   },
-  ISO7001: {
+  iso27001: {
     eyebrow: "Trust Center",
     title: "ISO/IEC 27001 Certified",
     intro:

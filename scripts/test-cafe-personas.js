@@ -97,6 +97,70 @@ if (!theo?.generationNotes?.trim()) {
 }
 
 const workPersonaSource = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
+const agentsSource = workPersonaSource.match(/const agents = \[([\s\S]*?)\n\];/)?.[1] || "";
+const agentEntries = Object.fromEntries(
+  [...agentsSource.matchAll(/\{\s*name:\s*"([^"]+)",([\s\S]*?)\n {2}\},/g)].map(
+    ([, name, body]) => [
+      name,
+      {
+        presence: body.match(/presence:\s*"([^"]+)"/)?.[1],
+        status: body.match(/status:\s*"([^"]+)"/)?.[1],
+      },
+    ],
+  ),
+);
+const expectedStatuses = {
+  "Mira Vale": "First guide concept",
+  "Theo Mercer": "Future scan concept",
+  "Elena Cross": "Future review concept",
+  "Ravi Sen": "Future workflow concept",
+  "Selene Hart": "Future strategy concept",
+};
+const allowedPresenceValues = new Set(["at_work", "in_cafe"]);
+
+if (Object.keys(agentEntries).length !== 5) {
+  fail(`expected exactly 5 workplace agents, found ${Object.keys(agentEntries).length}.`);
+}
+
+for (const [name, expectedStatus] of Object.entries(expectedStatuses)) {
+  const agent = agentEntries[name];
+  if (!agent) {
+    fail(`workplace agents are missing ${name}.`);
+    continue;
+  }
+  if (!allowedPresenceValues.has(agent.presence)) {
+    fail(`${name}: presence must be exactly at_work or in_cafe.`);
+  }
+  if (agent.status !== expectedStatus) {
+    fail(`${name}: status must remain ${expectedStatus}.`);
+  }
+}
+
+if (agentEntries["Mira Vale"]?.presence !== "at_work") {
+  fail("Mira must permanently remain at_work.");
+}
+
+const nonMiraAgents = Object.entries(agentEntries).filter(([name]) => name !== "Mira Vale");
+for (const presence of ["at_work", "in_cafe"]) {
+  const count = nonMiraAgents.filter(([, agent]) => agent.presence === presence).length;
+  if (count !== 2) {
+    fail(`non-Mira agents must include exactly 2 ${presence} entries, found ${count}.`);
+  }
+}
+
+const cafePersonaNames = new Set(cafePersonas.map(({ name }) => name));
+const cafeCapableAgentNames = new Set(nonMiraAgents.map(([name]) => name));
+for (const name of cafePersonaNames) {
+  if (!cafeCapableAgentNames.has(name)) {
+    fail(`${name}: Café persona has no corresponding workplace agent.`);
+  }
+}
+for (const name of cafeCapableAgentNames) {
+  if (!cafePersonaNames.has(name)) {
+    fail(`${name}: non-Mira workplace agent has no corresponding Café persona.`);
+  }
+}
+
 for (const workPersonality of [
   "Thoughtful, observant, precise.",
   "Careful, calm, serious when needed.",
@@ -106,6 +170,25 @@ for (const workPersonality of [
   if (!workPersonaSource.includes(workPersonality)) {
     fail(`existing work persona changed or missing: ${workPersonality}`);
   }
+}
+
+if (!workPersonaSource.includes('const isInCafe = agent.presence === "in_cafe";')) {
+  fail("workplace cards must derive stepped-out treatment from in_cafe presence.");
+}
+if (
+  !workPersonaSource.includes("expressionMarkerClasses.unavailable") ||
+  !workPersonaSource.includes("Back shortly")
+) {
+  fail("workplace cards must reuse the unavailable presentation treatment with human wording.");
+}
+if (
+  !workPersonaSource.includes('agent.presence === "in_cafe" && agent.name !== "Mira Vale"') ||
+  !workPersonaSource.includes("cafeAgents.map")
+) {
+  fail("Café view must filter in_cafe agents and explicitly exclude Mira.");
+}
+if (!/\{showPresentationDebug && \([\s\S]*?The Café[\s\S]*?cafeAgents\.map/.test(workPersonaSource)) {
+  fail("Café view must remain behind the existing presentation-debug gate.");
 }
 
 if (failures.length) {
