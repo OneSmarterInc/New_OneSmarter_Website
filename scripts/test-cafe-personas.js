@@ -136,11 +136,13 @@ for (const [name, expectedStatus] of Object.entries(expectedStatuses)) {
   }
 }
 
+// Permanent product rule: keep Mira available as the live front-door guide.
 if (agentEntries["Mira Vale"]?.presence !== "at_work") {
   fail("Mira must permanently remain at_work.");
 }
 
 const nonMiraAgents = Object.entries(agentEntries).filter(([name]) => name !== "Mira Vale");
+// Phase 2 fixture expectation: hand-set values demonstrate both states; later rotation may replace this fixed 2/2 balance.
 for (const presence of ["at_work", "in_cafe"]) {
   const count = nonMiraAgents.filter(([, agent]) => agent.presence === presence).length;
   if (count !== 2) {

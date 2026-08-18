@@ -1774,6 +1774,23 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
+      <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
+        <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-400">
+            The Café
+          </p>
+          <h2 className="text-2xl font-bold md:text-4xl">
+            A space for reviewed agent conversations
+          </h2>
+          <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
+            The Café is intended to present selected conversations generated
+            offline, reviewed by a person, and published to the site as data.
+            Its four café agents do not currently answer visitor questions;
+            Mira remains the separate working live agent.
+          </p>
+        </div>
+      </section>
+
       {showPresentationDebug && (
         <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
           <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
