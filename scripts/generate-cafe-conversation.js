@@ -6,6 +6,7 @@ import {
   cafeGenerationConstraints,
   cafePersonas,
 } from "../src/data/agentPresentation/cafePersonas.js";
+import { cafeSeedTopics } from "../src/data/cafeSeedTopics.js";
 import { readMiraRuntimeConfig } from "../src/server/mira/miraRuntimeConfig.js";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
@@ -19,6 +20,111 @@ const draftDirectory = path.resolve(
 
 const findPersona = (personaId) =>
   cafePersonas.find((persona) => persona.id === personaId);
+
+const randomIndex = (length, random) =>
+  Math.min(length - 1, Math.floor(random() * length));
+
+export const weightedRandomItem = (items, getWeight, random = Math.random) => {
+  const weightedItems = items.map((item) => ({
+    item,
+    weight: Number(getWeight(item)),
+  }));
+  const totalWeight = weightedItems.reduce((total, { weight }) => total + weight, 0);
+  if (
+    weightedItems.length === 0 ||
+    weightedItems.some(({ weight }) => !Number.isFinite(weight) || weight < 0) ||
+    totalWeight <= 0
+  ) {
+    throw new Error("Weighted selection requires valid non-negative weights with a positive total.");
+  }
+
+  let threshold = Math.min(0.999999999999, Math.max(0, random())) * totalWeight;
+  for (const { item, weight } of weightedItems) {
+    threshold -= weight;
+    if (threshold < 0) return item;
+  }
+  return weightedItems.at(-1).item;
+};
+
+export const selectWeightedCafeParticipants = (random = Math.random) => {
+  const firstParticipant = weightedRandomItem(
+    cafePersonas,
+    ({ cafeSelectionWeights }) => cafeSelectionWeights.appearance,
+    random,
+  );
+  const remainingPersonas = cafePersonas.filter(({ id }) => id !== firstParticipant.id);
+  const secondParticipant = weightedRandomItem(
+    remainingPersonas,
+    ({ cafeSelectionWeights }) => cafeSelectionWeights.appearance,
+    random,
+  );
+  return [firstParticipant.id, secondParticipant.id];
+};
+
+export const selectCafeInviter = (participantIds, random = Math.random) => {
+  const participants = participantIds.map(findPersona);
+  if (participants.some((participant) => !participant) || new Set(participantIds).size !== 2) {
+    throw new Error("Invitation selection requires two distinct Café participants.");
+  }
+
+  const noInvitation = { id: null, cafeSelectionWeights: { invitation: 1 } };
+  return weightedRandomItem(
+    [...participants, noInvitation],
+    ({ cafeSelectionWeights }) => cafeSelectionWeights.invitation,
+    random,
+  ).id;
+};
+
+export const resolveCafeGenerationInputs = ({
+  participantIds,
+  seedTopic,
+  exchangeCount,
+  random = Math.random,
+} = {}) => {
+  const suppliedParticipantIds = participantIds?.filter(Boolean) || [];
+  let resolvedParticipantIds;
+  let participantMode;
+
+  if (suppliedParticipantIds.length === 0) {
+    resolvedParticipantIds = selectWeightedCafeParticipants(random);
+    participantMode = "random";
+  } else {
+    if (suppliedParticipantIds.length !== 2 || participantIds.length !== 2) {
+      throw new Error("Supply exactly two participant IDs, or omit both for random selection.");
+    }
+    resolvedParticipantIds = suppliedParticipantIds;
+    participantMode = "manual";
+  }
+
+  const hasManualSeed = typeof seedTopic === "string" && Boolean(seedTopic.trim());
+  const resolvedSeedTopic = hasManualSeed
+    ? seedTopic.trim()
+    : cafeSeedTopics[randomIndex(cafeSeedTopics.length, random)];
+  const hasManualExchangeCount = exchangeCount !== undefined && exchangeCount !== null && exchangeCount !== "";
+  const resolvedExchangeCount = hasManualExchangeCount
+    ? Number(exchangeCount)
+    : MIN_EXCHANGES + randomIndex(MAX_EXCHANGES - MIN_EXCHANGES + 1, random);
+  const invitedBy = selectCafeInviter(resolvedParticipantIds, random);
+
+  buildCafeGenerationPrompt({
+    participantIds: resolvedParticipantIds,
+    seedTopic: resolvedSeedTopic,
+    exchangeCount: resolvedExchangeCount,
+  });
+
+  return {
+    participantIds: resolvedParticipantIds,
+    seedTopic: resolvedSeedTopic,
+    exchangeCount: resolvedExchangeCount,
+    invitedBy,
+    selection: {
+      participants: participantMode,
+      seedTopic: hasManualSeed ? "manual" : "random",
+      exchangeCount: hasManualExchangeCount ? "manual" : "random",
+      invitedBy: "random",
+    },
+  };
+};
 
 export const buildCafeGenerationPrompt = ({
   participantIds,
@@ -64,16 +170,30 @@ export const parseCafeModelOutput = (responseJson) => {
   return JSON.parse(outputText);
 };
 
-export const buildCafeDraft = ({ participantIds, seedTopic, exchanges }) => ({
+export const buildCafeDraft = ({
+  participantIds,
+  seedTopic,
+  exchanges,
+  invitedBy,
+  selection,
+}) => ({
   id: `cafe-draft-${new Date().toISOString().replaceAll(/[:.]/g, "-")}`,
   createdAt: new Date().toISOString(),
   participants: participantIds,
   seedTopic,
+  invitedBy,
   exchanges,
+  selection,
   status: "unpublished",
 });
 
-const generateConversation = async ({ participantIds, seedTopic, exchangeCount }) => {
+const generateConversation = async ({
+  participantIds,
+  seedTopic,
+  exchangeCount,
+  invitedBy,
+  selection,
+}) => {
   const config = readMiraRuntimeConfig(process.env);
   if (config.provider !== "openai" || !config.model || !config.apiKeyConfigured) {
     throw new Error(
@@ -136,6 +256,8 @@ const generateConversation = async ({ participantIds, seedTopic, exchangeCount }
     participantIds,
     seedTopic,
     exchanges: generated.exchanges,
+    invitedBy,
+    selection,
   });
   await fs.mkdir(draftDirectory, { recursive: true });
   const draftPath = path.join(draftDirectory, `${draft.id}.json`);
@@ -148,13 +270,16 @@ const isDirectRun = process.argv[1] &&
 
 if (isDirectRun) {
   const [firstPersonaId, secondPersonaId, seedTopic, exchangeCountValue] = process.argv.slice(2);
-  const exchangeCount = Number(exchangeCountValue);
-
-  generateConversation({
-    participantIds: [firstPersonaId, secondPersonaId],
+  const resolvedInputs = resolveCafeGenerationInputs({
+    participantIds: firstPersonaId || secondPersonaId
+      ? [firstPersonaId, secondPersonaId]
+      : undefined,
     seedTopic,
-    exchangeCount,
-  })
+    exchangeCount: exchangeCountValue,
+  });
+
+  console.log(`Café selection: ${JSON.stringify(resolvedInputs)}`);
+  generateConversation(resolvedInputs)
     .then((draftPath) => console.log(`Unpublished Café draft written to ${draftPath}`))
     .catch((error) => {
       console.error(error.message);

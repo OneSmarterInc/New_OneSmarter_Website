@@ -116,8 +116,6 @@ const expectedStatuses = {
   "Ravi Sen": "Future workflow concept",
   "Selene Hart": "Future strategy concept",
 };
-const allowedPresenceValues = new Set(["at_work", "in_cafe"]);
-
 if (Object.keys(agentEntries).length !== 5) {
   fail(`expected exactly 5 workplace agents, found ${Object.keys(agentEntries).length}.`);
 }
@@ -127,9 +125,6 @@ for (const [name, expectedStatus] of Object.entries(expectedStatuses)) {
   if (!agent) {
     fail(`workplace agents are missing ${name}.`);
     continue;
-  }
-  if (!allowedPresenceValues.has(agent.presence)) {
-    fail(`${name}: presence must be exactly at_work or in_cafe.`);
   }
   if (agent.status !== expectedStatus) {
     fail(`${name}: status must remain ${expectedStatus}.`);
@@ -142,13 +137,6 @@ if (agentEntries["Mira Vale"]?.presence !== "at_work") {
 }
 
 const nonMiraAgents = Object.entries(agentEntries).filter(([name]) => name !== "Mira Vale");
-// Phase 3 fixture expectation: hand-set values align the first published pair; later rotation may replace this fixed 2/2 balance.
-for (const presence of ["at_work", "in_cafe"]) {
-  const count = nonMiraAgents.filter(([, agent]) => agent.presence === presence).length;
-  if (count !== 2) {
-    fail(`non-Mira agents must include exactly 2 ${presence} entries, found ${count}.`);
-  }
-}
 
 const cafePersonaNames = new Set(cafePersonas.map(({ name }) => name));
 const cafeCapableAgentNames = new Set(nonMiraAgents.map(([name]) => name));
@@ -184,10 +172,12 @@ if (
   fail("workplace cards must reuse the unavailable presentation treatment with human wording.");
 }
 if (
+  !workPersonaSource.includes("agentsWithPresence") ||
+  !workPersonaSource.includes("getCafePresenceForPersonaId") ||
   !workPersonaSource.includes('agent.presence === "in_cafe" && agent.name !== "Mira Vale"') ||
   !workPersonaSource.includes("cafeAgents.map")
 ) {
-  fail("Café view must filter in_cafe agents and explicitly exclude Mira.");
+  fail("Café view must derive current presence, filter in_cafe agents, and explicitly exclude Mira.");
 }
 if (!/\{showPresentationDebug && \([\s\S]*?The Café[\s\S]*?cafeAgents\.map/.test(workPersonaSource)) {
   fail("Café view must remain behind the existing presentation-debug gate.");

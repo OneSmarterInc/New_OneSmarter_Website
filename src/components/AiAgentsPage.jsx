@@ -12,7 +12,11 @@ import {
 } from "../data/agentPresentation/miraVoiceSamples.js";
 import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
 import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
-import { publishedCafeConversations } from "../data/cafeConversations/index.js";
+import {
+  currentCafeConversation,
+  earlierPublishedCafeConversations,
+  getCafePresenceForPersonaId,
+} from "../data/cafeConversations/index.js";
 
 const agents = [
   {
@@ -35,7 +39,6 @@ const agents = [
     personality: "Thoughtful, observant, precise.",
     background: "Reads websites through search behavior, AI-readability, and buyer-intent signals.",
     status: "Future scan concept",
-    presence: "in_cafe",
     accent: "bg-sky-700",
     memoryThemes: ["Crawler view", "Metadata", "Service clarity", "Buyer signals"],
   },
@@ -47,7 +50,6 @@ const agents = [
     personality: "Careful, calm, serious when needed.",
     background: "Built around security questionnaires, vendor-risk language, and public trust claims.",
     status: "Future review concept",
-    presence: "in_cafe",
     accent: "bg-zinc-800",
     memoryThemes: ["HIPAA boundaries", "SOC 2 boundaries", "Safer wording", "Review readiness"],
   },
@@ -59,7 +61,6 @@ const agents = [
     personality: "Practical, direct, grounded.",
     background: "Shaped by operations rooms, service backlogs, audit trails, and process handoffs.",
     status: "Future workflow concept",
-    presence: "at_work",
     accent: "bg-red-800",
     memoryThemes: ["Case management", "Ticket routing", "Escalations", "Audit trails"],
   },
@@ -71,7 +72,6 @@ const agents = [
     personality: "Creative, reflective, composed.",
     background: "Connects transformation programs, operating models, and technical capability to business direction.",
     status: "Future strategy concept",
-    presence: "at_work",
     accent: "bg-slate-700",
     memoryThemes: ["AI adoption", "Positioning", "Collaboration", "Executive outcomes"],
   },
@@ -796,6 +796,57 @@ const AgentCard = ({ agent }) => {
           </span>
         ))}
       </div>
+    </article>
+  );
+};
+
+const CafeConversationTranscript = ({ conversation, personaNames }) => {
+  const inviterName = conversation.invitedBy
+    ? personaNames[conversation.invitedBy]
+    : "";
+  const invitedParticipantName = conversation.invitedBy
+    ? personaNames[
+        conversation.participants.find(
+          (participantId) => participantId !== conversation.invitedBy,
+        )
+      ]
+    : "";
+
+  return (
+    <article className="rounded-lg border border-white/10 bg-black/30 p-5 md:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="text-lg font-semibold text-white md:text-xl">
+          {conversation.participants
+            .map((participantId) => personaNames[participantId])
+            .join(" and ")}
+        </h3>
+        <time className="text-sm text-zinc-400" dateTime={conversation.publishedAt}>
+          {new Date(`${conversation.publishedAt}T00:00:00`).toLocaleDateString(
+            "en-US",
+            { year: "numeric", month: "long", day: "numeric" },
+          )}
+        </time>
+      </div>
+      {inviterName && invitedParticipantName && (
+        <p className="mt-3 text-sm italic text-zinc-400">
+          {inviterName} invited {invitedParticipantName} to the Café.
+        </p>
+      )}
+      <ol className="mt-6 space-y-4">
+        {conversation.exchanges.map((exchange, exchangeIndex) => (
+          <li
+            key={`${conversation.id}-${exchangeIndex}`}
+            className="grid gap-1 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4"
+          >
+            <span className="font-semibold text-red-300">
+              {personaNames[exchange.speaker]}
+            </span>
+            <p className="min-w-0 break-words leading-7 text-zinc-200">
+              {exchange.text}
+            </p>
+          </li>
+        ))}
+      </ol>
     </article>
   );
 };
@@ -1656,7 +1707,16 @@ const AiAgentsPage = () => {
   const cafePersonaNames = Object.fromEntries(
     cafePersonas.map((persona) => [persona.id, persona.name]),
   );
-  const cafeAgents = agents.filter(
+  const cafePersonaIdsByName = Object.fromEntries(
+    cafePersonas.map((persona) => [persona.name, persona.id]),
+  );
+  const agentsWithPresence = agents.map((agent) => agent.name === "Mira Vale"
+    ? agent
+    : {
+        ...agent,
+        presence: getCafePresenceForPersonaId(cafePersonaIdsByName[agent.name]),
+      });
+  const cafeAgents = agentsWithPresence.filter(
     (agent) => agent.presence === "in_cafe" && agent.name !== "Mira Vale",
   );
 
@@ -1772,7 +1832,7 @@ const AiAgentsPage = () => {
           </div>
 
           <div className="mt-10 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-            {agents.map((agent) => (
+            {agentsWithPresence.map((agent) => (
               <AgentCard key={agent.name} agent={agent} />
             ))}
           </div>
@@ -1793,45 +1853,27 @@ const AiAgentsPage = () => {
             Its four café agents do not currently answer visitor questions;
             Mira remains the separate working live agent.
           </p>
-          <div className="mt-8 space-y-6">
-            {publishedCafeConversations.map((conversation) => (
-              <article
-                key={conversation.id}
-                className="rounded-lg border border-white/10 bg-black/30 p-5 md:p-6"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-white md:text-xl">
-                    {conversation.participants
-                      .map((participantId) => cafePersonaNames[participantId])
-                      .join(" and ")}
-                  </h3>
-                  <time
-                    className="text-sm text-zinc-400"
-                    dateTime={conversation.publishedAt}
-                  >
-                    {new Date(`${conversation.publishedAt}T00:00:00`).toLocaleDateString(
-                      "en-US",
-                      { year: "numeric", month: "long", day: "numeric" },
-                    )}
-                  </time>
-                </div>
-                <ol className="mt-6 space-y-4">
-                  {conversation.exchanges.map((exchange, exchangeIndex) => (
-                    <li
-                      key={`${conversation.id}-${exchangeIndex}`}
-                      className="grid gap-1 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4"
-                    >
-                      <span className="font-semibold text-red-300">
-                        {cafePersonaNames[exchange.speaker]}
-                      </span>
-                      <p className="min-w-0 break-words leading-7 text-zinc-200">
-                        {exchange.text}
-                      </p>
-                    </li>
+          <div className="mt-8">
+            <CafeConversationTranscript
+              conversation={currentCafeConversation}
+              personaNames={cafePersonaNames}
+            />
+            {earlierPublishedCafeConversations.length > 0 && (
+              <details className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+                <summary className="cursor-pointer font-semibold text-zinc-200">
+                  Earlier Café conversations
+                </summary>
+                <div className="mt-5 space-y-5">
+                  {earlierPublishedCafeConversations.map((conversation) => (
+                    <CafeConversationTranscript
+                      key={conversation.id}
+                      conversation={conversation}
+                      personaNames={cafePersonaNames}
+                    />
                   ))}
-                </ol>
-              </article>
-            ))}
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </section>
@@ -1846,8 +1888,8 @@ const AiAgentsPage = () => {
               Who is in the Café
             </h2>
             <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
-              This Phase 2 preview shows hand-set presence only. Café
-              conversations are not active.
+              This preview reflects the participants in the latest published
+              Café conversation.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {cafeAgents.map((agent) => (

@@ -4,6 +4,12 @@ export const cafe20260819TheoElenaCookingProgramme = {
   participants: ["theo-mercer", "elena-cross"],
   seedTopic: "a cooking-programme controversy",
   invitedBy: null,
+  selection: {
+    participants: "not_recorded",
+    seedTopic: "not_recorded",
+    exchangeCount: "not_recorded",
+    invitedBy: "not_recorded",
+  },
   exchanges: [
     {
       speaker: "elena-cross",
