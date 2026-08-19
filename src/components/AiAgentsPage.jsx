@@ -1621,15 +1621,15 @@ const PersonaLayerPrototype = () => {
       <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.86fr_1.14fr]">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-600">
-            Presentation layers
+            Presentation concept illustration
           </p>
           <h2 className="text-2xl font-bold md:text-4xl">
-            Persona, memory, and empathy layers
+            Illustrating persona, memory, and empathy
           </h2>
           <p className="mt-4 leading-7 text-gray-700">
-            The first guide agent is simple, but the long-term direction is
-            richer: agents can adjust tone, draw from approved memory themes,
-            and present themselves with an appropriate communication posture.
+            These selectors illustrate how persona posture, memory theme, and
+            empathy presentation can combine. They are presentation concepts,
+            not separately authored personas for every combination.
           </p>
         </div>
 
@@ -1643,12 +1643,12 @@ const PersonaLayerPrototype = () => {
               <div>
                 <h3 className="font-semibold text-white">Mira Vale</h3>
                 <p className="text-sm text-zinc-400">
-                  Presentation layer preview
+                  Presentation concept illustration
                 </p>
               </div>
             </div>
             <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300">
-              Layer preview
+              Illustrative preview
             </span>
           </div>
 
@@ -1693,8 +1693,8 @@ const PersonaLayerPrototype = () => {
           </div>
 
           <p className="mt-5 text-xs leading-5 text-zinc-500">
-            Static preview. Future versions may connect these controls to a
-            governed agent runtime.
+            Illustrative preview only. The selectors demonstrate presentation
+            concepts rather than 27 separately authored personas.
           </p>
         </div>
       </div>
