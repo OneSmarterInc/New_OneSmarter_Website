@@ -142,7 +142,7 @@ if (agentEntries["Mira Vale"]?.presence !== "at_work") {
 }
 
 const nonMiraAgents = Object.entries(agentEntries).filter(([name]) => name !== "Mira Vale");
-// Phase 2 fixture expectation: hand-set values demonstrate both states; later rotation may replace this fixed 2/2 balance.
+// Phase 3 fixture expectation: hand-set values align the first published pair; later rotation may replace this fixed 2/2 balance.
 for (const presence of ["at_work", "in_cafe"]) {
   const count = nonMiraAgents.filter(([, agent]) => agent.presence === presence).length;
   if (count !== 2) {

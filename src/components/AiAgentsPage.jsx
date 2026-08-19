@@ -11,6 +11,8 @@ import {
   miraVoiceSamples,
 } from "../data/agentPresentation/miraVoiceSamples.js";
 import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
+import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
+import { publishedCafeConversations } from "../data/cafeConversations/index.js";
 
 const agents = [
   {
@@ -45,7 +47,7 @@ const agents = [
     personality: "Careful, calm, serious when needed.",
     background: "Built around security questionnaires, vendor-risk language, and public trust claims.",
     status: "Future review concept",
-    presence: "at_work",
+    presence: "in_cafe",
     accent: "bg-zinc-800",
     memoryThemes: ["HIPAA boundaries", "SOC 2 boundaries", "Safer wording", "Review readiness"],
   },
@@ -57,7 +59,7 @@ const agents = [
     personality: "Practical, direct, grounded.",
     background: "Shaped by operations rooms, service backlogs, audit trails, and process handoffs.",
     status: "Future workflow concept",
-    presence: "in_cafe",
+    presence: "at_work",
     accent: "bg-red-800",
     memoryThemes: ["Case management", "Ticket routing", "Escalations", "Audit trails"],
   },
@@ -1651,6 +1653,9 @@ const PersonaLayerPrototype = () => {
 
 const AiAgentsPage = () => {
   const showPresentationDebug = isPresentationDebugEnabled();
+  const cafePersonaNames = Object.fromEntries(
+    cafePersonas.map((persona) => [persona.id, persona.name]),
+  );
   const cafeAgents = agents.filter(
     (agent) => agent.presence === "in_cafe" && agent.name !== "Mira Vale",
   );
@@ -1788,6 +1793,46 @@ const AiAgentsPage = () => {
             Its four café agents do not currently answer visitor questions;
             Mira remains the separate working live agent.
           </p>
+          <div className="mt-8 space-y-6">
+            {publishedCafeConversations.map((conversation) => (
+              <article
+                key={conversation.id}
+                className="rounded-lg border border-white/10 bg-black/30 p-5 md:p-6"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-white md:text-xl">
+                    {conversation.participants
+                      .map((participantId) => cafePersonaNames[participantId])
+                      .join(" and ")}
+                  </h3>
+                  <time
+                    className="text-sm text-zinc-400"
+                    dateTime={conversation.publishedAt}
+                  >
+                    {new Date(`${conversation.publishedAt}T00:00:00`).toLocaleDateString(
+                      "en-US",
+                      { year: "numeric", month: "long", day: "numeric" },
+                    )}
+                  </time>
+                </div>
+                <ol className="mt-6 space-y-4">
+                  {conversation.exchanges.map((exchange, exchangeIndex) => (
+                    <li
+                      key={`${conversation.id}-${exchangeIndex}`}
+                      className="grid gap-1 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4"
+                    >
+                      <span className="font-semibold text-red-300">
+                        {cafePersonaNames[exchange.speaker]}
+                      </span>
+                      <p className="min-w-0 break-words leading-7 text-zinc-200">
+                        {exchange.text}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
