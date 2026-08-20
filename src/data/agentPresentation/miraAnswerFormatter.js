@@ -12,12 +12,30 @@ const INTERNAL_PRESENTATION_LINE = new RegExp(
 );
 const INTERNAL_JSON_KEY =
   /"(?:groundingStatus|outputSafetyStatus|validationStatus|confidence|evidenceScore|matchedSources|riskFlags|handoffNeeded|responseMode|businessGoals|decisionState|premiseCheck|providerMetadata|retrievalStatus|answerabilityStatus)"\s*:/i;
+// Sentences that instruct the model rather than inform the reader. These reach
+// visitors because the local-harness answer seed is returned directly when the
+// model is unreachable, bypassing the output validator entirely — the seed is
+// built from knowledge-base fields that mix model guidance into prose.
+// Add to this list rather than filtering downstream: this is the single
+// boundary every visitor-facing answer passes through.
 const INTERNAL_GOVERNANCE_SENTENCE =
-  /(^|[.!?]\s+)(?:Do not describe|Keep this wording|Claim boundary|Internal note|Approved wording only|Do not change|Implementation rule|Trust wording instruction)\b[^.!?]*(?:[.!?]|$)/gi;
+  /(^|[.!?]\s+)(?:Do not describe|Do not present|Do not use|Do not change|Do not claim|Do not state|Should not be described|Keep this wording|Use the phrase|Use the wording|Use only|Approved wording only|Approved phrasing|Claim boundary|Internal note|Implementation rule|Trust wording instruction|OneSmarter should not be described)\b[^.!?]*(?:[.!?]|$)/gi;
+
+// Retrieval scaffolding — text describing the search that produced the answer,
+// not the answer itself. "The strongest approved match is" and similar are
+// artefacts of the grounding pipeline and mean nothing to a visitor.
+const INTERNAL_RETRIEVAL_SCAFFOLD =
+  /(^|[.!?]\s+)(?:The strongest approved match is|These grounded OneSmarter options match[^.!?]*|The following approved (?:matches|options|entries)[^.!?]*|Related approved topics)\b[^.!?]*(?:[.!?:]|$)/gi;
+
+// "Related approved topics: A, B, C" runs to the end of the seed and has no
+// sentence terminator, so it needs removing to end-of-string.
+const INTERNAL_TRAILING_TOPICS = /\bRelated approved topics\b[\s\S]*$/i;
 
 export const sanitizeMiraVisitorAnswer = (text = "") => {
   const lines = String(text)
+    .replace(INTERNAL_TRAILING_TOPICS, "")
     .replace(INTERNAL_GOVERNANCE_SENTENCE, "$1")
+    .replace(INTERNAL_RETRIEVAL_SCAFFOLD, "$1")
     .replace(/\r\n/g, "\n")
     .split("\n");
   const kept = [];
@@ -48,7 +66,12 @@ export const sanitizeMiraVisitorAnswer = (text = "") => {
   }
   if (jsonBuffer.length) flushJson();
 
-  return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return kept
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
 };
 
 const normalizedLineKey = (line = "") =>
