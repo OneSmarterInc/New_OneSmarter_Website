@@ -11,9 +11,12 @@ import { cafeSeedTopics } from "../src/data/cafeSeedTopics.js";
 import {
   buildCafeDraft,
   buildCafeGenerationPrompt,
+  getRecentCafeSelectionExclusions,
   resolveCafeGenerationInputs,
+  selectCafeSeedTopic,
   selectCafeInviter,
   selectWeightedCafeParticipants,
+  toCafeParticipantPairKey,
   weightedRandomItem,
 } from "./generate-cafe-conversation.js";
 
@@ -32,8 +35,12 @@ const requiredFields = [
   "status",
 ];
 
-if (publishedCafeConversations.length !== 3) {
-  fail(`The Café must expose exactly three published conversations, found ${publishedCafeConversations.length}.`);
+const hasPublishedConversations = (conversations) => conversations.length > 0;
+if (!hasPublishedConversations(publishedCafeConversations)) {
+  fail("The Café must expose at least one published conversation.");
+}
+if (hasPublishedConversations([])) {
+  fail("An empty published conversation set must be rejected.");
 }
 if (currentCafeConversation !== publishedCafeConversations[0]) {
   fail("Current Café conversation must be the first newest-first published entry.");
@@ -171,10 +178,63 @@ if (Object.values(randomInputs.selection).some((mode) => mode !== "random")) {
   fail("Omitted generation inputs must record random provenance.");
 }
 
+const recentSelectionFixtures = [
+  { participants: ["theo-mercer", "ravi-sen"], seedTopic: cafeSeedTopics[0] },
+  { participants: ["elena-cross", "selene-hart"], seedTopic: cafeSeedTopics[1] },
+];
+const recentExclusions = getRecentCafeSelectionExclusions(recentSelectionFixtures);
+if (
+  !recentExclusions.participantPairs.has(
+    toCafeParticipantPairKey(["ravi-sen", "theo-mercer"]),
+  )
+) {
+  fail("Recent participant pairs must be treated as unordered pairs.");
+}
+const seedWithoutRecentRepeat = selectCafeSeedTopic(
+  () => 0,
+  recentExclusions.seedTopics,
+);
+if (recentExclusions.seedTopics.has(seedWithoutRecentRepeat)) {
+  fail("Default seed selection must exclude recently published seed topics.");
+}
+const seedFallback = selectCafeSeedTopic(
+  () => 0,
+  new Set(cafeSeedTopics),
+);
+if (!cafeSeedTopics.includes(seedFallback)) {
+  fail("Seed selection must fall back to the approved list when exclusions exhaust it.");
+}
+const pairWithoutRecentRepeat = selectWeightedCafeParticipants(
+  () => 0,
+  new Set([toCafeParticipantPairKey(["theo-mercer", "elena-cross"])]),
+);
+if (
+  toCafeParticipantPairKey(pairWithoutRecentRepeat) ===
+  toCafeParticipantPairKey(["theo-mercer", "elena-cross"])
+) {
+  fail("Default participant selection must avoid a recent pair when alternatives exist.");
+}
+const allPairKeys = new Set();
+for (let firstIndex = 0; firstIndex < cafePersonas.length; firstIndex += 1) {
+  for (let secondIndex = firstIndex + 1; secondIndex < cafePersonas.length; secondIndex += 1) {
+    allPairKeys.add(
+      toCafeParticipantPairKey([
+        cafePersonas[firstIndex].id,
+        cafePersonas[secondIndex].id,
+      ]),
+    );
+  }
+}
+const pairFallback = selectWeightedCafeParticipants(() => 0, allPairKeys);
+if (pairFallback.length !== 2 || new Set(pairFallback).size !== 2) {
+  fail("Participant selection must fall back safely when exclusions exhaust all pairs.");
+}
+
 const manualInputs = resolveCafeGenerationInputs({
   participantIds: ["ravi-sen", "selene-hart"],
   seedTopic: "a manually supplied ordinary topic",
   exchangeCount: 9,
+  publishedConversations: recentSelectionFixtures,
 });
 if (
   manualInputs.participantIds.join(",") !== "ravi-sen,selene-hart" ||
@@ -186,6 +246,15 @@ if (
   manualInputs.selection.invitedBy !== "random"
 ) {
   fail("Manual generation inputs and provenance must remain unchanged.");
+}
+
+if (
+  cafeSeedTopics.length < 25 ||
+  cafeSeedTopics.length > 30 ||
+  cafeSeedTopics.some((seedTopic) => typeof seedTopic !== "string" || !seedTopic.trim()) ||
+  new Set(cafeSeedTopics).size !== cafeSeedTopics.length
+) {
+  fail("Café seed topics must contain 25–30 unique, non-empty strings.");
 }
 
 const draft = buildCafeDraft({
@@ -248,4 +317,4 @@ if (failures.length) {
 }
 
 console.log("Café conversation tests passed.");
-console.log("Validated three published conversations, current/history ordering, participant/speaker integrity, derived presence, weighted selection, invitations, provenance, and complete generator prompts.");
+console.log("Validated published conversations, current/history ordering, participant/speaker integrity, derived presence, recent-repeat avoidance, weighted selection, invitations, provenance, seed topics, and complete generator prompts.");

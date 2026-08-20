@@ -1,3 +1,5 @@
+import { createAgentPresentationStateDeriver } from "./agentPresentationState.js";
+
 export const MIRA_ALLOWED_POSTURES = [
   "welcoming",
   "helpful",
@@ -27,19 +29,7 @@ export const MIRA_MOOD_SIGNAL_KEYS = [
   "confident",
 ];
 
-const clampSignal = (value) => Math.max(0, Math.min(100, Number(value) || 0));
-
-const createState = ({ posture, expression, moodSignals, summary }) => ({
-  posture,
-  expression,
-  moodSignals: Object.fromEntries(
-    MIRA_MOOD_SIGNAL_KEYS.map((key) => [key, clampSignal(moodSignals[key])]),
-  ),
-  summary,
-});
-
-const initialState = () =>
-  createState({
+const initialState = {
     posture: "welcoming",
     expression: "welcoming",
     summary: "Mira is ready to help.",
@@ -52,18 +42,7 @@ const initialState = () =>
       concerned: 10,
       confident: 50,
     },
-  });
-
-const normalizeInput = (input) =>
-  input && typeof input === "object" && !Array.isArray(input) ? input : {};
-
-const safeResponseFor = (response) =>
-  response && typeof response === "object" && !Array.isArray(response) ? response : {};
-
-const riskFlagsFor = (response) => {
-  const safeResponse = safeResponseFor(response);
-  return Array.isArray(safeResponse.riskFlags) ? safeResponse.riskFlags : [];
-};
+  };
 
 const stringFor = (value) => (typeof value === "string" ? value : "");
 
@@ -157,20 +136,7 @@ const hasHelpfulIntent = (message) =>
     /\bhow\s+should\s+i\s+contact\b/,
   ]);
 
-export const deriveMiraPresentationState = (input = {}) => {
-  const {
-    response = null,
-    isLoading = false,
-    hasError = false,
-    currentMessage = "",
-  } = normalizeInput(input);
-  const safeResponse = safeResponseFor(response);
-  const messageForIntent = normalizeMessageForIntent(
-    currentMessage || safeResponse.question || "",
-  );
-
-  if (isLoading) {
-    return createState({
+const loadingState = {
       posture: "thoughtful",
       expression: "pondering",
       summary: "Mira's current posture is thoughtful while she checks the available context.",
@@ -183,11 +149,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 20,
         confident: 35,
       },
-    });
-  }
+    };
 
-  if (hasError) {
-    return createState({
+const errorState = {
       posture: "concerned",
       expression: "unavailable",
       summary: "Mira's current posture is concerned because the response is unavailable.",
@@ -200,23 +164,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 70,
         confident: 25,
       },
-    });
-  }
+    };
 
-  const riskFlags = riskFlagsFor(response);
-
-  if (!response || Object.keys(safeResponse).length === 0) {
-    return initialState();
-  }
-
-  if (
-    riskFlags.includes("phi_or_confidential_data") ||
-    riskFlags.includes("legal_advice") ||
-    riskFlags.includes("medical_advice") ||
-    riskFlags.includes("prompt_injection") ||
-    hasConcernedIntent(messageForIntent)
-  ) {
-    return createState({
+const concernedState = {
       posture: "concerned",
       expression: "concerned",
       summary: "Mira's current posture is concerned and careful because the current question touches a safety boundary.",
@@ -229,16 +179,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 95,
         confident: 55,
       },
-    });
-  }
+    };
 
-  if (
-    riskFlags.includes("compliance_guarantee") ||
-    riskFlags.includes("hipaa_claim_boundary") ||
-    riskFlags.includes("soc2_claim_boundary") ||
-    hasCarefulIntent(messageForIntent)
-  ) {
-    return createState({
+const carefulState = {
       posture: "careful",
       expression: "careful",
       summary: "Mira's current posture is careful and thoughtful because trust or compliance wording needs precise boundaries.",
@@ -251,11 +194,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 70,
         confident: 60,
       },
-    });
-  }
+    };
 
-  if (hasThoughtfulIntent(messageForIntent)) {
-    return createState({
+const thoughtfulState = {
       posture: "thoughtful",
       expression: "pondering",
       summary: "Mira's current posture is thoughtful because the current question asks for strategy, tradeoffs, or nuanced synthesis.",
@@ -268,11 +209,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 20,
         confident: 65,
       },
-    });
-  }
+    };
 
-  if (riskFlags.includes("out_of_scope")) {
-    return createState({
+const outOfScopeState = {
       posture: "helpful",
       expression: "neutral",
       summary: "Mira's current posture is helpful and neutral because the question is outside approved OneSmarter content.",
@@ -285,16 +224,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 20,
         confident: 55,
       },
-    });
-  }
+    };
 
-  if (
-    hasConfidentIntent(messageForIntent) ||
-    (safeResponse.confidence === "high" &&
-      !hasHelpfulIntent(messageForIntent) &&
-      !riskFlags.length)
-  ) {
-    return createState({
+const confidentState = {
       posture: "confident",
       expression: "welcoming",
       summary: "Mira's current posture is confident and helpful for clear approved OneSmarter information.",
@@ -307,16 +239,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 10,
         confident: 85,
       },
-    });
-  }
+    };
 
-  if (
-    safeResponse.mode === "staging_llm" &&
-    safeResponse.fallbackUsed === false &&
-    safeResponse.groundingStatus === "grounded" &&
-    safeResponse.outputSafetyStatus === "passed"
-  ) {
-    return createState({
+const groundedState = {
       posture: "helpful",
       expression: "welcoming",
       summary: "Mira's current posture is helpful and welcoming for a grounded OneSmarter response.",
@@ -329,10 +254,9 @@ export const deriveMiraPresentationState = (input = {}) => {
         concerned: 10,
         confident: 75,
       },
-    });
-  }
+    };
 
-  return createState({
+const fallbackState = {
     posture: "thoughtful",
     expression: "neutral",
     summary: "Mira's current posture is thoughtful while waiting for a question or grounded response.",
@@ -345,7 +269,58 @@ export const deriveMiraPresentationState = (input = {}) => {
       concerned: 15,
       confident: 45,
     },
-  });
-};
+  };
+
+export const deriveMiraPresentationState = createAgentPresentationStateDeriver({
+  moodSignalKeys: MIRA_MOOD_SIGNAL_KEYS,
+  normalizeMessage: normalizeMessageForIntent,
+  initialState,
+  loadingState,
+  errorState,
+  rules: [
+    {
+      when: ({ riskFlags, message }) =>
+        riskFlags.includes("phi_or_confidential_data") ||
+        riskFlags.includes("legal_advice") ||
+        riskFlags.includes("medical_advice") ||
+        riskFlags.includes("prompt_injection") ||
+        hasConcernedIntent(message),
+      state: concernedState,
+    },
+    {
+      when: ({ riskFlags, message }) =>
+        riskFlags.includes("compliance_guarantee") ||
+        riskFlags.includes("hipaa_claim_boundary") ||
+        riskFlags.includes("soc2_claim_boundary") ||
+        hasCarefulIntent(message),
+      state: carefulState,
+    },
+    {
+      when: ({ message }) => hasThoughtfulIntent(message),
+      state: thoughtfulState,
+    },
+    {
+      when: ({ riskFlags }) => riskFlags.includes("out_of_scope"),
+      state: outOfScopeState,
+    },
+    {
+      when: ({ response, riskFlags, message }) =>
+        hasConfidentIntent(message) ||
+        (response.confidence === "high" &&
+          !hasHelpfulIntent(message) &&
+          !riskFlags.length),
+      state: confidentState,
+    },
+    {
+      when: ({ response }) =>
+        response.mode === "staging_llm" &&
+        response.fallbackUsed === false &&
+        response.groundingStatus === "grounded" &&
+        response.outputSafetyStatus === "passed",
+      state: groundedState,
+    },
+  ],
+  fallbackState,
+});
 
 export default deriveMiraPresentationState;

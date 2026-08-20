@@ -7,11 +7,13 @@ import {
   cafePersonas,
 } from "../src/data/agentPresentation/cafePersonas.js";
 import { cafeSeedTopics } from "../src/data/cafeSeedTopics.js";
+import { publishedCafeConversations } from "../src/data/cafeConversations/index.js";
 import { readMiraRuntimeConfig } from "../src/server/mira/miraRuntimeConfig.js";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MIN_EXCHANGES = 6;
 const MAX_EXCHANGES = 10;
+const RECENT_PUBLICATION_LIMIT = 4;
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const draftDirectory = path.resolve(
   scriptDirectory,
@@ -46,13 +48,67 @@ export const weightedRandomItem = (items, getWeight, random = Math.random) => {
   return weightedItems.at(-1).item;
 };
 
-export const selectWeightedCafeParticipants = (random = Math.random) => {
+export const toCafeParticipantPairKey = (participantIds) =>
+  [...participantIds].sort().join("|");
+
+export const getRecentCafeSelectionExclusions = (
+  conversations = publishedCafeConversations,
+  limit = RECENT_PUBLICATION_LIMIT,
+) => {
+  const recentConversations = conversations.slice(0, limit);
+  return {
+    seedTopics: new Set(recentConversations.map(({ seedTopic }) => seedTopic).filter(Boolean)),
+    participantPairs: new Set(
+      recentConversations
+        .filter(({ participants }) => Array.isArray(participants) && participants.length === 2)
+        .map(({ participants }) => toCafeParticipantPairKey(participants)),
+    ),
+  };
+};
+
+export const selectCafeSeedTopic = (
+  random = Math.random,
+  excludedSeedTopics = new Set(),
+  approvedSeedTopics = cafeSeedTopics,
+) => {
+  const eligibleSeedTopics = approvedSeedTopics.filter(
+    (seedTopic) => !excludedSeedTopics.has(seedTopic),
+  );
+  const selectionPool = eligibleSeedTopics.length ? eligibleSeedTopics : approvedSeedTopics;
+  return selectionPool[randomIndex(selectionPool.length, random)];
+};
+
+export const selectWeightedCafeParticipants = (
+  random = Math.random,
+  excludedParticipantPairs = new Set(),
+) => {
+  const eligiblePartnersById = new Map(
+    cafePersonas.map((persona) => [
+      persona.id,
+      cafePersonas.filter(
+        (candidate) =>
+          candidate.id !== persona.id &&
+          !excludedParticipantPairs.has(
+            toCafeParticipantPairKey([persona.id, candidate.id]),
+          ),
+      ),
+    ]),
+  );
+  const eligibleFirstParticipants = cafePersonas.filter(
+    ({ id }) => eligiblePartnersById.get(id).length > 0,
+  );
+  const firstPool = eligibleFirstParticipants.length
+    ? eligibleFirstParticipants
+    : cafePersonas;
   const firstParticipant = weightedRandomItem(
-    cafePersonas,
+    firstPool,
     ({ cafeSelectionWeights }) => cafeSelectionWeights.appearance,
     random,
   );
-  const remainingPersonas = cafePersonas.filter(({ id }) => id !== firstParticipant.id);
+  const eligiblePartners = eligiblePartnersById.get(firstParticipant.id);
+  const remainingPersonas = eligiblePartners.length
+    ? eligiblePartners
+    : cafePersonas.filter(({ id }) => id !== firstParticipant.id);
   const secondParticipant = weightedRandomItem(
     remainingPersonas,
     ({ cafeSelectionWeights }) => cafeSelectionWeights.appearance,
@@ -79,14 +135,19 @@ export const resolveCafeGenerationInputs = ({
   participantIds,
   seedTopic,
   exchangeCount,
+  publishedConversations = publishedCafeConversations,
   random = Math.random,
 } = {}) => {
+  const recentExclusions = getRecentCafeSelectionExclusions(publishedConversations);
   const suppliedParticipantIds = participantIds?.filter(Boolean) || [];
   let resolvedParticipantIds;
   let participantMode;
 
   if (suppliedParticipantIds.length === 0) {
-    resolvedParticipantIds = selectWeightedCafeParticipants(random);
+    resolvedParticipantIds = selectWeightedCafeParticipants(
+      random,
+      recentExclusions.participantPairs,
+    );
     participantMode = "random";
   } else {
     if (suppliedParticipantIds.length !== 2 || participantIds.length !== 2) {
@@ -99,7 +160,7 @@ export const resolveCafeGenerationInputs = ({
   const hasManualSeed = typeof seedTopic === "string" && Boolean(seedTopic.trim());
   const resolvedSeedTopic = hasManualSeed
     ? seedTopic.trim()
-    : cafeSeedTopics[randomIndex(cafeSeedTopics.length, random)];
+    : selectCafeSeedTopic(random, recentExclusions.seedTopics);
   const hasManualExchangeCount = exchangeCount !== undefined && exchangeCount !== null && exchangeCount !== "";
   const resolvedExchangeCount = hasManualExchangeCount
     ? Number(exchangeCount)
