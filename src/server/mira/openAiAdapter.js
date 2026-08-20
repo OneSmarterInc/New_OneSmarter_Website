@@ -1,7 +1,7 @@
 export const OPENAI_STAGING_MODE = "staging_llm";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const DEFAULT_TEMPERATURE_ONLY_MODELS = [/^gpt-5(?:$|-)/i];
-const REASONING_EFFORT_MODELS = [/^gpt-5(?:$|-|\.)/i];
+const DEFAULT_TEMPERATURE_ONLY_MODELS = [/^gpt-5(?:$|-|\.)/i];
+const REASONING_EFFORT_MODELS = [];
 
 const miraStructuredOutputSchema = {
   type: "object",
