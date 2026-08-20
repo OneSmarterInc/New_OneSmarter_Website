@@ -140,13 +140,37 @@ const isSafeCorrectionContext = (answer, label) => {
   return false;
 };
 
+// Instruction language aimed at the model, not the reader. This appears in
+// local-harness answer seeds and must never reach a visitor. The seed is the
+// one piece of text that bypasses the normal validation path, because it IS
+// the fallback returned when validation fails.
+const INTERNAL_INSTRUCTION_PATTERNS = [
+  /\bUse the phrase\b[^.]*\.?/gi,
+  /\bRelated approved topics\b[\s\S]*$/gi,
+  /\bThe page uses supporting language\b[^.]*\.?/gi,
+  /\bRoute [^.]*questions to care@onesmarter\.com[^.]*\.?/gi,
+  /\b(?:approved source says|retrieved context|source facts?|matched sources?)\b[^.]*\.?/gi,
+];
+
+// Strip model-facing instructions from visitor-facing text, then tidy the
+// spacing left behind. Returns an empty string if nothing survives, so the
+// caller can fall back to a generic response rather than showing fragments.
+export const stripInternalGuidance = (text = "") => {
+  let cleaned = String(text);
+  for (const pattern of INTERNAL_INSTRUCTION_PATTERNS) {
+    cleaned = cleaned.replace(pattern, " ");
+  }
+  return cleaned.replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
+};
+
 const safeFallbackFor = ({ message = "", localHarnessResult, claimRules = miraClaimRules } = {}) => {
   const fallback = localHarnessResult || runMiraLocalHarness(message || "What does OneSmarter do?");
-  const fallbackResponse =
-    fallback.answerSeed ||
+  const genericResponse =
     claimRules.refusalPatterns.find((pattern) => pattern.category === "unknown_or_not_grounded")
       ?.response ||
     "I do not have an approved public answer for that yet. For business-specific questions, email care@onesmarter.com.";
+  const seed = stripInternalGuidance(fallback.answerSeed || "");
+  const fallbackResponse = seed.length >= 40 ? seed : genericResponse;
 
   return {
     answer: fallbackResponse,
