@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import img from "../assets/PeterMHager.jpg";
 import { useParams } from "react-router-dom";
 import { BookOpen, Target, Eye } from "lucide-react";
 import Loader from "./Loader/Loader";

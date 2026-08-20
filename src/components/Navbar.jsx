@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import logo from "../assets/logo2.png";
@@ -117,6 +117,10 @@ const navGroups = [
         path: "/trust-center/soc2",
       },
       {
+        label: "ISO/IEC 27001",
+        path: "/trust-center/iso-27001",
+      },
+      {
         label: "HIPAA",
         path: "/trust-center/hipaa",
       },
@@ -135,6 +139,8 @@ const navGroups = [
 const simpleLinks = [
   { label: "About", path: "/aboutus/Introduction" },
 ];
+
+const agentLink = { label: "AI Agents", path: "/ai-agents" };
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -204,31 +210,43 @@ const Navbar = () => {
           />
         </Link>
 
-        <ul className="ml-8 hidden flex-1 items-center justify-end gap-2 md:flex lg:ml-12 lg:gap-4 xl:gap-5">
+        <ul className="ml-6 hidden flex-1 items-center justify-end gap-1.5 md:flex lg:ml-8 lg:gap-3 xl:gap-4">
           {navGroups.map((group) => (
-            <li key={group.label} className="group relative flex items-center py-0.5">
-              <Link
-                to={group.path}
-                className="relative z-50 flex items-center whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-500 transition-all duration-300 group-hover:bg-zinc-950/80 group-hover:text-white hover:text-white lg:text-[14px] xl:text-[15px]"
-              >
-                {group.label}
-                <svg className="ml-1 w-4 h-4 fill-current" viewBox="0 0 20 20">
-                  <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
-                </svg>
-              </Link>
-              <ul className="invisible absolute left-0 top-full z-40 mt-1 w-80 rounded-md border border-white/10 bg-[#111111] py-1.5 opacity-0 shadow-lg shadow-black/30 transition-all duration-200 group-hover:visible group-hover:opacity-100">
-                {group.items.map((item) => (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className="block px-4 py-2 text-sm leading-5 text-zinc-100 transition hover:bg-red-950/45 hover:text-white"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
+            <Fragment key={group.label}>
+              <li className="group relative flex items-center py-0.5">
+                <Link
+                  to={group.path}
+                  className="relative z-50 flex items-center whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-500 transition-all duration-300 group-hover:bg-zinc-950/80 group-hover:text-white hover:text-white lg:text-[14px] xl:text-[15px]"
+                >
+                  {group.label}
+                  <svg className="ml-1 w-4 h-4 fill-current" viewBox="0 0 20 20">
+                    <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
+                  </svg>
+                </Link>
+                <ul className="invisible absolute left-0 top-full z-40 mt-1 w-80 rounded-md border border-white/10 bg-[#111111] py-1.5 opacity-0 shadow-lg shadow-black/30 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                  {group.items.map((item) => (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className="block px-4 py-2 text-sm leading-5 text-zinc-100 transition hover:bg-red-950/45 hover:text-white"
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+              {group.label === "Technology" && (
+                <li>
+                  <Link
+                    to={agentLink.path}
+                    className="whitespace-nowrap text-[13px] font-medium text-red-600 transition-all duration-300 hover:text-white lg:text-[14px] xl:text-[15px]"
+                  >
+                    {agentLink.label}
+                  </Link>
+                </li>
+              )}
+            </Fragment>
           ))}
 
           {simpleLinks.map((link) => (
@@ -281,39 +299,49 @@ const Navbar = () => {
 
               <nav className="flex flex-col space-y-3 text-white">
                 {navGroups.map((group) => (
-                  <div key={group.label}>
-                    <button
-                      className="w-full text-base flex justify-between items-center text-left font-semibold"
-                      aria-expanded={mobileOpenGroup === group.label}
-                      onClick={() =>
-                        setMobileOpenGroup((current) =>
-                          current === group.label ? "" : group.label,
-                        )
-                      }
-                    >
-                      {group.label}
-                      <span>{mobileOpenGroup === group.label ? "-" : "+"}</span>
-                    </button>
-                    {mobileOpenGroup === group.label && (
-                      <div className="ml-4 mt-2 space-y-2 border-l border-white/30 pl-3">
-                        <button
-                          onClick={() => navigateMobile(group.path)}
-                          className="block text-left text-sm w-full text-white/90"
-                        >
-                          Overview
-                        </button>
-                        {group.items.map((item) => (
+                  <Fragment key={group.label}>
+                    <div>
+                      <button
+                        className="w-full text-base flex justify-between items-center text-left font-semibold"
+                        aria-expanded={mobileOpenGroup === group.label}
+                        onClick={() =>
+                          setMobileOpenGroup((current) =>
+                            current === group.label ? "" : group.label,
+                          )
+                        }
+                      >
+                        {group.label}
+                        <span>{mobileOpenGroup === group.label ? "-" : "+"}</span>
+                      </button>
+                      {mobileOpenGroup === group.label && (
+                        <div className="ml-4 mt-2 space-y-2 border-l border-white/30 pl-3">
                           <button
-                            key={item.path}
-                            onClick={() => navigateMobile(item.path)}
+                            onClick={() => navigateMobile(group.path)}
                             className="block text-left text-sm w-full text-white/90"
                           >
-                            {item.label}
+                            Overview
                           </button>
-                        ))}
-                      </div>
+                          {group.items.map((item) => (
+                            <button
+                              key={item.path}
+                              onClick={() => navigateMobile(item.path)}
+                              className="block text-left text-sm w-full text-white/90"
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {group.label === "Technology" && (
+                      <button
+                        onClick={() => navigateMobile(agentLink.path)}
+                        className="text-base text-left font-semibold"
+                      >
+                        {agentLink.label}
+                      </button>
                     )}
-                  </div>
+                  </Fragment>
                 ))}
 
                 {simpleLinks.map((link) => (

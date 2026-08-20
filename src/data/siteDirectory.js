@@ -1,6 +1,7 @@
 const trustNotes = [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
+  "OneSmarter is ISO/IEC 27001 Certified",
   "Secure software development",
   "Responsible data handling",
   "Compliance-aware operations",
@@ -22,6 +23,7 @@ const entry = ({
   serviceType = "Information",
   keyOfferings = [],
   complianceNotes = [],
+  approvedContent = [],
   relatedRoutes = [],
   promoted = true,
 }) => ({
@@ -35,6 +37,7 @@ const entry = ({
   keyOfferings,
   trustNotes,
   complianceNotes,
+  approvedContent,
   relatedRoutes,
   promoted,
   markdownSummary: `${shortSummary}${keyOfferings.length ? ` Key offerings include ${keyOfferings.join(", ")}.` : ""}`,
@@ -51,8 +54,8 @@ export const siteDirectory = [
     shortSummary:
       "OneSmarter provides secure platforms, practical AI, technology solutions, business services, compliance and cyber assurance support, and Trust Center transparency.",
     serviceType: "Company overview",
-    keyOfferings: ["Platforms", "Technology Solutions", "Business Services", "Compliance & Cyber Assurance", "Trust Center"],
-    relatedRoutes: ["/platforms", "/technology-solutions", "/business-services", "/compliance-assurance", "/trust-center", "/contact"],
+    keyOfferings: ["Platforms", "Technology Solutions", "AI Agents", "Business Services", "Compliance & Cyber Assurance", "Trust Center"],
+    relatedRoutes: ["/platforms", "/technology-solutions", "/ai-agents", "/business-services", "/compliance-assurance", "/trust-center", "/contact"],
   }),
   entry({
     route: "/platforms",
@@ -159,6 +162,27 @@ export const siteDirectory = [
     relatedRoutes: ["/technology-solutions", "/technology-solutions/enterprise-software", "/contact"],
   }),
   entry({
+    route: "/ai-agents",
+    title: "Practical AI Agents for Secure, Accountable Workflows | OneSmarter",
+    metaDescription:
+      "Meet Mira Vale, OneSmarter's live AI website guide answering from approved public content, and the wider named agent team OneSmarter is developing.",
+    category: "AI Agents",
+    audience: "Organizations evaluating practical AI agents for secure, accountable workflows.",
+    shortSummary:
+      "The AI Agents page introduces OneSmarter's named digital agent team. Mira Vale is live and answers visitor questions from approved public content within stated guardrails. Theo, Elena, Ravi and Selene are agents in development, and the Café is where their off-duty conversations will appear once published.",
+    serviceType: "AI showcase",
+    keyOfferings: [
+      "Mira Vale live website guide",
+      "Theo Mercer agent in development",
+      "Elena Cross agent in development",
+      "Ravi Sen agent in development",
+      "Selene Hart agent in development",
+      "The Café",
+    ],
+    complianceNotes: ["Answers from approved public content only", "No PHI", "No confidential uploads", "No legal or medical advice", "No compliance guarantees"],
+    relatedRoutes: ["/technology-solutions/ai-agentic-services", "/trust-center", "/compliance-assurance", "/contact"],
+  }),
+  entry({
     route: "/technology-solutions/ibm-i-as400",
     title: "IBM i / AS400 Services | OneSmarter",
     metaDescription:
@@ -229,6 +253,10 @@ export const siteDirectory = [
       "EOR and HR services for US companies hiring employees in Asia, including onboarding coordination and workforce documentation.",
     serviceType: "Business service",
     keyOfferings: ["Employer of record support", "Onboarding coordination", "HR administration", "Workforce documentation", "Payroll coordination"],
+    approvedContent: [
+      "Practice hiring support: OneSmarter helps practices hire with focus — job postings written around the exact specialty, skills, and experience the role requires (a PA with specific specialty and procedure experience, not a generic PA posting), candidate screening against those stated requirements, and credentialing tracked from offer through completion.",
+      "Agent-assisted hiring (in development): OneSmarter is building agent support for practice hiring — drafting postings, coordinating candidate communication, and tracking credentialing steps. This capability is in development and is not yet an offered service; no availability date is committed. Practices can express early interest via care@onesmarter.com. Do not describe agent-assisted hiring as currently available.",
+    ],
     relatedRoutes: ["/business-services", "/contact"],
   }),
   entry({
@@ -371,13 +399,13 @@ export const siteDirectory = [
     route: "/trust-center",
     title: "Trust Center | OneSmarter",
     metaDescription:
-      "OneSmarter's Trust Center explains its own SOC 2, HIPAA, security, privacy, secure development, and responsible data handling posture.",
+      "OneSmarter's Trust Center explains its own SOC 2, HIPAA, ISO/IEC 27001, security, privacy, secure development, and responsible data handling posture.",
     category: "Trust Center",
     shortSummary:
-      "The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, secure development, and responsible data handling posture.",
+      "The Trust Center explains OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, secure development, and responsible data handling posture.",
     serviceType: "Trust information",
-    keyOfferings: ["SOC 2 Type II Attested", "HIPAA Security Rule Compliance Assessment Completed", "Security Practices", "Privacy"],
-    relatedRoutes: ["/trust-center/soc2", "/trust-center/hipaa", "/trust-center/security-practices", "/trust-center/privacy"],
+    keyOfferings: ["SOC 2 Type II Attested", "HIPAA Security Rule Compliance Assessment Completed", "ISO/IEC 27001 Certified", "Security Practices", "Privacy"],
+    relatedRoutes: ["/trust-center/soc2", "/trust-center/hipaa", "/trust-center/iso-27001", "/trust-center/security-practices", "/trust-center/privacy"],
   }),
   entry({
     route: "/trust-center/soc2",
@@ -403,6 +431,19 @@ export const siteDirectory = [
     serviceType: "Trust information",
     keyOfferings: ["Administrative safeguards", "Technical safeguards", "Physical safeguards", "Access management", "Ongoing risk awareness"],
     complianceNotes: ["HIPAA Security Rule Compliance Assessment Completed", "Do not describe this assessment as a certification"],
+    relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
+  }),
+  entry({
+    route: "/trust-center/iso-27001",
+    title: "ISO/IEC 27001 Certified | OneSmarter Trust Center",
+    metaDescription:
+      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system.",
+    category: "Trust Center",
+    shortSummary:
+      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system.",
+    serviceType: "Trust information",
+    keyOfferings: ["Information security management system", "Risk assessment and treatment", "Access control", "Continual improvement", "Certification scope"],
+    complianceNotes: ["ISO/IEC 27001 Certified", "Certification decisions and scope are governed by an accredited certification body"],
     relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
   }),
   entry({

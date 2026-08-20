@@ -21,6 +21,7 @@ import Contact from "./components/Contact";
 import AboutUs from "./components/AboutUs";
 import OfferingPage from "./components/OfferingPage";
 import TrustCenterPage from "./components/TrustCenterPage";
+import AiAgentsPage from "./components/AiAgentsPage";
 import Privacy from "./components/Privacy";
 import Terms from "./components/Terms.jsx";
 import NotFound from "./components/NotFound";
@@ -139,6 +140,7 @@ const App = () => {
             path="/technology-solutions/claims-processing-services"
             element={<OfferingPage page="claimsProcessingServices" />}
           />
+          <Route path="/ai-agents" element={<AiAgentsPage />} />
           <Route
             path="/business-services"
             element={<OfferingPage page="businessServices" />}
@@ -224,6 +226,10 @@ const App = () => {
           <Route
             path="/trust-center/hipaa"
             element={<TrustCenterPage page="hipaa" />}
+          />
+          <Route
+            path="/trust-center/iso-27001"
+            element={<TrustCenterPage page="iso27001" />}
           />
           <Route
             path="/trust-center/security-practices"

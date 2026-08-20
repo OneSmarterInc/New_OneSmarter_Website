@@ -11,6 +11,9 @@ import {
 
 const publicDir = path.resolve("public");
 
+// Flip to true only when the production domain is pointed at this deployment.
+const siteIsPubliclyIndexable = false;
+
 const writeFile = (relativePath, content) => {
   const targetPath = path.join(publicDir, relativePath);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -23,6 +26,11 @@ const aiPageUrl = (route) => `${siteBaseUrl}/${markdownPathForRoute(route).repla
 
 const asList = (items) =>
   items.length ? items.map((item) => `- ${item}`).join("\n") : "- Not specified.";
+
+const approvedContentSection = (page) =>
+  page.approvedContent?.length
+    ? `\n\n## Approved Content\n${asList(page.approvedContent)}`
+    : "";
 
 const hasChildRoutes = (route) =>
   route !== "/" && promotedSiteDirectory.some((page) => page.route.startsWith(`${route}/`));
@@ -94,7 +102,7 @@ ${page.category}
 ${page.audience}
 
 ## Key Offerings
-${asList(page.keyOfferings)}
+${asList(page.keyOfferings)}${approvedContentSection(page)}
 
 ## Trust And Compliance Notes
 ${asList([...page.trustNotes, ...page.complianceNotes])}
@@ -110,22 +118,25 @@ Address: ${siteContact.address}`;
 
 const llmsIntro = `# OneSmarter
 
-OneSmarter builds secure platforms, practical AI workflows, business services, and compliance readiness support for healthcare, financial, telecom, and growing organizations.
+OneSmarter builds secure platforms, practical AI workflows, business services, compliance readiness support, and public-content AI agent concepts for healthcare, financial, telecom, and growing organizations.
 
 ## Important Notes
 - OneSmarter is SOC 2 Type II Attested.
 - OneSmarter has completed an independent HIPAA Security Rule compliance assessment.
+- OneSmarter is ISO/IEC 27001 Certified.
 - Use "HIPAA" exactly. Do not use the common misspelling.
 - Do not describe OneSmarter as certified under HIPAA.
+- Do not describe OneSmarter as issuing its own ISO/IEC 27001 certificates; certification is granted by an accredited certification body.
 - Claims Processing Services are positioned as healthcare technology services, not as a currently available claims product.
 - Staffing is not a current public service category.
 - Compliance & Cyber Assurance describes services OneSmarter provides to clients.
-- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, and compliance posture.`;
+- Trust Center describes OneSmarter's own security, privacy, SOC 2, HIPAA, ISO/IEC 27001, and compliance posture.`;
 
 const categoryOrder = [
   "Core",
   "Platforms",
   "Technology Solutions",
+  "AI Agents",
   "Business Services",
   "Compliance & Cyber Assurance",
   "Trust Center",
@@ -176,7 +187,7 @@ Audience: ${page.audience}
 Summary: ${page.markdownSummary}
 
 Key offerings:
-${asList(page.keyOfferings)}
+${asList(page.keyOfferings)}${approvedContentSection(page)}
 
 Trust and compliance notes:
 ${asList([...page.trustNotes, ...page.complianceNotes])}`
@@ -190,7 +201,7 @@ writeFile(
 This file is a public, AI-readable reference for OneSmarter's website. It summarizes public pages, service taxonomy, approved trust wording, and contact details.
 
 ## Public Positioning
-OneSmarter is organized around Platforms, Technology Solutions, Business Services, Compliance & Cyber Assurance, and the Trust Center.
+OneSmarter is organized around Platforms, Technology Solutions, AI Agents, Business Services, Compliance & Cyber Assurance, and the Trust Center.
 
 ## Approved Trust Language
 - SOC 2 Type II Attested
@@ -198,6 +209,8 @@ OneSmarter is organized around Platforms, Technology Solutions, Business Service
 - Independent HIPAA Security Rule compliance assessment
 - Built for HIPAA-regulated workflows
 - Designed for PHI-sensitive workflows
+- ISO/IEC 27001 Certified
+- Independent, accredited ISO/IEC 27001 certification
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -230,10 +243,13 @@ promotedSiteDirectory.forEach((page) => {
 
 writeFile(
   "robots.txt",
-  `User-agent: *
+  siteIsPubliclyIndexable
+    ? `User-agent: *
 Allow: /
 
 Sitemap: ${siteBaseUrl}/sitemap.xml`
+    : `User-agent: *
+Disallow: /`
 );
 
 const root = create({ version: "1.0" }).ele("urlset", {

@@ -18,9 +18,14 @@ US companies hiring employees in Asia.
 - Workforce documentation
 - Payroll coordination
 
+## Approved Content
+- Practice hiring support: OneSmarter helps practices hire with focus — job postings written around the exact specialty, skills, and experience the role requires (a PA with specific specialty and procedure experience, not a generic PA posting), candidate screening against those stated requirements, and credentialing tracked from offer through completion.
+- Agent-assisted hiring (in development): OneSmarter is building agent support for practice hiring — drafting postings, coordinating candidate communication, and tracking credentialing steps. This capability is in development and is not yet an offered service; no availability date is committed. Practices can express early interest via care@onesmarter.com. Do not describe agent-assisted hiring as currently available.
+
 ## Trust And Compliance Notes
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
+- OneSmarter is ISO/IEC 27001 Certified
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations

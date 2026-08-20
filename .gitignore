@@ -26,3 +26,8 @@ dist-ssr
 .vercel
 
 docs/design-reference/
+
+# Manual Café generation output; promotion to published data is always explicit.
+src/data/cafeConversations/drafts/
+
+.env*
