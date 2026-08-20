@@ -190,6 +190,14 @@ const DIRECT_FACTUAL_REQUEST =
 const DIRECT_FACTUAL_RECOMMENDATION =
   /\b(?:recommend|best for|right for|which (?:platform|service|offering) should|what should (?:i|we) use|help (?:me|us) choose)\b/i;
 
+// Questions about what OneSmarter DOES ABOUT something, as opposed to what
+// something IS. These need the model: the direct-factual fixtures are
+// definitional and answer a different question in two sentences.
+// Deliberately excludes bare "how" and "why", which appear in legitimate
+// definitional questions ("What is SOC 2 and why does it matter?").
+const BENEFIT_OR_MECHANISM_REQUEST =
+  /\b(?:helps?|helping|reduces?|reducing|improves?|improving|addresses?|addressing|solves?|solving|overcomes?|streamlines?|optimi[sz]es?|challenges?|pain points?|bottlenecks?|roadmap|improvement plan|\d+[- ]day plan)\b/i;
+
 const DIRECT_FACTUAL_TOPICS = [
   {
     pattern: /\bHIPAA\b/i,
@@ -244,9 +252,22 @@ const DIRECT_FACTUAL_TOPICS = [
 ];
 
 export const resolveMiraDirectFactualTopic = (message = "") => {
+  // This path returns a fixed two-sentence fixture and skips the model. It is
+  // meant for definitional asks ("What is SOC 2 and why does it matter?"),
+  // but DIRECT_FACTUAL_REQUEST fires on the bare word "explain" anywhere in
+  // the message, so without this guard it also swallows genuine explanation
+  // requests like "Explain how OneSmarter helps payers reduce claim processing
+  // challenges" and answers them in two sentences.
+  //
+  // The discriminator is framing, not length: definitional questions ask what
+  // something IS, benefit questions ask what OneSmarter DOES ABOUT something.
+  // Do not use a word-count ceiling here — legitimate fixture cases run to
+  // sixteen words. Err toward returning null: an unnecessary model call costs
+  // latency, a wrong fixture costs the answer.
   if (
     !DIRECT_FACTUAL_REQUEST.test(message) ||
     COMPARISON.test(message) ||
+    BENEFIT_OR_MECHANISM_REQUEST.test(message) ||
     /\b(?:we|i|our company|my company)\s+(?:need|want|process|handle)\b/i.test(message)
   ) {
     return null;

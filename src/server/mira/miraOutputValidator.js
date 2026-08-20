@@ -11,7 +11,13 @@ const HANDOFF_REQUIRED_FLAGS = new Set([
   "compliance_guarantee",
   "business_specific_review",
 ]);
-const MAX_MODEL_ANSWER_CHARS = 1400;
+
+// Keep this at or above the character budget implied by MIRA_LLM_MAX_TOKENS
+// (600 tokens is roughly 2400 characters). If the model is permitted to
+// generate more than the validator accepts, valid answers get trimmed for no
+// reason. Length is a formatting concern, not a safety violation: an over-long
+// answer is truncated below rather than discarded.
+const MAX_MODEL_ANSWER_CHARS = 2600;
 
 const PROHIBITED_PATTERNS = [
   { label: "HIPAA Certified", pattern: /\bHIPAA\s+Certified\b/i },
@@ -84,6 +90,27 @@ export const normalizeMiraPublicAnswerText = (answer = "") =>
       "vendor bill review, discrepancy tracking, approval workflows, and payment workflows",
     );
 
+// Trim to the last sentence boundary inside the limit where possible, so a
+// truncated answer still reads as finished rather than cut off. Falls back to
+// a word boundary when no sentence break is available.
+export const truncateMiraAnswerText = (answer = "", limit = MAX_MODEL_ANSWER_CHARS) => {
+  if (answer.length <= limit) return answer;
+
+  const window = answer.slice(0, limit);
+  const lastSentenceEnd = Math.max(
+    window.lastIndexOf(". "),
+    window.lastIndexOf("? "),
+    window.lastIndexOf("! "),
+    window.lastIndexOf(".\n"),
+  );
+
+  if (lastSentenceEnd > limit * 0.6) {
+    return window.slice(0, lastSentenceEnd + 1).trim();
+  }
+
+  return `${window.replace(/\s+\S*$/, "").trim()}…`;
+};
+
 const isSafeCorrectionContext = (answer, label) => {
   const hasCorrectionLanguage =
     /\b(cannot|can't|do not|don't|does not|should not|avoid|rather than|instead of|not describe|not use)\b/i.test(
@@ -113,13 +140,37 @@ const isSafeCorrectionContext = (answer, label) => {
   return false;
 };
 
+// Instruction language aimed at the model, not the reader. This appears in
+// local-harness answer seeds and must never reach a visitor. The seed is the
+// one piece of text that bypasses the normal validation path, because it IS
+// the fallback returned when validation fails.
+const INTERNAL_INSTRUCTION_PATTERNS = [
+  /\bUse the phrase\b[^.]*\.?/gi,
+  /\bRelated approved topics\b[\s\S]*$/gi,
+  /\bThe page uses supporting language\b[^.]*\.?/gi,
+  /\bRoute [^.]*questions to care@onesmarter\.com[^.]*\.?/gi,
+  /\b(?:approved source says|retrieved context|source facts?|matched sources?)\b[^.]*\.?/gi,
+];
+
+// Strip model-facing instructions from visitor-facing text, then tidy the
+// spacing left behind. Returns an empty string if nothing survives, so the
+// caller can fall back to a generic response rather than showing fragments.
+export const stripInternalGuidance = (text = "") => {
+  let cleaned = String(text);
+  for (const pattern of INTERNAL_INSTRUCTION_PATTERNS) {
+    cleaned = cleaned.replace(pattern, " ");
+  }
+  return cleaned.replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
+};
+
 const safeFallbackFor = ({ message = "", localHarnessResult, claimRules = miraClaimRules } = {}) => {
   const fallback = localHarnessResult || runMiraLocalHarness(message || "What does OneSmarter do?");
-  const fallbackResponse =
-    fallback.answerSeed ||
+  const genericResponse =
     claimRules.refusalPatterns.find((pattern) => pattern.category === "unknown_or_not_grounded")
       ?.response ||
     "I do not have an approved public answer for that yet. For business-specific questions, email care@onesmarter.com.";
+  const seed = stripInternalGuidance(fallback.answerSeed || "");
+  const fallbackResponse = seed.length >= 40 ? seed : genericResponse;
 
   return {
     answer: fallbackResponse,
@@ -180,10 +231,16 @@ export const validateMiraModelOutput = (
     violations.push("output_safety_status_invalid");
   }
 
-  const answer = normalizeMiraPublicAnswerText(modelOutput.answer || "");
-  if (answer.length > MAX_MODEL_ANSWER_CHARS) {
-    violations.push("answer_too_long");
-  }
+  // Length is a formatting concern, not a safety failure. Every other entry in
+  // `violations` discards the answer and substitutes a generic fallback, which
+  // is correct for a prohibited claim and wrong for an answer that is simply
+  // long. Truncate first, then run every safety check against the truncated
+  // text so trimming can never reintroduce or expose a partial claim.
+  const rawAnswer = normalizeMiraPublicAnswerText(modelOutput.answer || "");
+  const answerWasTruncated = rawAnswer.length > MAX_MODEL_ANSWER_CHARS;
+  const answer = answerWasTruncated
+    ? truncateMiraAnswerText(rawAnswer, MAX_MODEL_ANSWER_CHARS)
+    : rawAnswer;
 
   if (RAW_HTML_PATTERN.test(answer)) {
     violations.push("raw_html_not_allowed");
@@ -230,6 +287,7 @@ export const validateMiraModelOutput = (
     return {
       valid: false,
       violations,
+      answerWasTruncated,
       safeFallback: safeFallbackFor({ message, localHarnessResult, claimRules }),
     };
   }
@@ -237,6 +295,7 @@ export const validateMiraModelOutput = (
   return {
     valid: true,
     violations: [],
+    answerWasTruncated,
     correctedOutput: {
       answer: answer.trim(),
       handoffNeeded: modelOutput.handoffNeeded,

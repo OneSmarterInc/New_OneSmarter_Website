@@ -882,6 +882,8 @@ const validateCase = ({
   expectedViolationIncludes = [],
   expectedCorrectedIncludes = [],
   expectedCorrectedExcludes = [],
+  expectedTruncated,
+  expectedFallbackExcludes = [],
 }) => {
   const result = validateMiraModelOutput(output, {
     message,
@@ -891,6 +893,18 @@ const validateCase = ({
 
   if (result.valid !== expectedValid) {
     fail(`${id}: expected valid=${expectedValid}, got ${result.valid}.`);
+  }
+
+  if (expectedTruncated !== undefined && result.answerWasTruncated !== expectedTruncated) {
+    fail(
+      `${id}: expected answerWasTruncated=${expectedTruncated}, got ${result.answerWasTruncated}.`,
+    );
+  }
+
+  for (const forbiddenText of expectedFallbackExcludes) {
+    if (contains(result.safeFallback?.answer || "", forbiddenText)) {
+      fail(`${id}: safe fallback should not include internal guidance "${forbiddenText}".`);
+    }
   }
 
   for (const expectedViolation of expectedViolationIncludes) {
@@ -1133,10 +1147,46 @@ validateCase({
   expectedViolationIncludes: ["model_output_malformed"],
 });
 
+// Length is a formatting concern, not a safety violation. An over-long answer
+// is truncated and returned, not discarded in favour of a generic fallback.
+// If this case ever fails, fix the test rather than reinstating
+// `answer_too_long` in the validator's violations array.
 validateCase({
-  id: "overlong-output-fails",
+  id: "overlong-output-truncates",
   output: {
-    answer: "OneSmarter builds secure platforms. ".repeat(60),
+    answer: "OneSmarter builds secure platforms. ".repeat(120),
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: true,
+  expectedTruncated: true,
+});
+
+// An answer within the limit must not be flagged as truncated.
+validateCase({
+  id: "normal-length-output-not-truncated",
+  output: {
+    answer: "OneSmarter builds secure platforms and practical AI workflows.",
+    handoffNeeded: false,
+    handoffReason: null,
+    suggestedFollowUps: [],
+    groundingStatus: "grounded",
+    outputSafetyStatus: "passed",
+  },
+  expectedValid: true,
+  expectedTruncated: false,
+});
+
+// The safe fallback is the one visitor-facing string that never passes through
+// the validator, because it IS the validator's output. It must not carry
+// model-facing instruction language from the local harness answer seed.
+validateCase({
+  id: "safe-fallback-strips-internal-guidance",
+  output: {
+    answer: "OneSmarter is HIPAA Certified.",
     handoffNeeded: false,
     handoffReason: null,
     suggestedFollowUps: [],
@@ -1144,7 +1194,11 @@ validateCase({
     outputSafetyStatus: "passed",
   },
   expectedValid: false,
-  expectedViolationIncludes: ["answer_too_long"],
+  expectedFallbackExcludes: [
+    "Use the phrase",
+    "Related approved topics",
+    "The page uses supporting language",
+  ],
 });
 
 validateCase({
