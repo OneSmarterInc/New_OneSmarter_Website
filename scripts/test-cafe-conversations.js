@@ -32,8 +32,8 @@ const requiredFields = [
   "status",
 ];
 
-if (publishedCafeConversations.length !== 2) {
-  fail(`Phase 4 must expose exactly two published conversations, found ${publishedCafeConversations.length}.`);
+if (publishedCafeConversations.length !== 3) {
+  fail(`The Café must expose exactly three published conversations, found ${publishedCafeConversations.length}.`);
 }
 if (currentCafeConversation !== publishedCafeConversations[0]) {
   fail("Current Café conversation must be the first newest-first published entry.");
@@ -248,4 +248,4 @@ if (failures.length) {
 }
 
 console.log("Café conversation tests passed.");
-console.log("Validated two published conversations, current/history ordering, participant/speaker integrity, derived presence, weighted selection, invitations, provenance, and complete generator prompts.");
+console.log("Validated three published conversations, current/history ordering, participant/speaker integrity, derived presence, weighted selection, invitations, provenance, and complete generator prompts.");
