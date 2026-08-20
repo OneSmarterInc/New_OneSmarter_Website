@@ -440,7 +440,7 @@ const Banner = () => {
               independent HIPAA Security Rule compliance assessment, and is
               ISO/IEC 27001 certified. These milestones reflect our ongoing
               commitment to secure software development, responsible data
-              handling, and dependable client service.
+              handling, and dependable client service..
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
