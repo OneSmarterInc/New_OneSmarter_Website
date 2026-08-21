@@ -758,7 +758,7 @@ const AgentCard = ({ agent }) => {
           : "border-gray-200 bg-white hover:border-red-200"
         }`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <div
             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${isInCafe ? "bg-zinc-500" : agent.accent}`}
@@ -772,7 +772,7 @@ const AgentCard = ({ agent }) => {
             </p>
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-zinc-950 px-3 py-1 text-[11px] font-semibold text-white">
+        <span className="shrink-0 self-start rounded-full bg-zinc-950 px-3 py-1 text-[11px] font-semibold text-white">
           {agent.status}
         </span>
       </div>
@@ -1831,7 +1831,7 @@ const AiAgentsPage = () => {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {agentsWithPresence.map((agent) => (
               <AgentCard key={agent.name} agent={agent} />
             ))}
@@ -1859,7 +1859,7 @@ const AiAgentsPage = () => {
               personaNames={cafePersonaNames}
             />
             {earlierPublishedCafeConversations.length > 0 && (
-              <details className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+              <details className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4 sm:p-5 md:p-6">
                 <summary className="cursor-pointer font-semibold text-zinc-200">
                   Earlier Café conversations
                 </summary>
