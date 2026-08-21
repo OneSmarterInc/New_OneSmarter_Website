@@ -866,6 +866,12 @@ const MiraVoiceSamplesPanel = () => {
     }
   };
 
+  useEffect(() => {
+    stopAudio();
+    setActiveSampleId("");
+    setPlaybackState("idle");
+  }, [voiceStyle]);
+
   const handlePlay = async (sample) => {
     if (!isAvailableMiraVoiceSample(sample)) {
       stopAudio();
@@ -1001,7 +1007,9 @@ const MiraVoiceSamplesPanel = () => {
             aria-label="Mira scripted voice sample audio"
           />
           <div className="grid min-w-0 max-w-full gap-4">
-            {miraVoiceSamples.map((sample) => {
+            {miraVoiceSamples
+              .filter((sample) => sample.posture === voiceStyle)
+              .map((sample) => {
               const isAvailable = isAvailableMiraVoiceSample(sample);
               const isActive = activeSampleId === sample.id;
               const stateLabel = playbackLabelFor(sample);

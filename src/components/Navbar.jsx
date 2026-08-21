@@ -240,7 +240,7 @@ const Navbar = () => {
                 <li>
                   <Link
                     to={agentLink.path}
-                    className="whitespace-nowrap text-[13px] font-medium text-red-600 transition-all duration-300 hover:text-white lg:text-[14px] xl:text-[15px]"
+                    className="whitespace-nowrap rounded px-2 py-2 text-[13px] font-medium text-red-600 transition-all duration-300 hover:bg-zinc-950/80 hover:text-white lg:text-[14px] xl:text-[15px]"
                   >
                     {agentLink.label}
                   </Link>

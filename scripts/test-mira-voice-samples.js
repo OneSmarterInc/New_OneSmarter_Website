@@ -153,6 +153,35 @@ if (!componentSource.includes("audioRef.current.pause();")) {
   fail("voice-ui: switching active samples should stop the previous sample.");
 }
 
+if (!componentSource.includes(".filter((sample) => sample.posture === voiceStyle)")) {
+  fail("voice-ui: rendered samples must be filtered by the selected voice style.");
+}
+
+if (!componentSource.includes("[voiceStyle]")) {
+  fail("voice-ui: switching voice style should reset/stop playback of the previous style's audio.");
+}
+
+const assetPathsByStyle = new Map();
+for (const style of MIRA_ALLOWED_VOICE_STYLES) {
+  const stylePaths = miraVoiceSamples
+    .filter((sample) => sample.posture === style)
+    .map((sample) => sample.assetPath);
+  if (stylePaths.length === 0) {
+    fail(`voice-styles: ${style} has no matching audio samples.`);
+  }
+  assetPathsByStyle.set(style, stylePaths);
+}
+
+const seenAssetPaths = new Set();
+for (const stylePaths of assetPathsByStyle.values()) {
+  for (const assetPath of stylePaths) {
+    if (seenAssetPaths.has(assetPath)) {
+      fail(`voice-styles: audio asset ${assetPath} is reused across multiple voice styles.`);
+    }
+    seenAssetPaths.add(assetPath);
+  }
+}
+
 for (const stateLabel of [
   "Playing",
   "Paused",
