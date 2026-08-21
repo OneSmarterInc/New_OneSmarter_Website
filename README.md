@@ -68,7 +68,7 @@ Staffing is no longer a public service category.
 
 ## Launch Prep Notes
 
-Final cyber hardening is required before production launch. Do not add security headers, CSP, or full hardening changes until that pass is completed..
+Final cyber hardening is required before production launch. Do not add security headers, CSP, or full hardening changes until that pass is completed.
 
 Updates- 1
 
