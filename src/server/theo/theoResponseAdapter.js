@@ -61,7 +61,7 @@ export const runTheoResponseAdapter = async ({
   config = readTheoRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
 } = {}) => {
-  const localAnalysis = runTheoLocalAnalysis({ websiteContent });
+  const localAnalysis = runTheoLocalAnalysis({ message, websiteContent });
   if (config.mode !== "staging_llm" || localAnalysis.clarificationNeeded) {
     return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: false, fallbackReason: "" };
   }

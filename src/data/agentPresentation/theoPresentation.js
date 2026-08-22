@@ -3,6 +3,9 @@ export const THEO_CONTENT_LIMIT = 20000;
 export const THEO_HISTORY_LIMIT = 6;
 export const THEO_HISTORY_TOTAL_LIMIT = 2000;
 
+const normalizeTheoVisibleText = (value = "") => String(value)
+  .replace(/(?:&#(?:x(?:09|0a|0d|20|a0)|(?:9|10|13|32|160));|&nbsp;)/gi, " ");
+
 export const buildTheoConversationHistory = (turns = []) => {
   let totalChars = 0;
   const history = [];
@@ -50,11 +53,20 @@ export const askTheoEndpoint = async ({
 export const visibleTheoAnalysis = (response) => {
   const analysis = response?.analysis || {};
   return {
-    overallAssessment: analysis.overallAssessment || "",
-    strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
-    findings: Array.isArray(analysis.findings) ? analysis.findings : [],
-    recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
+    overallAssessment: normalizeTheoVisibleText(analysis.overallAssessment || ""),
+    strengths: Array.isArray(analysis.strengths) ? analysis.strengths.map(normalizeTheoVisibleText) : [],
+    findings: Array.isArray(analysis.findings) ? analysis.findings.map((item) => ({
+      ...item,
+      area: normalizeTheoVisibleText(item.area),
+      issue: normalizeTheoVisibleText(item.issue),
+      evidence: normalizeTheoVisibleText(item.evidence),
+    })) : [],
+    recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations.map((item) => ({
+      ...item,
+      action: normalizeTheoVisibleText(item.action),
+      reason: normalizeTheoVisibleText(item.reason),
+    })) : [],
     clarificationNeeded: Boolean(analysis.clarificationNeeded),
-    clarificationQuestion: analysis.clarificationQuestion || "",
+    clarificationQuestion: normalizeTheoVisibleText(analysis.clarificationQuestion || ""),
   };
 };
