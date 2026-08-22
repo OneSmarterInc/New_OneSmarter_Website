@@ -17,6 +17,7 @@ import {
   earlierPublishedCafeConversations,
   getCafePresenceForPersonaId,
 } from "../data/cafeConversations/index.js";
+import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
 
 const agents = [
   {
@@ -38,7 +39,7 @@ const agents = [
     role: "AI readability and public website analysis.",
     personality: "Thoughtful, observant, precise.",
     background: "Reads websites through search behavior, AI-readability, and buyer-intent signals.",
-    status: "Future scan concept",
+    status: "Live supplied-content analysis",
     accent: "bg-sky-700",
     memoryThemes: ["Crawler view", "Metadata", "Service clarity", "Buyer signals"],
   },
@@ -750,6 +751,7 @@ const AgentNetwork = () => (
 
 const AgentCard = ({ agent }) => {
   const isInCafe = agent.presence === "in_cafe";
+  const isTheo = agent.name === "Theo Mercer";
 
   return (
     <article
@@ -796,6 +798,11 @@ const AgentCard = ({ agent }) => {
           </span>
         ))}
       </div>
+      {isTheo && (
+        <a href="#theo-professional-analysis" className="mt-6 inline-flex w-fit rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600">
+          Open Theo
+        </a>
+      )}
     </article>
   );
 };
@@ -1846,6 +1853,8 @@ const AiAgentsPage = () => {
           </div>
         </div>
       </section>
+
+      <TheoAnalysisPanel />
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
