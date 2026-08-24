@@ -130,7 +130,9 @@ for (const conversation of publishedCafeConversations) {
   }
 }
 
-const agentSource = fs.readFileSync(new URL("../src/components/AiAgentsPage.jsx", import.meta.url), "utf8");
+const agentSource = fs
+  .readFileSync(new URL("../src/components/AiAgentsPage.jsx", import.meta.url), "utf8")
+  .replace(/\r\n/g, "\n");
 const publishedParticipantIds = new Set(
   currentCafeConversation.participants,
 );
@@ -149,6 +151,15 @@ if (!isCafeConversationActive(duringWindow) || isCafeConversationActive(afterWin
 }
 if (getCafePresenceForPersonaId("mira-vale", currentCafeConversation, duringWindow) !== "at_work") {
   fail("Permanent product rule: Mira must always remain at_work.");
+}
+const theoCafeConversation = publishedCafeConversations.find(({ participants }) => participants.includes("theo-mercer"));
+const theoActivePresence = getCafePresenceForPersonaId("theo-mercer", theoCafeConversation, duringWindow);
+const theoExpiredPresence = getCafePresenceForPersonaId("theo-mercer", theoCafeConversation, afterWindow);
+if (theoActivePresence !== "in_cafe" || theoActivePresence === "at_work") {
+  fail("Theo must be exclusively in_cafe, not at_work, while his selected Café conversation is active.");
+}
+if (theoExpiredPresence !== "at_work" || theoExpiredPresence === "in_cafe") {
+  fail("Theo must be exclusively at_work, not in_cafe, after Café presence expires.");
 }
 if (!agentSource.includes('name: "Mira Vale"') || !agentSource.includes('presence: "at_work"')) {
   fail("Permanent product rule: Mira must remain at_work.");
