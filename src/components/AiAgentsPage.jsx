@@ -13,9 +13,9 @@ import {
 import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
 import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
 import {
-  currentCafeConversation,
-  earlierPublishedCafeConversations,
+  getEarlierCafeConversations,
   getCafePresenceForPersonaId,
+  selectCafeConversation,
 } from "../data/cafeConversations/index.js";
 import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
 
@@ -1719,6 +1719,15 @@ const PersonaLayerPrototype = () => {
 
 const AiAgentsPage = () => {
   const showPresentationDebug = isPresentationDebugEnabled();
+  const [cafeNow] = useState(() => new Date());
+  const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
+  const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
+  const earlierPublishedCafeConversations = getEarlierCafeConversations(
+    currentCafeConversation,
+  );
+  const viewedCafeConversation = earlierPublishedCafeConversations.find(
+    (conversation) => conversation.id === viewedCafeConversationId,
+  ) || currentCafeConversation;
   const cafePersonaNames = Object.fromEntries(
     cafePersonas.map((persona) => [persona.id, persona.name]),
   );
@@ -1729,7 +1738,11 @@ const AiAgentsPage = () => {
     ? agent
     : {
         ...agent,
-        presence: getCafePresenceForPersonaId(cafePersonaIdsByName[agent.name]),
+        presence: getCafePresenceForPersonaId(
+          cafePersonaIdsByName[agent.name],
+          currentCafeConversation,
+          cafeNow,
+        ),
       });
   const cafeAgents = agentsWithPresence.filter(
     (agent) => agent.presence === "in_cafe" && agent.name !== "Mira Vale",
@@ -1872,7 +1885,7 @@ const AiAgentsPage = () => {
           </p>
           <div className="mt-8">
             <CafeConversationTranscript
-              conversation={currentCafeConversation}
+              conversation={viewedCafeConversation}
               personaNames={cafePersonaNames}
             />
             {earlierPublishedCafeConversations.length > 0 && (
@@ -1882,12 +1895,26 @@ const AiAgentsPage = () => {
                 </summary>
                 <div className="mt-5 space-y-5">
                   {earlierPublishedCafeConversations.map((conversation) => (
-                    <CafeConversationTranscript
+                    <button
                       key={conversation.id}
-                      conversation={conversation}
-                      personaNames={cafePersonaNames}
-                    />
+                      type="button"
+                      onClick={() => setViewedCafeConversationId(conversation.id)}
+                      className="block w-full rounded-lg border border-white/10 bg-black/30 p-4 text-left text-sm font-semibold text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.06]"
+                    >
+                      View {conversation.participants
+                        .map((participantId) => cafePersonaNames[participantId])
+                        .join(" and ")}
+                    </button>
                   ))}
+                  {viewedCafeConversationId && (
+                    <button
+                      type="button"
+                      onClick={() => setViewedCafeConversationId("")}
+                      className="text-sm font-semibold text-red-300 underline-offset-4 hover:underline"
+                    >
+                      Return to this week&apos;s conversation
+                    </button>
+                  )}
                 </div>
               </details>
             )}
@@ -1905,8 +1932,8 @@ const AiAgentsPage = () => {
               Who is in the Café
             </h2>
             <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
-              This preview reflects the participants in the latest published
-              Café conversation.
+              This preview reflects this week&apos;s selected conversation during
+              its 48-hour UTC presence window.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {cafeAgents.map((agent) => (

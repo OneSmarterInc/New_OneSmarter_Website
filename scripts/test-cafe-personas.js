@@ -111,7 +111,7 @@ const agentEntries = Object.fromEntries(
 );
 const expectedStatuses = {
   "Mira Vale": "First guide concept",
-  "Theo Mercer": "Future scan concept",
+  "Theo Mercer": "Live supplied-content analysis",
   "Elena Cross": "Future review concept",
   "Ravi Sen": "Future workflow concept",
   "Selene Hart": "Future strategy concept",
