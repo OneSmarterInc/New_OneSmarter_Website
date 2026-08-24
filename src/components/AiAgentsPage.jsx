@@ -1443,7 +1443,7 @@ const MiraConversationPanel = () => {
           <div
             ref={conversationScrollRef}
             onScroll={handleConversationScroll}
-            className="mt-5 grid min-h-[clamp(16rem,34vh,22rem)] w-full min-w-0 max-w-full gap-4 overflow-y-auto overflow-x-hidden pr-0 sm:mt-6 sm:gap-5 sm:pr-1"
+            className="mt-5 grid min-h-[clamp(16rem,34vh,22rem)] max-h-[clamp(16rem,34vh,22rem)] w-full min-w-0 max-w-full gap-4 overflow-y-auto overflow-x-hidden pr-0 sm:mt-6 sm:gap-5 sm:pr-1"
             aria-live="polite"
           >
             {conversationTurns.length === 0 && (

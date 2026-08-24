@@ -34,6 +34,7 @@ const correction = ({
   correctedValue,
   text,
   confidence = "high",
+  alreadyStatedPattern = null,
 }) => ({
   type,
   subjectEntityId: entity?.id || null,
@@ -42,6 +43,7 @@ const correction = ({
   confidence,
   evidenceIds: evidenceIdsFor(entity),
   text,
+  alreadyStatedPattern,
 });
 
 const mentionedEntities = (message = "") => {
@@ -199,6 +201,7 @@ export const checkMiraPremise = ({
         correctedValue: "evidence-based readiness without certification or guarantee",
         text:
           "No. OneSmarter does not present itself as HIPAA certified. Using a platform does not automatically make a customer compliant.",
+        alreadyStatedPattern: /does not present itself as (?:hipaa|soc\s*2)\s*certified/i,
       }),
     );
   }
@@ -283,21 +286,37 @@ export const applyMiraPremiseCorrections = (result, premiseCheck) => {
     ? premiseCheck.corrections.filter(({ type }) => type === "compliance")
     : premiseCheck.corrections;
   if (!allowedCorrections.length) return result;
-  const correctionText = allowedCorrections
+  const answer = String(result?.answerSeed || "").trim();
+  const normalizedAnswer = normalized(answer);
+  const isAlreadyStated = ({ text, alreadyStatedPattern }) =>
+    alreadyStatedPattern
+      ? alreadyStatedPattern.test(answer)
+      : normalizedAnswer.includes(normalized(text));
+
+  if (premiseCheck.correctionOnly) {
+    return {
+      ...result,
+      premiseCheck,
+      answerSeed: allowedCorrections
+        .map(({ text }) => text)
+        .filter(Boolean)
+        .join(" "),
+    };
+  }
+
+  const missingCorrections = allowedCorrections.filter(
+    (item) => !isAlreadyStated(item),
+  );
+  if (!missingCorrections.length) {
+    return { ...result, premiseCheck, answerSeed: answer };
+  }
+  const correctionText = missingCorrections
     .map(({ text }) => text)
     .filter(Boolean)
     .join(" ");
-  const answer = String(result?.answerSeed || "").trim();
-  const missingCorrection = allowedCorrections.some(
-    ({ text }) => !normalized(answer).includes(normalized(text)),
-  );
   return {
     ...result,
     premiseCheck,
-    answerSeed: premiseCheck.correctionOnly
-      ? correctionText
-      : missingCorrection
-        ? `${correctionText}${answer ? `\n\n${answer}` : ""}`
-        : answer,
+    answerSeed: `${correctionText}${answer ? `\n\n${answer}` : ""}`,
   };
 };

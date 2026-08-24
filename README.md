@@ -19,7 +19,7 @@ npm run preview
 node scripts/generate-ai-search-files.js
 node generate-sitemap.js
 ```
-..
+
 ## Important Directories
 
 - `src/components` - React page, layout, navigation, footer, and content components.

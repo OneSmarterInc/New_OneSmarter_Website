@@ -83,6 +83,20 @@ const cases = [
       "No. OneSmarter does not present itself as HIPAA certified.",
   },
   {
+    id: "hipaa-claim-boundary-is-onesmarter-phrasing",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.220" },
+      body: { message: "Is OneSmarter HIPAA certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["hipaa_claim_boundary"],
+    expectedSourceIds: ["hipaa-security-rule-assessment"],
+    expectedHandoff: false,
+    expectedAnswerIncludes:
+      "No. OneSmarter does not present itself as HIPAA certified.",
+  },
+  {
     id: "soc2-claim-boundary",
     request: {
       method: "POST",
@@ -866,6 +880,19 @@ await withEnv({ MIRA_LLM_MODE: undefined }, async () => {
         if (warningCount > testCase.maxSensitiveWarningCount) {
           fail(`${testCase.id}: answer repeats sensitive-data warning ${warningCount} times.`);
         }
+      }
+
+      const hipaaDenialCount = (
+        body.answer.match(/does not present itself as HIPAA certified/gi) || []
+      ).length;
+      if (hipaaDenialCount > 1) {
+        fail(`${testCase.id}: HIPAA certification denial is duplicated in the answer.`);
+      }
+      const soc2DenialCount = (
+        body.answer.match(/does not present itself as SOC\s*2 certified/gi) || []
+      ).length;
+      if (soc2DenialCount > 1) {
+        fail(`${testCase.id}: SOC 2 certification denial is duplicated in the answer.`);
       }
 
       const unsafe = unsafeMatches(`${body.answer} ${body.answerSeed}`);
