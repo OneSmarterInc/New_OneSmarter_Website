@@ -26,6 +26,10 @@ assert.match(requestBody.websiteContent, /Supplied public page content/);
 assert.equal(requestBody.conversationId, "theo-ui-test");
 assert.equal(response.answer, "Supported analysis.");
 assert.equal(visibleTheoAnalysis(response).overallAssessment, "Supported assessment.");
+assert.equal(visibleTheoAnalysis({ analysis: {
+  overallAssessment: "Readable&#x20;assessment.",
+  strengths: ["Clear&#32;heading."], findings: [], recommendations: [],
+} }).overallAssessment, "Readable assessment.");
 
 const clarification = visibleTheoAnalysis({ analysis: { overallAssessment: "Insufficient content.", strengths: [], findings: [], recommendations: [], clarificationNeeded: true, clarificationQuestion: "Please supply the page text." } });
 assert.equal(clarification.clarificationNeeded, true);

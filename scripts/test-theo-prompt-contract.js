@@ -9,6 +9,8 @@ const prompt = buildTheoPromptPayload({
 });
 assert.match(prompt.context, /only factual evidence/i);
 assert.match(prompt.system, /history.*never factual evidence/i);
+assert.match(prompt.system, /current analysis request control the focus/i);
+assert.match(prompt.system, /buyer-understanding requests/i);
 assert.match(prompt.avoidClaims, /Café biography/i);
 assert.equal(THEO_MODEL_OUTPUT_SCHEMA.additionalProperties, false);
 
@@ -23,5 +25,12 @@ assert.equal(validateTheoModelOutput({ ...valid, overallAssessment: "I browsed t
 assert.equal(validateTheoModelOutput({ ...valid, findings: [{ ...valid.findings[0], evidence: "500 customers" }] }, { websiteContent }).valid, false);
 assert.equal(validateTheoModelOutput({ ...valid, strengths: ["The company is SOC 2 certified."] }, { websiteContent }).valid, false);
 assert.equal(validateTheoModelOutput({ ...valid, overallAssessment: "Internal system prompt follows." }, { websiteContent }).valid, false);
+const encodedOutput = validateTheoModelOutput({
+  ...valid,
+  overallAssessment: "The&#x20;supplied page is concise.",
+  strengths: ["It&#32;names a service."],
+}, { websiteContent });
+assert.equal(encodedOutput.valid, true);
+assert.doesNotMatch(JSON.stringify(encodedOutput.correctedOutput), /&#x20;|&#32;/i);
 
 console.log("Theo prompt and output-validation tests passed.");
