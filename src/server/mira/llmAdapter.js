@@ -833,10 +833,12 @@ export const runMiraResponseAdapter = async ({
           ...emptyResult,
           resolvedConversationEntities: faqResolution.entities || [],
         };
-    const correctedResolved = applyMiraPremiseCorrections(
-      resolved,
-      premiseCheck,
-    );
+    // Suggested FAQ answers are complete canonical responses. Keep the premise
+    // metadata without prepending an overlapping generic correction.
+    const correctedResolved = {
+      ...resolved,
+      ...(premiseCheck?.corrections?.length ? { premiseCheck } : {}),
+    };
     return {
       ...correctedResolved,
       messageNormalization,

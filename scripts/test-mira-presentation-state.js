@@ -1,4 +1,5 @@
 import process from "node:process";
+import fs from "node:fs";
 import {
   MIRA_ALLOWED_EXPRESSIONS,
   MIRA_ALLOWED_POSTURES,
@@ -14,6 +15,16 @@ import {
 const failures = [];
 
 const fail = (message) => failures.push(message);
+
+const aiAgentsPageSource = fs
+  .readFileSync("src/components/AiAgentsPage.jsx", "utf8")
+  .replace(/\r\n/g, "\n");
+if (
+  !/threadEndRef\.current\?\.scrollIntoView\(\{[\s\S]*?block: "end"/.test(aiAgentsPageSource) ||
+  /answerPanelRef\.current\?\.scrollIntoView\(\{[\s\S]*?block: "start"/.test(aiAgentsPageSource)
+) {
+  fail("sample-prompt-scroll: expected latest conversation target with end alignment.");
+}
 
 const visitorLeakProbe = sanitizeMiraVisitorAnswer([
   "Useful visitor answer.",

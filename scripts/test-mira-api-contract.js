@@ -81,6 +81,7 @@ const cases = [
     expectedHandoff: false,
     expectedAnswerIncludes:
       "No. OneSmarter does not present itself as HIPAA certified.",
+    expectedAnswerOccurrenceCount: 1,
   },
   {
     id: "soc2-claim-boundary",
@@ -859,6 +860,14 @@ await withEnv({ MIRA_LLM_MODE: undefined }, async () => {
 
       if (testCase.expectedAnswerIncludes && !contains(body.answer, testCase.expectedAnswerIncludes)) {
         fail(`${testCase.id}: answer missing ${testCase.expectedAnswerIncludes}.`);
+      }
+
+      if (testCase.expectedAnswerOccurrenceCount) {
+        const occurrenceCount = body.answer
+          .split(testCase.expectedAnswerIncludes).length - 1;
+        if (occurrenceCount !== testCase.expectedAnswerOccurrenceCount) {
+          fail(`${testCase.id}: expected FAQ answer text ${testCase.expectedAnswerOccurrenceCount} time, got ${occurrenceCount}.`);
+        }
       }
 
       if (testCase.maxSensitiveWarningCount) {

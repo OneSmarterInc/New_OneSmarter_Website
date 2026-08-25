@@ -1174,11 +1174,11 @@ const MiraConversationPanel = () => {
     setIsAnswerHighlighted(true);
 
     window.requestAnimationFrame(() => {
-      answerPanelRef.current?.scrollIntoView({
+      threadEndRef.current?.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
           ? "auto"
           : "smooth",
-        block: "start",
+        block: "end",
       });
     });
 
