@@ -358,6 +358,9 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
       );
     const guaranteeQuestion =
       /\b(?:guarantee|guarantees|guaranteed)\b.{0,25}\b(?:compliance|compliant)\b/i.test(message);
+    const claimsProcessingScopeQuestion =
+      /\bclaims processing\b/i.test(message) &&
+      /\b(?:cover|covered|scope|certif(?:y|ied|ication))\b/i.test(message);
     const certificateDetailQuestion =
       /\b(?:certificate number|who issued|issuing body|certification scope|certificate scope|issue date|issued on|expiry|expire|expiration)\b/i.test(message);
     const readinessQuestion =
@@ -369,21 +372,25 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
     let faqId = "faq_iso_readiness";
     let matchedEntries = [isoReadinessEntry];
     if (differenceQuestion) {
-      answer = "OneSmarter's ISO/IEC 27001 certification is its own organizational credential. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and OneSmarter does not issue ISO certificates.";
+      answer = "One Smarter Inc.'s ISO/IEC 27001:2022 certification is its own organizational credential for the stated certified scope. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and One Smarter Inc. does not issue ISO certificates.";
       faqId = "faq_iso_readiness_vs_certification";
       matchedEntries = [isoCertificationEntry, isoReadinessEntry];
     } else if (customerCertificationQuestion) {
-      answer = "No. OneSmarter's ISO/IEC 27001 certification does not certify customer systems. ISO/IEC 27001 readiness support helps clients prepare, but certification is not automatic and OneSmarter does not issue ISO certificates.";
+      answer = "No. One Smarter Inc.'s ISO/IEC 27001:2022 certification does not certify customer systems. ISO/IEC 27001 readiness support helps clients prepare, but certification is not automatic and One Smarter Inc. does not issue ISO certificates.";
       faqId = "faq_iso_customer_certification_boundary";
     } else if (issuingQuestion) {
       answer = "No. OneSmarter provides ISO/IEC 27001 readiness support for clients; it does not issue ISO certificates.";
       faqId = "faq_iso_certificate_issuer_boundary";
     } else if (guaranteeQuestion) {
-      answer = "No. ISO/IEC 27001 certification does not guarantee customer compliance, and OneSmarter's certification does not certify customer systems.";
+      answer = "No. ISO/IEC 27001 certification does not guarantee customer compliance, and One Smarter Inc.'s certification does not certify customer systems.";
       faqId = "faq_iso_compliance_guarantee_boundary";
       matchedEntries = [isoCertificationEntry];
+    } else if (claimsProcessingScopeQuestion) {
+      answer = "No. Claims processing is not listed in One Smarter Inc.'s certified scope. The ISO/IEC 27001:2022 scope is AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application; it does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service.";
+      faqId = "faq_iso_claims_processing_scope";
+      matchedEntries = [isoCertificationEntry];
     } else if (certificateDetailQuestion) {
-      answer = "OneSmarter is ISO/IEC 27001 Certified, but Mira's approved knowledge does not include the requested certificate number, issuing body, exact scope, issue date, or expiry date. For documentary certificate evidence, contact care@onesmarter.com.";
+      answer = "One Smarter Inc. is ISO/IEC 27001:2022 certified under certificate 210826050107, issued by ARS Assessment Private Limited (UAF accredited), valid from 21 August 2026 through 20 August 2029. The certified scope is AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application. Verification is available at arscert.com and iafcertsearch.org. This scope does not automatically cover other services, platforms, or customer systems, and One Smarter Inc. does not issue ISO certificates.";
       faqId = "faq_iso_certificate_details";
       matchedEntries = [isoCertificationEntry];
     } else if (readinessQuestion && !/\b(?:own certification|your certification|OneSmarter certified|are you certified)\b/i.test(message)) {
@@ -393,7 +400,7 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
       const logoContext = /\blogo\b/i.test(message)
         ? "A logo alone should not be treated as certification evidence. "
         : "";
-      answer = `${logoContext}Yes. OneSmarter is ISO/IEC 27001 Certified. This describes OneSmarter's own organizational credential and does not certify customer systems.`;
+      answer = `${logoContext}Yes. One Smarter Inc. is ISO/IEC 27001:2022 certified (ISO/IEC 27001 Certified) for AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application. This is its own organizational credential for that stated scope; it does not certify customer systems or automatically cover every OneSmarter service or platform.`;
       faqId = "faq_iso_certification";
       matchedEntries = [isoCertificationEntry];
     } else if (definitionQuestion) {

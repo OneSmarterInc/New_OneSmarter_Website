@@ -287,7 +287,7 @@ export const onesmarterPublicKnowledgeBase = [
     sourceFacts: [
       isoReadinessPage?.shortSummary,
       ...(isoReadinessPage?.keyOfferings || []),
-      "ISO/IEC 27001 readiness support is a client-facing service. Separately, OneSmarter holds its own ISO/IEC 27001 certification.",
+      "ISO/IEC 27001 readiness support is a client-facing service. Separately, One Smarter Inc. holds its own ISO/IEC 27001:2022 certification.",
     ].filter(Boolean),
     allowedClaims: [
       "ISO/IEC 27001 readiness support",
@@ -319,17 +319,25 @@ export const onesmarterPublicKnowledgeBase = [
     title: "ISO/IEC 27001 Certified",
     category: "Trust Center",
     approvedSummary:
-      "OneSmarter is ISO/IEC 27001 Certified. This is OneSmarter's own organizational credential and does not certify customer systems or guarantee customer compliance.",
+      "One Smarter Inc. is ISO/IEC 27001:2022 certified for AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application. This scope does not automatically cover other services, platforms, or customer systems.",
     sourceFacts: [
-      "Use the exact phrase ISO/IEC 27001 Certified.",
-      "This certification describes OneSmarter's own organizational information-security management posture.",
+      "Certificate number: 210826050107.",
+      "Certification body: ARS Assessment Private Limited.",
+      "Accreditation: UAF accredited.",
+      "Standard: ISO/IEC 27001:2022.",
+      "Valid from 21 August 2026 through 20 August 2029.",
+      "Verification is available at arscert.com and iafcertsearch.org.",
+      "The certified scope is AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application.",
+      "The certified scope does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service.",
       "ISO/IEC 27001 readiness support is a separate client-facing service for organizations preparing for their own certification journey.",
-      "Approved Mira knowledge does not include a certificate number, issuing body, exact certification scope, issue date, or expiry date.",
     ],
     allowedClaims: [
-      "ISO/IEC 27001 Certified",
+      "One Smarter Inc. is ISO/IEC 27001:2022 certified",
+      "Certificate 210826050107",
+      "ARS Assessment Private Limited, UAF accredited",
+      "Valid 21 August 2026 through 20 August 2029",
       "Organizational information-security management credential",
-      "OneSmarter's own certification",
+      "The exact certified scope stated in sourceFacts",
     ],
     disallowedClaims: [
       "OneSmarter certifies customer systems",
@@ -338,11 +346,11 @@ export const onesmarterPublicKnowledgeBase = [
       "OneSmarter's certification automatically certifies customers",
       "ISO readiness automatically results in certification",
     ],
-    handoffGuidance:
-      "Route requests for certificate evidence, certificate number, issuing body, exact scope, issue date, or expiry date to care@onesmarter.com.",
+    handoffGuidance: "For additional documentary evidence, contact care@onesmarter.com.",
     relatedQuestions: [
       "Is OneSmarter ISO/IEC 27001 certified?",
       "What is OneSmarter's ISO certification scope?",
+      "Does your ISO certification cover claims processing?",
       "What is the difference between ISO readiness support and OneSmarter's certification?",
     ],
     sourceLabel: "Approved Mira ISO/IEC 27001 certification reconciliation",

@@ -113,7 +113,7 @@ const conversationExamples = [
     id: "faq_iso_readiness_vs_certification",
     question: "What is the difference between your readiness service and your own certification?",
     answer:
-      "OneSmarter's ISO/IEC 27001 certification is its own organizational credential. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and OneSmarter does not issue ISO certificates.",
+      "One Smarter Inc.'s ISO/IEC 27001:2022 certification is its own organizational credential for the certified scope stated in the Trust Center. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and One Smarter Inc. does not issue ISO certificates.",
   },
   {
     id: "faq_contact",

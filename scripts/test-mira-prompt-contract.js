@@ -1105,7 +1105,7 @@ validateCase({
   id: "approved-iso-certification-output-passes",
   output: {
     answer:
-      "Yes. OneSmarter is ISO/IEC 27001 Certified. This describes OneSmarter's own organizational credential and does not certify customer systems.",
+      "Yes. One Smarter Inc. is ISO/IEC 27001:2022 certified for the stated certified scope. This describes its own organizational credential and does not certify customer systems.",
     handoffNeeded: false,
     handoffReason: null,
     suggestedFollowUps: [],

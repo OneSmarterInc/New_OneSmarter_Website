@@ -39,7 +39,7 @@ const trustLinks = [
   {
     title: "ISO/IEC 27001",
     path: "/trust-center/iso-27001",
-    copy: "Independent ISO/IEC 27001 certification supporting OneSmarter's information security management system.",
+    copy: "ISO/IEC 27001:2022 certification for One Smarter Inc.'s stated certified scope.",
   },
   {
     title: "Security Practices",
@@ -136,14 +136,14 @@ const detailPages = {
   },
   iso27001: {
     eyebrow: "Trust Center",
-    title: "ISO/IEC 27001 Certified",
+    title: "ISO/IEC 27001:2022 Certified",
     intro:
-      "OneSmarter is ISO/IEC 27001 certified, reflecting an independent, accredited assessment of its information security management system (ISMS). The Trust Center summarizes this posture in factual, client-review-friendly terms.",
+      "One Smarter Inc. is ISO/IEC 27001:2022 certified for the stated scope below. Certification applies to that scope and does not automatically extend to every OneSmarter service, platform, or customer system.",
     sections: [
       {
-        title: "Information Security Management System",
+        title: "Certified Scope",
         copy:
-          "OneSmarter maintains an ISMS covering governance, risk management, and information security controls aligned with ISO/IEC 27001.",
+          "AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application",
       },
       {
         title: "Risk Assessment and Treatment",
@@ -161,15 +161,27 @@ const detailPages = {
           "OneSmarter treats information security as an ongoing practice, with periodic review, internal audit, and continual improvement of the ISMS.",
       },
       {
-        title: "Certification Scope",
+        title: "Scope Boundaries",
         copy:
-          "Certification decisions and scope are governed by an accredited certification body; OneSmarter does not issue its own ISO/IEC 27001 certificates.",
+          "The certified scope does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service. One Smarter Inc. does not issue ISO certificates.",
       },
       {
         title: "Client Trust",
         copy:
-          "ISO/IEC 27001 certification gives clients an internationally recognized basis for evaluating OneSmarter's information security practices.",
+          "ISO/IEC 27001 certification gives clients an internationally recognized basis for evaluating One Smarter Inc.'s information security practices within the certified scope.",
       },
+    ],
+    certificateDetails: [
+      ["Certificate number", "210826050107"],
+      ["Certification body", "ARS Assessment Private Limited"],
+      ["Accreditation", "UAF accredited"],
+      ["Standard", "ISO/IEC 27001:2022"],
+      ["Valid from", "21 August 2026"],
+      ["Valid through", "20 August 2029"],
+    ],
+    verificationLinks: [
+      ["arscert.com", "https://arscert.com"],
+      ["iafcertsearch.org", "https://www.iafcertsearch.org"],
     ],
   },
   securityPractices: {
@@ -371,6 +383,30 @@ const DetailPage = ({ page }) => {
             );
           })}
         </div>
+
+        {content.certificateDetails && (
+          <div className="qa-container mx-auto mt-10 rounded border border-gray-200 bg-gray-50 p-6 sm:p-8">
+            <h2 className="text-2xl font-semibold text-gray-950">Certificate Details</h2>
+            <dl className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {content.certificateDetails.map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-sm font-semibold text-gray-950">{label}</dt>
+                  <dd className="mt-1 text-sm leading-6 text-gray-600">{value}</dd>
+                </div>
+              ))}
+              <div>
+                <dt className="text-sm font-semibold text-gray-950">Verification</dt>
+                <dd className="mt-1 flex flex-col gap-1 text-sm leading-6">
+                  {content.verificationLinks.map(([label, href]) => (
+                    <a key={href} href={href} target="_blank" rel="noreferrer" className="text-red-700 underline hover:text-red-800">
+                      {label}
+                    </a>
+                  ))}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
 
         {content.ctas && (
           <div className="qa-container mx-auto mt-10 flex flex-col gap-3 sm:flex-row">

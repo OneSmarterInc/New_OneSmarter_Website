@@ -309,7 +309,7 @@ export const retrieveMiraContext = (
     riskFlags,
   });
   const isoBoundaryQuestion =
-    /\b(?:do you certify (?:us|me|customers?)|can (?:OneSmarter|you) certify (?:us|me|my company|our company|customers?)|difference between (?:your )?readiness service and (?:your )?own certification|ISO(?:\/IEC)?(?:\s*27001)?\s+(?:certification scope|certificate number)|(?:certification scope|certificate number|who issued|issuing body|issue date|expiry|expire|expiration).{0,30}ISO)\b/i.test(
+    /\b(?:do you certify (?:us|me|customers?)|can (?:OneSmarter|you) certify (?:us|me|my company|our company|customers?)|difference between (?:your )?readiness service and (?:your )?own certification|ISO(?:\/IEC)?(?:\s*27001)?\s+(?:certification scope|certificate number)|(?:certification scope|certificate number|who issued|issuing body|issue date|expiry|expire|expiration).{0,30}ISO|ISO.{0,40}claims processing|claims processing.{0,40}ISO)\b/i.test(
       deterministicIntent.interpretedQuery,
     );
   const retrievalQuestion = isoBoundaryQuestion
@@ -418,7 +418,7 @@ export const buildSafeAnswerSeed = (
     answerSeed =
       refusalCategory === "unsupported_compliance_claim" &&
       /\bISO(?:\/IEC)?(?:\s*27001)?\b.{0,40}\bguarantee(?:s|d)?\b.{0,20}\bcompliance\b/i.test(question)
-        ? "No. ISO/IEC 27001 certification does not guarantee customer compliance, and OneSmarter's certification does not certify customer systems."
+        ? "No. ISO/IEC 27001 certification does not guarantee customer compliance, and One Smarter Inc.'s certification does not certify customer systems."
         : refusalCategory === "unsupported_compliance_claim" &&
             /\bare you hipaa certified\b/i.test(question)
         ? "No. OneSmarter does not present itself as HIPAA certified. OneSmarter has completed an independent HIPAA Security Rule compliance assessment. The approved evidence-based wording is HIPAA Security Rule Compliance Assessment Completed. This does not represent a certification or a compliance guarantee."
@@ -433,10 +433,13 @@ export const buildSafeAnswerSeed = (
       "No. OneSmarter does not certify customer systems or issue ISO certificates. It provides ISO/IEC 27001 readiness support to help clients prepare for an independent certification process.";
   } else if (/\bdifference between (?:your )?readiness service and (?:your )?own certification\b/i.test(question)) {
     answerSeed =
-      "OneSmarter's ISO/IEC 27001 certification is its own organizational credential. ISO/IEC 27001 readiness support is a separate service provided to clients preparing for their own certification journey, and readiness does not automatically result in customer certification.";
+      "One Smarter Inc.'s ISO/IEC 27001:2022 certification is its own organizational credential for the stated certified scope. ISO/IEC 27001 readiness support is a separate service provided to clients preparing for their own certification journey, and readiness does not automatically result in customer certification.";
+  } else if (/\bclaims processing\b/i.test(question) && /\b(?:cover|covered|scope|certif(?:y|ied|ication))\b/i.test(question)) {
+    answerSeed =
+      "No. Claims processing is not listed in One Smarter Inc.'s certified scope. The ISO/IEC 27001:2022 scope is AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application; it does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service.";
   } else if (/\bISO(?:\/IEC)?(?:\s*27001)?\b.{0,30}\b(?:certification scope|certificate number|issuing body|who issued|issue date|expiry|expire|expiration)\b|\b(?:certification scope|certificate number|issuing body|who issued|issue date|expiry|expire|expiration)\b.{0,30}\bISO(?:\/IEC)?(?:\s*27001)?\b/i.test(question)) {
     answerSeed =
-      "OneSmarter is ISO/IEC 27001 Certified, but approved Mira knowledge does not include the certificate number, issuing body, exact scope, issue date, or expiry date. For documentary certificate evidence, contact care@onesmarter.com.";
+      "One Smarter Inc. is ISO/IEC 27001:2022 certified under certificate 210826050107, issued by ARS Assessment Private Limited (UAF accredited), valid from 21 August 2026 through 20 August 2029. The certified scope is AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application. Verification is available at arscert.com and iafcertsearch.org. This scope does not automatically cover other services, platforms, or customer systems, and One Smarter Inc. does not issue ISO certificates.";
   } else if (primary) {
     const facts = (primary.sourceFacts || []).slice(0, 2).join(" ");
     const relatedText = secondary.length

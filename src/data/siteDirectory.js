@@ -1,7 +1,7 @@
 const trustNotes = [
   "SOC 2 Type II Attested",
   "HIPAA Security Rule Compliance Assessment Completed",
-  "OneSmarter is ISO/IEC 27001 Certified",
+  "ISO/IEC 27001:2022 Certified (see Trust Center for certified scope)",
   "Secure software development",
   "Responsible data handling",
   "Compliance-aware operations",
@@ -435,15 +435,19 @@ export const siteDirectory = [
   }),
   entry({
     route: "/trust-center/iso-27001",
-    title: "ISO/IEC 27001 Certified | OneSmarter Trust Center",
+    title: "ISO/IEC 27001:2022 Certified | OneSmarter Trust Center",
     metaDescription:
-      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system.",
+      "One Smarter Inc. is ISO/IEC 27001:2022 certified for its stated scope, under certificate 210826050107 issued by ARS Assessment Private Limited.",
     category: "Trust Center",
     shortSummary:
-      "OneSmarter is ISO/IEC 27001 Certified, reflecting an independent, accredited assessment of its information security management system.",
+      "One Smarter Inc. is ISO/IEC 27001:2022 certified for AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application.",
     serviceType: "Trust information",
-    keyOfferings: ["Information security management system", "Risk assessment and treatment", "Access control", "Continual improvement", "Certification scope"],
-    complianceNotes: ["ISO/IEC 27001 Certified", "Certification decisions and scope are governed by an accredited certification body"],
+    keyOfferings: ["Certificate 210826050107", "ARS Assessment Private Limited", "UAF accredited", "Valid 21 August 2026 through 20 August 2029", "Verification at arscert.com and iafcertsearch.org"],
+    complianceNotes: [
+      "ISO/IEC 27001:2022 Certified (see Trust Center for certified scope)",
+      "The certified scope does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service",
+      "One Smarter Inc. does not issue ISO certificates",
+    ],
     relatedRoutes: ["/trust-center", "/trust-center/security-practices", "/contact"],
   }),
   entry({

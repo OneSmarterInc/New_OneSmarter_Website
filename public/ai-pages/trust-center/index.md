@@ -21,7 +21,7 @@ Organizations evaluating OneSmarter services.
 ## Trust And Compliance Notes
 - SOC 2 Type II Attested
 - HIPAA Security Rule Compliance Assessment Completed
-- OneSmarter is ISO/IEC 27001 Certified
+- ISO/IEC 27001:2022 Certified (see Trust Center for certified scope)
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
@@ -29,7 +29,7 @@ Organizations evaluating OneSmarter services.
 ## Related Pages
 - [SOC 2 Type II Attested | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/soc2.md)
 - [HIPAA Security Rule Compliance Assessment Completed | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/hipaa.md)
-- [ISO/IEC 27001 Certified | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/iso-27001.md)
+- [ISO/IEC 27001:2022 Certified | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/iso-27001.md)
 - [Security Practices | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/security-practices.md)
 - [Privacy & Responsible Data Handling | OneSmarter Trust Center](https://www.onesmarter.com/ai-pages/trust-center/privacy.md)
 
