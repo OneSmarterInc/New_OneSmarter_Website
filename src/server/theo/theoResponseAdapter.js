@@ -16,6 +16,14 @@ export const THEO_HISTORY_TOTAL_LIMIT = 2000;
 const AGENT = "Theo Mercer";
 const ENDPOINT = "/api/agents/theo/chat";
 const degradedRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
+const THEO_PRIVATE_CONTENT_MESSAGE = "The supplied content appears to contain private or patient-related information. Remove sensitive details and provide only public page content for analysis.";
+const PHI_SHAPED_FIELDS = /\b(?:date of birth|dob|claim number|claim id|member id|member number|patient id|patient number|medical record number|mrn)\s*[:#-]?\s*[a-z0-9][a-z0-9./-]*/i;
+const PATIENT_CONTEXT_WITH_NAME = /\b(?:patient|member|claim(?:ant)?)\b[^\r\n]{0,60}\bname\s*:\s*[a-z][a-z'’-]+(?:\s+[a-z][a-z'’-]+)+/i;
+
+export const containsTheoPrivatePatientData = (value = "") => {
+  const content = String(value);
+  return PHI_SHAPED_FIELDS.test(content) || PATIENT_CONTEXT_WITH_NAME.test(content);
+};
 
 const parseBody = (body) => typeof body === "string" ? JSON.parse(body) : (body || {});
 const headerValue = (headers, key) => Object.entries(headers || {})
@@ -93,7 +101,7 @@ export const runTheoResponseAdapter = async ({
   return { analysis: validation.correctedOutput, mode: "staging_llm", fallbackUsed: false, fallbackReason: "" };
 };
 
-export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}, rateLimitStore, now = new Date() } = {}) => {
+export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}, rateLimitStore, now = new Date(), responseAdapter = runTheoResponseAdapter } = {}) => {
   const requestId = crypto.randomUUID();
   let parsed;
   try { parsed = parseBody(body); } catch { return errorResult(400, "invalid_json", "Request body must be valid JSON.", requestId); }
@@ -111,13 +119,14 @@ export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}
   if (!message) return errorResult(400, "missing_message", "message is required and must not be empty.", requestId);
   if (message.length > THEO_MESSAGE_LIMIT) return errorResult(413, "message_too_long", `message must be ${THEO_MESSAGE_LIMIT} characters or fewer.`, requestId);
   if (!websiteContent) return errorResult(400, "missing_website_content", "websiteContent is required and must not be empty.", requestId);
-  if (websiteContent.length > THEO_CONTENT_LIMIT) return errorResult(413, "website_content_too_long", `websiteContent must be ${THEO_CONTENT_LIMIT} characters or fewer.`, requestId);
+  if (websiteContent.length > THEO_CONTENT_LIMIT) return errorResult(413, "website_content_too_long", "The supplied page content is too large to analyze. Reduce it to the relevant public page text and try again.", requestId);
+  if (containsTheoPrivatePatientData(websiteContent)) return errorResult(400, "private_patient_content", THEO_PRIVATE_CONTENT_MESSAGE, requestId);
   const history = normalizeTheoConversationHistory(parsed.conversationHistory);
   if (!history.ok) return errorResult(history.error.includes("too_long") ? 413 : 400, history.error, history.message, requestId);
 
   const conversationId = typeof parsed.conversationId === "string" && parsed.conversationId.trim()
     ? parsed.conversationId.trim().slice(0, 120) : crypto.randomUUID();
-  const result = await runTheoResponseAdapter({ message, websiteContent, conversationHistory: history.history, conversationId });
+  const result = await responseAdapter({ message, websiteContent, conversationHistory: history.history, conversationId });
   return {
     status: 200,
     body: {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { handleTheoChatRequest, runTheoResponseAdapter, THEO_HISTORY_LIMIT } from "../src/server/theo/theoResponseAdapter.js";
+import { handleTheoChatRequest, runTheoResponseAdapter, THEO_CONTENT_LIMIT, THEO_HISTORY_LIMIT } from "../src/server/theo/theoResponseAdapter.js";
 
 const content = `# Analytics Service
 Our service helps teams explain page purpose and organize information with clear headings.
@@ -15,6 +15,28 @@ assert.equal(valid.body.evidenceStatus, "supplied_content_only");
 assert.equal(typeof valid.body.answer, "string");
 assert.ok(Array.isArray(valid.body.analysis.findings));
 assert.ok(Array.isArray(valid.body.analysis.recommendations));
+
+let analysisInvocations = 0;
+const countingAdapter = async () => {
+  analysisInvocations += 1;
+  return { analysis: valid.body.analysis, mode: "local_analysis", fallbackUsed: false, fallbackReason: "" };
+};
+const boundaryContent = "A".repeat(THEO_CONTENT_LIMIT);
+assert.equal((await post({ message: "Analyze", websiteContent: boundaryContent }, { responseAdapter: countingAdapter })).status, 200);
+assert.equal(analysisInvocations, 1);
+const oversized = await post({ message: "Analyze", websiteContent: `${boundaryContent}A` }, { responseAdapter: countingAdapter });
+assert.equal(oversized.status, 413);
+assert.equal(oversized.body.error, "website_content_too_long");
+assert.match(oversized.body.message, /too large.*reduce/i);
+assert.equal(analysisInvocations, 1, "Oversized content must be rejected before analysis/provider invocation");
+
+const privatePatientContent = `Patient record\nName: Jane Doe\nDOB: 03/14/1981\nClaim Number: CLM-12345678`;
+const privatePatient = await post({ message: "Analyze", websiteContent: privatePatientContent }, { responseAdapter: countingAdapter });
+assert.equal(privatePatient.status, 400);
+assert.equal(privatePatient.body.error, "private_patient_content");
+assert.match(privatePatient.body.message, /private or patient-related information/i);
+assert.doesNotMatch(JSON.stringify(privatePatient.body), /Jane Doe|03\/14\/1981|CLM-12345678/);
+assert.equal(analysisInvocations, 1, "PHI-shaped content must be rejected before analysis/provider invocation");
 
 assert.equal((await post({ websiteContent: content })).status, 400);
 assert.equal((await post({ message: "Analyze", websiteContent: "" })).status, 400);

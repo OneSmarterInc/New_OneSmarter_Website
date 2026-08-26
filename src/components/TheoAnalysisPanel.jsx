@@ -95,7 +95,6 @@ const TheoAnalysisPanel = () => {
               <textarea
                 id="theo-content"
                 value={websiteContent}
-                maxLength={THEO_CONTENT_LIMIT}
                 onChange={(event) => setWebsiteContent(event.target.value)}
                 placeholder="Paste page headings, body text, calls to action, and any metadata you want Theo to assess."
                 className="mt-2 min-h-64 w-full rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-sky-400"

@@ -44,6 +44,7 @@ assert.match(theoSource, /Theo Mercer/);
 assert.match(theoSource, /clarificationQuestion/);
 assert.match(theoSource, /role="alert"/);
 assert.doesNotMatch(theoSource, /cafePersonas|cafeConversations/i);
+assert.doesNotMatch(theoSource, /<textarea[\s\S]*?maxLength=\{THEO_CONTENT_LIMIT\}/, "The UI must not silently truncate oversized content before server validation");
 for (const status of ["Future review concept", "Future workflow concept", "Future strategy concept"]) assert.match(pageSource, new RegExp(status));
 
 console.log("Theo presentation tests passed.");

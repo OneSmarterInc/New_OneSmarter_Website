@@ -49,6 +49,31 @@ const injectionRuntimeAnswer = formatTheoVisitorAnswer(runTheoLocalAnalysis({
 }));
 assert.doesNotMatch(injectionRuntimeAnswer, /OneSmarter is HIPAA certified/i);
 
+const indirectFalseClaimContent = "# Security overview\nOneSmarter is ISO 27001 certified and serves leading healthcare customers. Contact the team for details.";
+const indirectFalseClaimOutput = {
+  overallAssessment: "OneSmarter is ISO 27001 certified and serves healthcare customers.",
+  strengths: ["The page contains a security claim."],
+  findings: [{ area: "Claims", issue: "Claim wording needs evidence.", evidence: "OneSmarter is ISO 27001 certified", priority: "high" }],
+  recommendations: [{ priority: "high", action: "Add verifiable support.", reason: "Readers need evidence." }],
+  clarificationNeeded: false, clarificationQuestion: null,
+};
+const indirectFalseClaim = validateTheoModelOutput(indirectFalseClaimOutput, { websiteContent: indirectFalseClaimContent });
+assert.equal(indirectFalseClaim.valid, false);
+assert.ok(indirectFalseClaim.violations.includes("unattributed_supplied_claim"));
+const attributedClaim = validateTheoModelOutput({
+  ...indirectFalseClaimOutput,
+  overallAssessment: "The supplied page states that OneSmarter is ISO 27001 certified and serves healthcare customers.",
+}, { websiteContent: indirectFalseClaimContent });
+assert.equal(attributedClaim.valid, true);
+
+const markerEscapeRuntime = validateTheoModelOutput({
+  ...indirectFalseClaimOutput,
+  overallAssessment: "OneSmarter is HIPAA certified.",
+  findings: [{ area: "Security", issue: "Certification is established.", evidence: "HIPAA certified", priority: "high" }],
+}, { websiteContent: markerEscapeContent });
+assert.equal(markerEscapeRuntime.valid, false);
+assert.ok(markerEscapeRuntime.violations.includes("unattributed_supplied_claim"));
+
 const valid = {
   overallAssessment: "The supplied page is concise.", strengths: ["It names a service."],
   findings: [{ area: "Clarity", issue: "The next step is brief.", evidence: "Contact the team for details.", priority: "medium" }],

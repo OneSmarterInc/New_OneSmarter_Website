@@ -7,6 +7,8 @@ const GUARDED_FACT_TERMS = [
   "certified", "certification", "soc 2", "hipaa", "customers", "customer count",
   "pricing", "price", "built with", "uses react", "uses wordpress", "market leader",
 ];
+const UNATTRIBUTED_ONESMARTER_CLAIM = /\bOneSmarter\s+(?:is|has|uses|serves|supports|provides|offers)\b[^.!?]*(?:certified|certification|soc 2|hipaa|customers?|pricing|price|built with|uses react|uses wordpress|market leader)/i;
+const SUPPLIED_CONTENT_ATTRIBUTION = /\b(?:supplied (?:content|page|text)|page (?:states|says|claims|describes)|content (?:states|says|claims|describes))\b/i;
 const normalize = (value = "") => normalizeTheoText(value).toLowerCase().replace(/\s+/g, " ").trim();
 const nonEmpty = (value) => typeof value === "string" && Boolean(value.trim());
 const cleanVisitorText = (value) => normalizeTheoText(value).trim();
@@ -35,6 +37,9 @@ export const validateTheoModelOutput = (output, { websiteContent = "", fallbackA
   const normalizedVisitorText = normalize(visitorText);
   if (GUARDED_FACT_TERMS.some((term) => normalizedVisitorText.includes(term) && !evidenceText.includes(term))) {
     violations.push("unsupported_factual_inference");
+  }
+  if (UNATTRIBUTED_ONESMARTER_CLAIM.test(visitorText) && !SUPPLIED_CONTENT_ATTRIBUTION.test(visitorText)) {
+    violations.push("unattributed_supplied_claim");
   }
   for (const item of output?.findings || []) {
     const evidence = normalize(item.evidence);
