@@ -54,7 +54,9 @@ const TheoAnalysisPanel = () => {
       setResponse(null);
       setErrorMessage(error.status === 429
         ? "Theo is receiving too many requests. Please try again shortly."
-        : "Theo could not complete the analysis. Please try again with the supplied page content.");
+        : error.hasSafeServerMessage
+          ? error.message
+          : "Theo could not complete the analysis. Please try again with the supplied page content.");
     } finally {
       setIsLoading(false);
     }

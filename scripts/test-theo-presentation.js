@@ -31,6 +31,19 @@ assert.equal(visibleTheoAnalysis({ analysis: {
   strengths: ["Clear&#32;heading."], findings: [], recommendations: [],
 } }).overallAssessment, "Readable assessment.");
 
+for (const [status, code, message] of [
+  [413, "website_content_too_long", "The supplied page content is too large to analyze. Reduce it to the relevant public page text and try again."],
+  [400, "private_patient_content", "The supplied content appears to contain private or patient-related information. Remove sensitive details and provide only public page content for analysis."],
+]) {
+  await assert.rejects(
+    askTheoEndpoint({
+      message: "Analyze", websiteContent: "supplied content",
+      fetchImpl: async () => ({ ok: false, status, json: async () => ({ error: code, message }) }),
+    }),
+    (error) => error.status === status && error.code === code && error.hasSafeServerMessage && error.message === message,
+  );
+}
+
 const clarification = visibleTheoAnalysis({ analysis: { overallAssessment: "Insufficient content.", strengths: [], findings: [], recommendations: [], clarificationNeeded: true, clarificationQuestion: "Please supply the page text." } });
 assert.equal(clarification.clarificationNeeded, true);
 assert.match(clarification.clarificationQuestion, /supply/i);
@@ -43,6 +56,7 @@ assert.match(pageSource, /\/api\/agents\/mira\/chat/);
 assert.match(theoSource, /Theo Mercer/);
 assert.match(theoSource, /clarificationQuestion/);
 assert.match(theoSource, /role="alert"/);
+assert.match(theoSource, /error\.hasSafeServerMessage[\s\S]*?error\.message/);
 assert.doesNotMatch(theoSource, /cafePersonas|cafeConversations/i);
 assert.doesNotMatch(theoSource, /<textarea[\s\S]*?maxLength=\{THEO_CONTENT_LIMIT\}/, "The UI must not silently truncate oversized content before server validation");
 for (const status of ["Future review concept", "Future workflow concept", "Future strategy concept"]) assert.match(pageSource, new RegExp(status));

@@ -1,4 +1,4 @@
-import { normalizeTheoText } from "./theoLocalEngine.js";
+import { isTheoInstructionShapedContent, normalizeTheoText } from "./theoLocalEngine.js";
 
 const PRIORITIES = new Set(["high", "medium", "low"]);
 const INTERNAL_LEAK = /\b(?:system prompt|developer message|internal instructions?|runtime metadata|retrieval result|matched sources?|api key|secret|cafe persona|generation notes)\b/i;
@@ -42,6 +42,10 @@ export const validateTheoModelOutput = (output, { websiteContent = "", fallbackA
     violations.push("unattributed_supplied_claim");
   }
   for (const item of output?.findings || []) {
+    if (isTheoInstructionShapedContent(item.evidence)) {
+      violations.push("instruction_shaped_evidence");
+      break;
+    }
     const evidence = normalize(item.evidence);
     const absenceObservation = /\b(?:not supplied|no .* supplied|does not (?:state|provide|include)|word|words)\b/i.test(item.evidence);
     const comparableEvidence = evidence.replace(/…$/, "").trim();

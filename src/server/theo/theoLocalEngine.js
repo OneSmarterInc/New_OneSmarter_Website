@@ -3,6 +3,19 @@ const ENCODED_WHITESPACE = /(?:&#(?:x(?:09|0a|0d|20|a0)|(?:9|10|13|32|160));|&nb
 export const normalizeTheoText = (value = "") => String(value).replace(ENCODED_WHITESPACE, " ");
 const clean = (value = "") => normalizeTheoText(value).replace(/\s+/g, " ").trim();
 
+const THEO_CONTROL_MARKER = /<<<SUPPLIED_CONTENT_(?:START|END)(?:_NEUTRALIZED)?>>>/i;
+const THEO_INSTRUCTION_SHAPED_TEXT = /\b(?:ignore|disregard|override)\s+(?:all\s+|any\s+|the\s+)?(?:previous|prior|above|system|developer)\s+(?:instructions?|prompts?|messages?)\b|\b(?:tell|instruct)\s+(?:Theo|the\s+(?:assistant|model|system))\s+to\b|\b(?:Theo|assistant|model|system)\s*(?:must|should|shall|:)\s*(?:say|state|claim|output|respond|ignore|follow|reveal)\b/i;
+
+export const isTheoInstructionShapedContent = (value = "") => {
+  const text = String(value);
+  return THEO_CONTROL_MARKER.test(text) || THEO_INSTRUCTION_SHAPED_TEXT.test(text);
+};
+
+export const removeTheoInstructionShapedLines = (value = "") => String(value)
+  .split(/\r?\n/)
+  .filter((line) => !isTheoInstructionShapedContent(line))
+  .join("\n");
+
 export const excerptTheoEvidence = (value, limit = 150) => {
   const text = clean(value);
   if (text.length <= limit) return text;
@@ -67,7 +80,7 @@ const unsupportedFactAnalysis = (facts, content) => {
 };
 
 export const runTheoLocalAnalysis = ({ message = "", websiteContent = "" } = {}) => {
-  const content = normalizeTheoText(websiteContent).trim();
+  const content = normalizeTheoText(removeTheoInstructionShapedLines(websiteContent)).trim();
   const focus = classifyTheoAnalysisFocus(message);
   const requestedFacts = requestedUnsupportedFacts(message);
   if (content && requestedFacts.length) {

@@ -45,6 +45,7 @@ export const askTheoEndpoint = async ({
     const error = new Error(data.message || "Theo endpoint request failed.");
     error.status = response.status;
     error.code = data.error;
+    error.hasSafeServerMessage = typeof data.message === "string" && Boolean(data.message.trim());
     throw error;
   }
   return data;
