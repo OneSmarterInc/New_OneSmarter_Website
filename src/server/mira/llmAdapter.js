@@ -136,6 +136,11 @@ const hasHardStopRisk = (riskFlags = []) =>
 const hasClaimBoundaryRisk = (riskFlags = []) =>
   riskFlags.includes("hipaa_claim_boundary") || riskFlags.includes("soc2_claim_boundary");
 
+const TRUST_POSTURE_FAQ_IDS = new Set([
+  "faq_hipaa_status",
+  "faq_soc2_attestation",
+]);
+
 const hasOutOfScopeRisk = (riskFlags = []) => riskFlags.includes("out_of_scope");
 
 const hasApprovedContext = (localResult) =>
@@ -805,9 +810,10 @@ export const runMiraResponseAdapter = async ({
       responseMode,
       suggestedQuestionId,
     );
+  const isTrustPostureFaq = TRUST_POSTURE_FAQ_IDS.has(faqResolution?.faqId);
   if (
     faqResolution &&
-    !hasExplicitSingleEntityFocus &&
+    (!hasExplicitSingleEntityFocus || isTrustPostureFaq) &&
     earlyRiskFlags.every((flag) =>
       ["hipaa_claim_boundary", "soc2_claim_boundary"].includes(flag),
     )

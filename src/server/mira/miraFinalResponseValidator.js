@@ -78,6 +78,7 @@ const missingLabels = (answer, labels = []) => {
 };
 
 const categoryScopedCorrection = (result, answer, scope) => {
+  if (["faq_hipaa_status", "faq_soc2_attestation"].includes(result.faqId)) return null;
   if (!["platform", "service"].includes(scope)) return null;
   const selectedEntities = (result.resolvedConversationEntities || []).filter(
     (entity) => entity?.type === scope,

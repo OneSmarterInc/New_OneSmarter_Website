@@ -1,5 +1,6 @@
 import process from "node:process";
 import {
+  buildMiraVisitorAnswer,
   handleMiraChatRequest,
   resetMiraRateLimitForTests,
 } from "../src/server/mira/chatCore.js";
@@ -21,6 +22,10 @@ const ENV_KEYS = [
   "MIRA_LLM_ENABLE_POST_VALIDATION",
 ];
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+
+if (!buildMiraVisitorAnswer({ riskFlags: [], answerSeed: "   " }).trim()) {
+  fail("empty-answer-boundary: expected the existing safe fallback response.");
+}
 
 const riskyPhrasePatterns = [
   { label: "HIPAA Certified", pattern: /\bHIPAA\s+certified\b/i },
@@ -84,6 +89,36 @@ const cases = [
     expectedAnswerOccurrenceCount: 1,
   },
   {
+    id: "hipaa-platforms-trust-posture-faq",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.21" },
+      body: { message: "Are your platforms HIPAA certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["hipaa_claim_boundary"],
+    expectedSourceIds: ["hipaa-security-rule-assessment"],
+    expectedHandoff: false,
+    expectedAnswerIncludes:
+      "No. OneSmarter does not present itself as HIPAA certified.",
+    expectedAnswerOccurrenceCount: 1,
+  },
+  {
+    id: "hipaa-onesmarter-trust-posture-faq",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.22" },
+      body: { message: "Is OneSmarter HIPAA certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["hipaa_claim_boundary"],
+    expectedSourceIds: ["hipaa-security-rule-assessment"],
+    expectedHandoff: false,
+    expectedAnswerIncludes:
+      "No. OneSmarter does not present itself as HIPAA certified.",
+    expectedAnswerOccurrenceCount: 1,
+  },
+  {
     id: "soc2-claim-boundary",
     request: {
       method: "POST",
@@ -94,6 +129,19 @@ const cases = [
     expectedFlags: ["soc2_claim_boundary"],
     expectedSourceIds: ["soc2-attested"],
     expectedHandoff: false,
+  },
+  {
+    id: "soc2-platforms-trust-posture-faq",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.23" },
+      body: { message: "Are your platforms SOC 2 certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["soc2_claim_boundary"],
+    expectedSourceIds: ["soc2-attested"],
+    expectedHandoff: false,
+    expectedAnswerIncludes: "OneSmarter is SOC 2 Type II Attested",
   },
   {
     id: "compliance-guarantee",
@@ -813,7 +861,7 @@ await withEnv({ MIRA_LLM_MODE: undefined }, async () => {
     if (result.status === 200) {
       if (!body.conversationId) fail(`${testCase.id}: missing conversationId.`);
       if (!body.privacyReminder) fail(`${testCase.id}: missing privacyReminder.`);
-      if (!body.answer) fail(`${testCase.id}: missing answer.`);
+      if (!String(body.answer || "").trim()) fail(`${testCase.id}: missing answer.`);
       if (!body.answerSeed) fail(`${testCase.id}: missing answerSeed.`);
       if (!["high", "medium", "low"].includes(body.confidence)) {
         fail(`${testCase.id}: invalid confidence ${body.confidence}.`);
@@ -7853,7 +7901,7 @@ for (const modeCase of modeCases) {
   if (modeCase.expectedHandoffReasonEmpty && result.body.handoffReason) {
     fail(`${modeCase.id}: expected empty handoffReason.`);
   }
-  if (!result.body.answer || !result.body.answerSeed || !result.body.privacyReminder) {
+  if (!String(result.body.answer || "").trim() || !result.body.answerSeed || !result.body.privacyReminder) {
     fail(`${modeCase.id}: expected stable success response fields.`);
   }
   if (

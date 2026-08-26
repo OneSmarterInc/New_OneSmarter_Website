@@ -22,6 +22,8 @@ const MODE = "local_harness_mock";
 const ENDPOINT = "/api/agents/mira/chat";
 const PRIVACY_REMINDER =
   "Do not submit PHI, confidential documents, or private operational details through this public agent.";
+const EMPTY_ANSWER_FALLBACK =
+  "I do not have an approved public answer for that yet. For business-specific questions, email care@onesmarter.com.";
 const MAX_CONVERSATION_HISTORY_MESSAGES = 6;
 const MAX_CONVERSATION_HISTORY_TOTAL_CHARS = 2000;
 const MAX_CONVERSATION_HISTORY_MESSAGE_CHARS = 700;
@@ -240,7 +242,7 @@ const disclaimerFor = (result) => {
   return "";
 };
 
-const buildAnswer = (result) => {
+export const buildMiraVisitorAnswer = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
     const safetyAnswer =
       "I cannot review PHI, confidential documents, or private operational details here. Please do not submit sensitive information through this public agent. For business-specific questions, email care@onesmarter.com.";
@@ -253,7 +255,8 @@ const buildAnswer = (result) => {
       ? `${complianceCorrection}\n\n${safetyAnswer}`
       : safetyAnswer);
   }
-  return sanitizeMiraVisitorAnswer(result.answerSeed);
+  const answer = sanitizeMiraVisitorAnswer(result.answerSeed);
+  return answer.trim() ? answer : EMPTY_ANSWER_FALLBACK;
 };
 
 const sanitizeAnswerStructure = (structure) => {
@@ -534,7 +537,7 @@ export const handleMiraChatRequest = async ({
       agent: AGENT_NAME,
       mode: result.mode || MODE,
       conversationId: normalizedConversationId,
-      answer: buildAnswer(result),
+      answer: buildMiraVisitorAnswer(result),
       answerCompleteness: result.answerCompleteness,
       finalResponseValidation: result.finalResponseValidation,
       businessGoals: result.businessGoals || [],

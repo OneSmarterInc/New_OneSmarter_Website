@@ -491,15 +491,20 @@ export const resolveMiraSuggestedFaqFastPath = (
   responseMode = {},
   suggestedQuestionId = "",
 ) => {
+  const normalized = String(message).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const trustPostureFaqId = /^are (?:your|onesmarter s) platforms? hipaa certified$/.test(normalized)
+    ? "faq_hipaa_status"
+    : /^are (?:your|onesmarter s) platforms? soc 2 certified$/.test(normalized)
+      ? "faq_soc2_attestation"
+      : "";
   const canonicalKnowledgeFaq = resolveCanonicalKnowledgeFaq(message);
   if (canonicalKnowledgeFaq) return canonicalKnowledgeFaq;
-  const directFactualTopic = DIRECT_FACTUAL_RECOMMENDATION.test(message)
+  const directFactualTopic = trustPostureFaqId || DIRECT_FACTUAL_RECOMMENDATION.test(message)
     ? null
     : resolveMiraDirectFactualTopic(message);
   if (directFactualTopic) return directFactualTopic;
-  const normalized = String(message).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const requestedId = FAQ_IDS.has(suggestedQuestionId) ? suggestedQuestionId : "";
-  const faqId = requestedId ||
+  const faqId = requestedId || trustPostureFaqId ||
     (/^(?:what does onesmarter do|tell me what onesmarter does|give me (?:a )?company overview|briefly explain what onesmarter does)$/.test(normalized)
       ? "faq_company_overview"
       : /^(?:what platforms do you offer|list your platforms|what are onesmarter s platforms|what are your platforms|list all platforms)$/.test(normalized)
