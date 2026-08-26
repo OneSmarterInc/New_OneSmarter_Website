@@ -98,7 +98,7 @@ const detailPages = {
   },
   hipaa: {
     eyebrow: "Trust Center",
-    title: "HIPAA Security Rule Compliance Assessment Completed",
+    title: "HIPAA Security Rule Compliance",
     intro:
       "OneSmarter has completed an independent HIPAA Security Rule compliance assessment. The assessment reviewed safeguards and practices related to protecting electronic Protected Health Information where applicable.",
     sections: [
@@ -318,7 +318,7 @@ const TrustBadges = () => (
     <div className="flex min-w-0 items-center gap-4 rounded border border-white/10 bg-white/[0.04] p-4 xl:flex-col xl:justify-center xl:text-center">
       <HipaaBadge className="h-14 w-14 shrink-0 object-contain" />
       <p className="min-w-0 font-semibold leading-6 text-white">
-        HIPAA Security Rule Compliance Assessment Completed
+        HIPAA Security Rule Compliance
       </p>
     </div>
 
