@@ -5,7 +5,7 @@ import {
 } from "../mira/miraRateLimitStore.js";
 import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
 import { readTheoRuntimeConfig } from "./theoRuntimeConfig.js";
-import { runTheoLocalAnalysis, formatTheoVisitorAnswer } from "./theoLocalEngine.js";
+import { runTheoLocalAnalysis, formatTheoVisitorAnswer, normalizeTheoAnalysisForVisitor } from "./theoLocalEngine.js";
 import { buildTheoPromptPayload } from "./theoPromptContract.js";
 import { validateTheoModelOutput } from "./theoOutputValidator.js";
 
@@ -127,12 +127,13 @@ export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}
   const conversationId = typeof parsed.conversationId === "string" && parsed.conversationId.trim()
     ? parsed.conversationId.trim().slice(0, 120) : crypto.randomUUID();
   const result = await responseAdapter({ message, websiteContent, conversationHistory: history.history, conversationId });
+  const visitorAnalysis = normalizeTheoAnalysisForVisitor(result.analysis);
   return {
     status: 200,
     body: {
       requestId, timestamp: now.toISOString(), agent: AGENT, conversationId,
-      mode: result.mode, answer: formatTheoVisitorAnswer(result.analysis),
-      analysis: result.analysis, evidenceStatus: result.analysis.evidenceStatus,
+      mode: result.mode, answer: formatTheoVisitorAnswer(visitorAnalysis),
+      analysis: visitorAnalysis, evidenceStatus: visitorAnalysis.evidenceStatus,
       fallbackUsed: result.fallbackUsed, fallbackReason: result.fallbackReason,
       privacyReminder: "Submit only public website/page content. Do not include confidential information or personal data.",
     },

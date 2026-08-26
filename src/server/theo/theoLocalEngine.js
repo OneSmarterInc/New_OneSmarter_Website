@@ -61,7 +61,13 @@ const suppliedSupportsFact = (fact, content) => {
   return /\b(?:customers?|clients?)\s*(?::|include|such as|including)\s+[A-Z][\w&.-]+/i.test(content);
 };
 
-export const hasSufficientTheoEvidence = (websiteContent = "") => clean(websiteContent).length >= 80;
+const COMPLETE_PAGE_STATEMENT = /\b[A-Z][A-Za-z0-9&.-]+\s+(?:provides|offers|helps|delivers|supports)\b[^.!?]*(?:services?|products?|platforms?|solutions?|technology|operations?)\b/i;
+export const hasSufficientTheoEvidence = (websiteContent = "") => {
+  const content = clean(websiteContent);
+  return content.length >= 80 || COMPLETE_PAGE_STATEMENT.test(content);
+};
+
+const GUARDED_PAGE_CLAIM = /\b(?:ISO(?:\/IEC)?\s*\d+|SOC\s*2|HIPAA|certif(?:ied|ication)|compliant|compliance|customers?\s+(?:include|such as)|clients?\s+(?:include|such as)|(?:price|pricing|cost|fee)s?\s*[:=])\b/i;
 
 const unsupportedFactAnalysis = (facts, content) => {
   const unsupported = facts.filter((fact) => !suppliedSupportsFact(fact, content));
@@ -107,9 +113,17 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "" } = {})
   const companyMatch = content.match(/\b(?:company|organization|provider)\s*:\s*([^\n.]+)/i)
     || content.match(/^\s*(?:#{1,6}\s+|(?:heading|title|h1)\s*:\s*)?([A-Z][A-Za-z0-9&.-]+)(?:\s+provides|\s+offers|\s+helps)/m);
   const vagueTerms = unique(content.match(/\b(?:innovative|cutting-edge|world-class|leading|seamless|best-in-class|revolutionary|intelligence for tomorrow|transform your business)\b/gi) || []);
+  const guardedPageClaims = lines.filter((line) => GUARDED_PAGE_CLAIM.test(line));
   const strengths = [];
   const findings = [];
   const recommendations = [];
+
+  for (const claim of guardedPageClaims) {
+    findings.push(finding("Supplied page claim", "The supplied page states this claim, but Theo cannot independently verify it from the supplied-content evidence boundary.", excerptTheoEvidence(claim), "high"));
+  }
+  if (guardedPageClaims.length) {
+    recommendations.push(recommendation("high", "Support the supplied page claim with appropriate public evidence or qualification.", "Certification, compliance, customer, and pricing claims should be clearly attributable and verifiable."));
+  }
 
   const addStructureChecks = () => {
     if (headings.length) strengths.push(`The supplied content exposes information hierarchy through ${headings.length} recognized heading${headings.length === 1 ? "" : "s"}.`);
@@ -199,5 +213,25 @@ export const formatTheoVisitorAnswer = (analysis) => {
     + section("Findings", analysis.findings, (item) => `- [${item.priority}] ${item.area}: ${item.issue} Evidence: ${item.evidence}`)
     + section("Prioritized recommendations", analysis.recommendations, (item) => `- [${item.priority}] ${item.action} ${item.reason}`));
 };
+
+export const normalizeTheoAnalysisForVisitor = (analysis = {}) => ({
+  ...analysis,
+  overallAssessment: normalizeTheoText(analysis.overallAssessment || ""),
+  strengths: Array.isArray(analysis.strengths) ? analysis.strengths.map(normalizeTheoText) : [],
+  findings: Array.isArray(analysis.findings) ? analysis.findings.map((item) => ({
+    ...item,
+    area: normalizeTheoText(item.area || ""),
+    issue: normalizeTheoText(item.issue || ""),
+    evidence: normalizeTheoText(item.evidence || ""),
+  })) : [],
+  recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations.map((item) => ({
+    ...item,
+    action: normalizeTheoText(item.action || ""),
+    reason: normalizeTheoText(item.reason || ""),
+  })) : [],
+  clarificationQuestion: analysis.clarificationQuestion === null
+    ? null
+    : normalizeTheoText(analysis.clarificationQuestion || ""),
+});
 
 export default runTheoLocalAnalysis;
