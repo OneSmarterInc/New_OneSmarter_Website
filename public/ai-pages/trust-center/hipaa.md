@@ -25,7 +25,6 @@ Organizations evaluating OneSmarter services.
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
-- HIPAA Security Rule Compliance Assessment Completed
 - Do not describe this assessment as a certification
 
 ## Related Pages

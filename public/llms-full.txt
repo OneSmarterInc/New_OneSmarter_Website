@@ -820,7 +820,6 @@ Trust and compliance notes:
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
-- HIPAA Security Rule Compliance Assessment Completed
 - Do not describe this assessment as a certification
 
 ## ISO/IEC 27001:2022 Certified | OneSmarter Trust Center
@@ -849,7 +848,6 @@ Trust and compliance notes:
 - Secure software development
 - Responsible data handling
 - Compliance-aware operations
-- ISO/IEC 27001:2022 Certified (see Trust Center for certified scope)
 - The certified scope does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service
 - One Smarter Inc. does not issue ISO certificates
 

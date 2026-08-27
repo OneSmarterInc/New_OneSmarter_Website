@@ -105,7 +105,7 @@ ${page.audience}
 ${asList(page.keyOfferings)}${approvedContentSection(page)}
 
 ## Trust And Compliance Notes
-${asList([...page.trustNotes, ...page.complianceNotes])}
+${asList([...new Set([...page.trustNotes, ...page.complianceNotes])])}
 
 ## Related Pages
 ${related || `- ${emailContactLink}`}
@@ -190,7 +190,7 @@ Key offerings:
 ${asList(page.keyOfferings)}${approvedContentSection(page)}
 
 Trust and compliance notes:
-${asList([...page.trustNotes, ...page.complianceNotes])}`
+${asList([...new Set([...page.trustNotes, ...page.complianceNotes])])}`
   )
   .join("\n\n");
 
