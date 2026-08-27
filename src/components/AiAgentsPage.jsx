@@ -12,6 +12,7 @@ import {
 } from "../data/agentPresentation/miraVoiceSamples.js";
 import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
 import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
+import { deriveTheoPresence } from "../data/agentPresentation/theoPresentation.js";
 import {
   getEarlierCafeConversations,
   getCafePresenceForPersonaId,
@@ -27,7 +28,7 @@ const agents = [
     role: "Website guide and first visitor-facing agent.",
     personality: "Warm, clear, composed, welcoming.",
     background: "Front-door guide for onboarding, executive briefings, and plain-language service explanations.",
-    status: "First guide concept",
+    status: "Live public-content guide",
     presence: "at_work",
     accent: "bg-red-600",
     memoryThemes: ["Simple explanations", "Capability routing", "Trust language", "Email handoff"],
@@ -1720,6 +1721,7 @@ const PersonaLayerPrototype = () => {
 const AiAgentsPage = () => {
   const showPresentationDebug = isPresentationDebugEnabled();
   const [cafeNow] = useState(() => new Date());
+  const [isTheoAnalysisInFlight, setIsTheoAnalysisInFlight] = useState(false);
   const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
   const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
   const earlierPublishedCafeConversations = getEarlierCafeConversations(
@@ -1734,16 +1736,20 @@ const AiAgentsPage = () => {
   const cafePersonaIdsByName = Object.fromEntries(
     cafePersonas.map((persona) => [persona.name, persona.id]),
   );
-  const agentsWithPresence = agents.map((agent) => agent.name === "Mira Vale"
-    ? agent
-    : {
-        ...agent,
-        presence: getCafePresenceForPersonaId(
-          cafePersonaIdsByName[agent.name],
-          currentCafeConversation,
-          cafeNow,
-        ),
-      });
+  const agentsWithPresence = agents.map((agent) => {
+    if (agent.name === "Mira Vale") return agent;
+    const cafePresence = getCafePresenceForPersonaId(
+      cafePersonaIdsByName[agent.name],
+      currentCafeConversation,
+      cafeNow,
+    );
+    return {
+      ...agent,
+      presence: agent.name === "Theo Mercer"
+        ? deriveTheoPresence({ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight })
+        : cafePresence,
+    };
+  });
   const cafeAgents = agentsWithPresence.filter(
     (agent) => agent.presence === "in_cafe" && agent.name !== "Mira Vale",
   );
@@ -1867,7 +1873,7 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <TheoAnalysisPanel />
+      <TheoAnalysisPanel onAnalysisStateChange={setIsTheoAnalysisInFlight} />
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">

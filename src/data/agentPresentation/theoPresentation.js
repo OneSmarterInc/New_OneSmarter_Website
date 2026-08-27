@@ -6,6 +6,11 @@ export const THEO_HISTORY_TOTAL_LIMIT = 2000;
 const normalizeTheoVisibleText = (value = "") => String(value)
   .replace(/(?:&#(?:x(?:09|0a|0d|20|a0)|(?:9|10|13|32|160));|&nbsp;)/gi, " ");
 
+export const deriveTheoPresence = ({
+  cafePresence = "at_work",
+  isAnalysisInFlight = false,
+} = {}) => isAnalysisInFlight ? "at_work" : cafePresence;
+
 export const buildTheoConversationHistory = (turns = []) => {
   let totalChars = 0;
   const history = [];

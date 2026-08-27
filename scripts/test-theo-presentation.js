@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { THEO_HISTORY_LIMIT, THEO_HISTORY_TOTAL_LIMIT, askTheoEndpoint, buildTheoConversationHistory, visibleTheoAnalysis } from "../src/data/agentPresentation/theoPresentation.js";
+import { THEO_HISTORY_LIMIT, THEO_HISTORY_TOTAL_LIMIT, askTheoEndpoint, buildTheoConversationHistory, deriveTheoPresence, visibleTheoAnalysis } from "../src/data/agentPresentation/theoPresentation.js";
+
+assert.equal(deriveTheoPresence({ cafePresence: "in_cafe", isAnalysisInFlight: false }), "in_cafe");
+assert.equal(deriveTheoPresence({ cafePresence: "in_cafe", isAnalysisInFlight: true }), "at_work");
+assert.equal(deriveTheoPresence({ cafePresence: "in_cafe", isAnalysisInFlight: false }), "in_cafe");
+assert.equal(deriveTheoPresence({ cafePresence: "at_work", isAnalysisInFlight: false }), "at_work");
 
 const turns = Array.from({ length: 10 }, (_, index) => ({ role: index % 2 ? "assistant" : "user", content: `turn-${index} ${"x".repeat(300)}` }));
 const bounded = buildTheoConversationHistory(turns);
@@ -52,11 +57,15 @@ const pageSource = fs.readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 const theoSource = fs.readFileSync("src/components/TheoAnalysisPanel.jsx", "utf8");
 assert.match(pageSource, /Open Theo/);
 assert.match(pageSource, /Live supplied-content analysis/);
+assert.match(pageSource, /Live public-content guide/);
+assert.match(pageSource, /deriveTheoPresence\(\{ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight \}\)/);
+assert.match(pageSource, /onAnalysisStateChange=\{setIsTheoAnalysisInFlight\}/);
 assert.match(pageSource, /\/api\/agents\/mira\/chat/);
 assert.match(theoSource, /Theo Mercer/);
 assert.match(theoSource, /clarificationQuestion/);
 assert.match(theoSource, /role="alert"/);
 assert.match(theoSource, /error\.hasSafeServerMessage[\s\S]*?error\.message/);
+assert.match(theoSource, /onAnalysisStateChange\(true\)[\s\S]*?onAnalysisStateChange\(false\)/);
 assert.doesNotMatch(theoSource, /cafePersonas|cafeConversations/i);
 assert.doesNotMatch(theoSource, /<textarea[\s\S]*?maxLength=\{THEO_CONTENT_LIMIT\}/, "The UI must not silently truncate oversized content before server validation");
 for (const status of ["Future review concept", "Future workflow concept", "Future strategy concept"]) assert.match(pageSource, new RegExp(status));

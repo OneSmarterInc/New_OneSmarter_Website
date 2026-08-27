@@ -110,7 +110,7 @@ const agentEntries = Object.fromEntries(
   ),
 );
 const expectedStatuses = {
-  "Mira Vale": "First guide concept",
+  "Mira Vale": "Live public-content guide",
   "Theo Mercer": "Live supplied-content analysis",
   "Elena Cross": "Future review concept",
   "Ravi Sen": "Future workflow concept",

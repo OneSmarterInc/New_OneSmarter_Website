@@ -20,7 +20,7 @@ const AnalysisList = ({ title, items, renderItem }) => items.length ? (
   </section>
 ) : null;
 
-const TheoAnalysisPanel = () => {
+const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
   const [message, setMessage] = useState("Analyze this supplied page for AI readability and buyer clarity.");
   const [websiteContent, setWebsiteContent] = useState("");
   const [conversationTurns, setConversationTurns] = useState([]);
@@ -39,6 +39,7 @@ const TheoAnalysisPanel = () => {
     const userTurn = { role: "user", content: trimmedMessage };
     setConversationTurns((turns) => [...turns, userTurn]);
     setIsLoading(true);
+    onAnalysisStateChange(true);
     setErrorMessage("");
     try {
       const nextResponse = await askTheoEndpoint({
@@ -59,6 +60,7 @@ const TheoAnalysisPanel = () => {
           : "Theo could not complete the analysis. Please try again with the supplied page content.");
     } finally {
       setIsLoading(false);
+      onAnalysisStateChange(false);
     }
   };
 

@@ -176,7 +176,7 @@ if (
   !agentSource.includes("invited {invitedParticipantName} to the Café") ||
   !agentSource.includes("viewedCafeConversationId") ||
   !agentSource.includes("conversation={viewedCafeConversation}") ||
-  !agentSource.includes("currentCafeConversation,\n          cafeNow")
+  !/currentCafeConversation,\s+cafeNow/.test(agentSource)
 ) {
   fail("Selectable history must render independently from current-conversation presence.");
 }
