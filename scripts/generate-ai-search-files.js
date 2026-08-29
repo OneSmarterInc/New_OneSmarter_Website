@@ -12,7 +12,7 @@ import {
 const publicDir = path.resolve("public");
 
 // Flip to true only when the production domain is pointed at this deployment.
-const siteIsPubliclyIndexable = true;
+const siteIsPubliclyIndexable = false;
 
 const writeFile = (relativePath, content) => {
   const targetPath = path.join(publicDir, relativePath);
