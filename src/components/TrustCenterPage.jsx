@@ -479,7 +479,7 @@ const TrustCenterLanding = () => (
             Review OneSmarter's Posture
           </p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">
-            Security, privacy, and compliance information in one place.
+            Security, privacy, and compliance information in one place..
           </h2>
         </div>
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
