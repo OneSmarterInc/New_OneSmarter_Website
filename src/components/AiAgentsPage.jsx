@@ -13,12 +13,14 @@ import {
 import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
 import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
 import { deriveTheoPresence } from "../data/agentPresentation/theoPresentation.js";
+import { deriveElenaPresence } from "../data/agentPresentation/elenaPresentation.js";
 import {
   getEarlierCafeConversations,
   getCafePresenceForPersonaId,
   selectCafeConversation,
 } from "../data/cafeConversations/index.js";
 import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
+import ElenaConversationPanel from "./ElenaConversationPanel.jsx";
 
 const agents = [
   {
@@ -51,7 +53,7 @@ const agents = [
     role: "Compliance and claim-boundary language review.",
     personality: "Careful, calm, serious when needed.",
     background: "Built around security questionnaires, vendor-risk language, and public trust claims.",
-    status: "Future review concept",
+    status: "Live compliance reader",
     accent: "bg-zinc-800",
     memoryThemes: ["HIPAA boundaries", "SOC 2 boundaries", "Safer wording", "Review readiness"],
   },
@@ -753,6 +755,7 @@ const AgentNetwork = () => (
 const AgentCard = ({ agent }) => {
   const isInCafe = agent.presence === "in_cafe";
   const isTheo = agent.name === "Theo Mercer";
+  const isElena = agent.name === "Elena Cross";
 
   return (
     <article
@@ -802,6 +805,11 @@ const AgentCard = ({ agent }) => {
       {isTheo && (
         <a href="#theo-professional-analysis" className="mt-6 inline-flex w-fit rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600">
           Open Theo
+        </a>
+      )}
+      {isElena && (
+        <a href="#elena-professional-compliance" className="mt-6 inline-flex w-fit rounded-md bg-zinc-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700">
+          Open Elena
         </a>
       )}
     </article>
@@ -1722,6 +1730,7 @@ const AiAgentsPage = () => {
   const showPresentationDebug = isPresentationDebugEnabled();
   const [cafeNow] = useState(() => new Date());
   const [isTheoAnalysisInFlight, setIsTheoAnalysisInFlight] = useState(false);
+  const [isElenaRequestInFlight, setIsElenaRequestInFlight] = useState(false);
   const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
   const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
   const earlierPublishedCafeConversations = getEarlierCafeConversations(
@@ -1747,7 +1756,9 @@ const AiAgentsPage = () => {
       ...agent,
       presence: agent.name === "Theo Mercer"
         ? deriveTheoPresence({ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight })
-        : cafePresence,
+        : agent.name === "Elena Cross"
+          ? deriveElenaPresence({ cafePresence, isRequestInFlight: isElenaRequestInFlight })
+          : cafePresence,
     };
   });
   const cafeAgents = agentsWithPresence.filter(
@@ -1874,6 +1885,8 @@ const AiAgentsPage = () => {
       </section>
 
       <TheoAnalysisPanel onAnalysisStateChange={setIsTheoAnalysisInFlight} />
+
+      <ElenaConversationPanel onRequestStateChange={setIsElenaRequestInFlight} />
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">

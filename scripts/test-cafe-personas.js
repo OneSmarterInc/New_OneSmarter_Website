@@ -112,7 +112,7 @@ const agentEntries = Object.fromEntries(
 const expectedStatuses = {
   "Mira Vale": "Live public-content guide",
   "Theo Mercer": "Live supplied-content analysis",
-  "Elena Cross": "Future review concept",
+  "Elena Cross": "Live compliance reader",
   "Ravi Sen": "Future workflow concept",
   "Selene Hart": "Future strategy concept",
 };
