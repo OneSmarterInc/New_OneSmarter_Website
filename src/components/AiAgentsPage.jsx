@@ -1952,7 +1952,7 @@ const AiAgentsPage = () => {
             </h2>
             <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
               This preview reflects this week&apos;s selected conversation during
-              its 48-hour UTC presence window.
+              its 48-hour UTC presence window..
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {cafeAgents.map((agent) => (
