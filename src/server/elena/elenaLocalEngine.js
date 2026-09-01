@@ -97,6 +97,8 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
   const contextualMessage = contextualTopic(message, conversationHistory);
   const text = normalized(contextualMessage);
   const platformQuestion = /\bplatforms?\b/.test(text);
+  const hasHipaaCertificationClaim = /\bhipaa\b/.test(text) && /\bcertif/.test(text);
+  const hasHipaaGuaranteeClaim = /\bhipaa\b/.test(text) && /\bguarantee/.test(text);
 
   if (/\bbill audit\b|\bcafe\b|\bcooking programmes?\b|\bodd animal\b/.test(text)) {
     return localResult({
@@ -108,14 +110,21 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
     });
   }
 
-  if (/\bhipaa\b/.test(text) && /\bguarantee/.test(text)) {
+  if (hasHipaaCertificationClaim && hasHipaaGuaranteeClaim) {
+    return localResult({
+      answer: "The wording 'HIPAA certified' is not an approved OneSmarter claim, and OneSmarter does not guarantee that customers will remain HIPAA compliant. The approved status is HIPAA Security Rule Compliance Assessment Completed. OneSmarter also provides HIPAA audit-readiness support, but customer compliance requires customer-specific review and is not guaranteed.",
+      ids: ["hipaa-security-rule-assessment", "hipaa-audit-readiness-support"],
+      claimEvaluation: evaluateElenaClaim("OneSmarter is HIPAA certified and guarantees customer HIPAA compliance"),
+    });
+  }
+  if (hasHipaaGuaranteeClaim) {
     return localResult({
       answer: "No. OneSmarter does not guarantee HIPAA compliance. It has completed an independent HIPAA Security Rule compliance assessment and provides HIPAA audit-readiness support, but customer compliance requires customer-specific review.",
       ids: ["hipaa-security-rule-assessment", "hipaa-audit-readiness-support"],
       claimEvaluation: evaluateElenaClaim("OneSmarter guarantees HIPAA compliance"),
     });
   }
-  if (/\bhipaa\b/.test(text) && /\bcertif/.test(text)) {
+  if (hasHipaaCertificationClaim) {
     return localResult({
       answer: platformQuestion
         ? "No. OneSmarter does not claim that its platforms are HIPAA certified. Selected systems may be designed for HIPAA-regulated or PHI-sensitive workflows, but that does not certify a platform or guarantee customer compliance."
@@ -159,13 +168,21 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
         claimEvaluation: evaluateElenaClaim("OneSmarter's ISO certification certifies customer systems"),
       });
     }
-    if (/\b(?:who issued|issuer|certification body)\b/.test(text)) {
+    const asksForIssuer = /\b(?:who issued|issuer|certification body)\b/.test(text);
+    const asksForCertificateNumber = /\b(?:certificate number|number)\b/.test(text);
+    if (asksForIssuer && asksForCertificateNumber) {
+      return localResult({
+        answer: "Certificate number: 210826050107. Certification body: ARS Assessment Private Limited, UAF accredited.",
+        ids: ["iso-27001-certified"],
+      });
+    }
+    if (asksForIssuer) {
       return localResult({
         answer: "The certification body is ARS Assessment Private Limited, UAF accredited.",
         ids: ["iso-27001-certified"],
       });
     }
-    if (/\b(?:certificate number|number)\b/.test(text)) {
+    if (asksForCertificateNumber) {
       return localResult({
         answer: "One Smarter Inc.'s ISO/IEC 27001:2022 certificate number is 210826050107.",
         ids: ["iso-27001-certified"],

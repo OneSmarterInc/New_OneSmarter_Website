@@ -28,6 +28,12 @@ const clientKey = (headers) => {
   return `elena:${ip}`;
 };
 
+const ELENA_SENSITIVE_FIELD_PATTERN =
+  /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn)\s*:\s*\S+/i;
+
+export const containsElenaSensitiveData = (message = "") =>
+  ELENA_SENSITIVE_FIELD_PATTERN.test(String(message));
+
 const errorResult = (status, error, message, requestId = crypto.randomUUID()) => ({
   status,
   body: { requestId, agent: AGENT, status, error, message },
@@ -163,6 +169,14 @@ export const handleElenaChatRequest = async ({
   if (message.length > ELENA_MESSAGE_LIMIT) {
     return errorResult(413, "message_too_long", `message must be ${ELENA_MESSAGE_LIMIT} characters or fewer.`, requestId);
   }
+  if (containsElenaSensitiveData(message)) {
+    return errorResult(
+      400,
+      "sensitive_content",
+      "Please do not submit patient information, PHI, personal identifiers, or confidential evidence through this public agent.",
+      requestId,
+    );
+  }
   const history = normalizeElenaConversationHistory(parsed.conversationHistory);
   if (!history.ok) {
     return errorResult(history.error.includes("too_long") ? 413 : 400, history.error, history.message, requestId);
@@ -191,7 +205,6 @@ export const handleElenaChatRequest = async ({
       },
       fallback: {
         used: result.fallbackUsed,
-        reason: result.fallbackReason || null,
       },
       mode: result.mode,
       safety: {
