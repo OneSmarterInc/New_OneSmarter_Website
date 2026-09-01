@@ -609,7 +609,7 @@ const MiraVisualPresencePanel = ({ presentationState, showPresentationDebug }) =
         <p className="mt-2 max-w-2xl leading-5 text-zinc-400">
           Mira's visual posture reflects the tone of the current conversation.
           Static artwork only; no camera, tracking, or live avatar processing
-          is active...
+          is active..
         </p>
         <span className="mt-3 inline-flex rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-200">
           {visualState.label}
