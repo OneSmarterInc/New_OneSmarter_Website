@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ELENA_INPUT_LIMIT,
   ELENA_SUGGESTED_QUESTIONS,
@@ -7,14 +7,81 @@ import {
   visibleElenaResponse,
 } from "../data/agentPresentation/elenaPresentation.js";
 
+const ElenaReferences = ({ sources }) => sources.length > 0 ? (
+  <section className="mt-4 border-t border-white/10 pt-3" aria-label="Approved public references">
+    <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+      Approved public references
+    </h4>
+    <ul className="mt-2 flex flex-wrap gap-2">
+      {sources.map((source, index) => (
+        <li key={`${source.title}-${index}`}>
+          {source.route ? (
+            <a
+              href={source.route}
+              className="inline-flex max-w-full rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs leading-5 text-zinc-300 transition hover:border-amber-300/60 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+            >
+              {source.title}
+            </a>
+          ) : (
+            <span className="inline-flex max-w-full rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs leading-5 text-zinc-400">
+              {source.title}
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+) : null;
+
+const ElenaConversationTurn = ({ turn }) => {
+  if (turn.role === "user") {
+    return (
+      <li className="flex justify-end">
+        <article className="max-w-[88%] rounded-2xl rounded-br-md border border-amber-200/15 bg-amber-100/[0.06] px-4 py-3 sm:max-w-[82%]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">Visitor</p>
+          <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-100">{turn.content}</p>
+        </article>
+      </li>
+    );
+  }
+
+  const turnResponse = visibleElenaResponse(turn.response);
+  return (
+    <li>
+      <article className="max-w-prose border-l-2 border-amber-300/50 pl-4 sm:pl-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200">Elena Cross</p>
+        <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-zinc-200 sm:text-[15px]">
+          {turn.content}
+        </p>
+        {turnResponse.clarificationNeeded && turnResponse.clarificationQuestion ? (
+          <p className="mt-4 rounded-lg border border-amber-300/25 bg-amber-200/[0.05] px-4 py-3 text-sm leading-6 text-amber-100">
+            {turnResponse.clarificationQuestion}
+          </p>
+        ) : null}
+        {turnResponse.fallbackUsed ? (
+          <p className="mt-3 text-xs leading-5 text-zinc-400">
+            Elena used the approved deterministic response for this question.
+          </p>
+        ) : null}
+        <ElenaReferences sources={turnResponse.sources} />
+      </article>
+    </li>
+  );
+};
+
 const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
+  const conversationScrollRef = useRef(null);
   const [message, setMessage] = useState("");
   const [conversationTurns, setConversationTurns] = useState([]);
   const [conversationId, setConversationId] = useState("");
   const [response, setResponse] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const visibleResponse = visibleElenaResponse(response);
+
+  useEffect(() => {
+    const panel = conversationScrollRef.current;
+    if (panel) panel.scrollTop = panel.scrollHeight;
+  }, [conversationTurns, errorMessage, isLoading]);
 
   const submitQuestion = async (event) => {
     event.preventDefault();
@@ -36,7 +103,7 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
       setConversationId(nextResponse.conversationId || conversationId);
       setConversationTurns((turns) => [
         ...turns,
-        { role: "assistant", content: nextResponse.answer },
+        { role: "assistant", content: nextResponse.answer, response: nextResponse },
       ]);
     } catch (error) {
       setResponse(null);
@@ -107,49 +174,33 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
           </form>
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5 md:p-7" aria-live="polite">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-5 shadow-xl shadow-black/10 md:p-7" aria-live="polite">
           <div className="flex items-center gap-4 border-b border-white/10 pb-5">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 text-sm font-bold">EC</div>
             <div><h3 className="font-semibold">Elena Cross</h3><p className="text-sm text-zinc-400">Compliance Reader</p></div>
           </div>
 
-          {conversationTurns.length > 0 && (
-            <ol className="mt-5 max-h-72 space-y-3 overflow-y-auto" aria-label="Elena conversation history">
-              {conversationTurns.map((turn, index) => (
-                <li key={`${turn.role}-${index}`} className={`rounded-md p-3 text-sm leading-6 ${turn.role === "user" ? "ml-6 bg-amber-950/30 text-amber-50" : "mr-6 bg-black/25 text-zinc-200"}`}>
-                  <span className="sr-only">{turn.role === "user" ? "You" : "Elena"}: </span>
-                  {turn.content}
-                </li>
-              ))}
-            </ol>
-          )}
-          {!response && !errorMessage && !isLoading && conversationTurns.length === 0 && <p className="mt-6 text-sm leading-7 text-zinc-400">Elena’s approved compliance response will appear here.</p>}
-          {isLoading && <p className="mt-6 text-sm text-zinc-300">Reviewing approved compliance content...</p>}
-          {errorMessage && <p className="mt-6 rounded-md border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-100" role="alert">{errorMessage}</p>}
-          {response && (
-            <div className="mt-6">
-              {visibleResponse.clarificationNeeded && visibleResponse.clarificationQuestion && (
-                <p className="rounded-md border border-amber-400/30 bg-amber-950/30 p-4 text-sm text-amber-100">{visibleResponse.clarificationQuestion}</p>
-              )}
-              {visibleResponse.fallbackUsed && (
-                <p className="mt-4 rounded-md border border-white/15 bg-black/25 p-4 text-xs leading-5 text-zinc-300">
-                  Elena used the approved deterministic response for this question.
-                </p>
-              )}
-              {visibleResponse.sources.length > 0 && (
-                <section className="mt-5">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-300">Approved public references</h4>
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {visibleResponse.sources.map((source, index) => (
-                      <li key={`${source.title}-${index}`}>
-                        {source.route ? <a href={source.route} className="inline-flex rounded-full border border-white/15 px-3 py-2 text-xs text-zinc-200 hover:border-amber-300 hover:text-white">{source.title}</a> : <span className="inline-flex rounded-full border border-white/15 px-3 py-2 text-xs text-zinc-300">{source.title}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </div>
-          )}
+          <div ref={conversationScrollRef} className="mt-5 max-h-[28rem] overflow-y-auto overscroll-contain pr-1 sm:pr-2">
+            {conversationTurns.length > 0 ? (
+              <ol className="space-y-7" aria-label="Elena conversation history">
+                {conversationTurns.map((turn, index) => (
+                  <ElenaConversationTurn key={`${turn.role}-${index}`} turn={turn} />
+                ))}
+              </ol>
+            ) : null}
+            {!response && !errorMessage && !isLoading && conversationTurns.length === 0 ? (
+              <p className="py-2 text-sm leading-7 text-zinc-400">Elena’s approved compliance response will appear here.</p>
+            ) : null}
+            {isLoading ? (
+              <div className="mt-6 flex items-center gap-3 border-l-2 border-amber-300/40 pl-4 text-sm text-zinc-300" role="status">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-300" aria-hidden="true" />
+                Reviewing approved compliance content...
+              </div>
+            ) : null}
+            {errorMessage ? (
+              <p className="mt-6 rounded-lg border border-red-400/30 bg-red-400/[0.06] px-4 py-3 text-sm leading-6 text-red-100" role="alert">{errorMessage}</p>
+            ) : null}
+          </div>
           <p className="mt-6 border-t border-white/10 pt-5 text-xs leading-5 text-zinc-500">
             Do not submit confidential documents, private security evidence, PHI, or personal data. Elena provides approved public information, not legal advice or a compliance guarantee.
           </p>
