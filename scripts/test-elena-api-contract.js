@@ -35,6 +35,22 @@ assert.equal((await handleElenaChatRequest({ method: "GET" })).status, 405);
 assert.equal((await post("{" )).status, 400);
 assert.equal((await post([])).status, 400);
 assert.equal((await post({ message: " " })).status, 400);
+let boundaryAnalysisCalls = 0;
+const normalLength = await post({ message: "What is the Trust Center?" }, {
+  responseAdapter: async () => {
+    boundaryAnalysisCalls += 1;
+    return runElenaLocalEngine({ message: "What is the Trust Center?" });
+  },
+});
+assert.equal(normalLength.status, 200);
+const exactBoundary = await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT) }, {
+  responseAdapter: async () => {
+    boundaryAnalysisCalls += 1;
+    return runElenaLocalEngine({ message: "x".repeat(ELENA_MESSAGE_LIMIT) });
+  },
+});
+assert.equal(exactBoundary.status, 200);
+assert.equal(boundaryAnalysisCalls, 2);
 assert.equal((await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT + 1) })).status, 413);
 let oversizedProviderCalls = 0;
 const oversized = await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT + 1) }, {

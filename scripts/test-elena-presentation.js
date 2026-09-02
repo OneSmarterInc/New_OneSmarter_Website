@@ -111,6 +111,10 @@ assert.match(elenaSource, /max-w-prose/);
 assert.match(elenaSource, /max-h-\[28rem\].*overflow-y-auto/);
 assert.match(elenaSource, /role="status"/);
 assert.match(elenaSource, /role="alert"/);
+assert.doesNotMatch(elenaSource, /maxLength=\{ELENA_INPUT_LIMIT\}/, "The UI must not silently truncate oversized input");
+assert.match(elenaSource, /message\.length > ELENA_INPUT_LIMIT/);
+assert.match(elenaSource, /Your question must be \$\{ELENA_INPUT_LIMIT\} characters or fewer/);
+assert.match(elenaSource, /disabled=\{isLoading \|\| !message\.trim\(\) \|\| isMessageTooLong\}/);
 assert.match(elenaSource, /Start new conversation/);
 assert.match(elenaSource, /response: nextResponse/);
 assert.match(elenaSource, /turnResponse\.sources/);
@@ -119,6 +123,8 @@ assert.match(elenaSource, /onRequestStateChange\(true\)[\s\S]*?onRequestStateCha
 assert.doesNotMatch(elenaSource, /cafePersonas|cafeConversations|sourceLabel|fallback\.reason|provider|riskFlags|claimRule|prompt/i);
 assert.match(pageSource, /Future workflow concept/);
 assert.match(pageSource, /Future strategy concept/);
+assert.match(pageSource, /Live public-content guide, alongside Theo&apos;s content analysis and[\s\S]*Elena&apos;s compliance review, with operations and strategy agents in development\./);
+assert.doesNotMatch(pageSource, /First guide concept, connected to future analysis, compliance/);
 assert.doesNotMatch(pageSource, /Ravi Sen[\s\S]{0,500}Open Ravi/);
 assert.doesNotMatch(pageSource, /Selene Hart[\s\S]{0,500}Open Selene/);
 

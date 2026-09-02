@@ -745,8 +745,8 @@ const AgentNetwork = () => (
         Mira highlighted
       </p>
       <p className="mt-1 text-sm leading-6 text-zinc-300">
-        First guide concept, connected to future analysis, compliance,
-        operations, and strategy agents.
+        Live public-content guide, alongside Theo&apos;s content analysis and
+        Elena&apos;s compliance review, with operations and strategy agents in development.
       </p>
     </div>
   </div>

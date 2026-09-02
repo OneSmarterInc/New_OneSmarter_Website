@@ -77,6 +77,7 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
   const [response, setResponse] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const isMessageTooLong = message.length > ELENA_INPUT_LIMIT;
 
   useEffect(() => {
     const panel = conversationScrollRef.current;
@@ -87,6 +88,10 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
     event.preventDefault();
     const trimmedMessage = message.trim();
     if (!trimmedMessage || isLoading) return;
+    if (trimmedMessage.length > ELENA_INPUT_LIMIT) {
+      setErrorMessage(`Your question must be ${ELENA_INPUT_LIMIT} characters or fewer. Please shorten it and try again.`);
+      return;
+    }
     const history = buildElenaConversationHistory(conversationTurns);
     setConversationTurns((turns) => [...turns, { role: "user", content: trimmedMessage }]);
     setMessage("");
@@ -157,14 +162,22 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
             <textarea
               id="elena-question"
               value={message}
-              maxLength={ELENA_INPUT_LIMIT}
-              onChange={(event) => setMessage(event.target.value)}
+              onChange={(event) => {
+                setMessage(event.target.value);
+                setErrorMessage("");
+              }}
+              aria-invalid={isMessageTooLong}
+              aria-describedby="elena-question-limit"
               placeholder="Ask Elena about an approved OneSmarter compliance topic."
               className="mt-2 min-h-28 w-full rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-300"
             />
-            <p className="mt-1 text-xs text-zinc-500">{message.length}/{ELENA_INPUT_LIMIT} characters</p>
+            <p id="elena-question-limit" className={`mt-1 text-xs ${isMessageTooLong ? "text-red-300" : "text-zinc-500"}`}>
+              {isMessageTooLong
+                ? `Your question must be ${ELENA_INPUT_LIMIT} characters or fewer. Please shorten it and try again.`
+                : `${message.length}/${ELENA_INPUT_LIMIT} characters`}
+            </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button type="submit" disabled={isLoading || !message.trim()} className="rounded-md bg-amber-600 px-5 py-3 text-sm font-semibold text-black hover:bg-amber-500 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400">
+              <button type="submit" disabled={isLoading || !message.trim() || isMessageTooLong} className="rounded-md bg-amber-600 px-5 py-3 text-sm font-semibold text-black hover:bg-amber-500 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400">
                 {isLoading ? "Elena is reviewing..." : conversationTurns.length ? "Continue with Elena" : "Ask Elena"}
               </button>
               <button type="button" onClick={startNewConversation} disabled={isLoading} className="rounded-md border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-300 hover:border-amber-300 hover:text-white disabled:cursor-not-allowed">
