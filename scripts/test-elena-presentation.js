@@ -3,6 +3,7 @@ import fs from "node:fs";
 import {
   ELENA_HISTORY_LIMIT,
   ELENA_HISTORY_TOTAL_LIMIT,
+  ELENA_INPUT_LIMIT,
   ELENA_SUGGESTED_QUESTIONS,
   askElenaEndpoint,
   buildElenaConversationHistory,
@@ -111,7 +112,12 @@ assert.match(elenaSource, /max-w-prose/);
 assert.match(elenaSource, /max-h-\[28rem\].*overflow-y-auto/);
 assert.match(elenaSource, /role="status"/);
 assert.match(elenaSource, /role="alert"/);
+assert.equal(ELENA_INPUT_LIMIT - 1 > ELENA_INPUT_LIMIT, false);
+assert.equal(ELENA_INPUT_LIMIT > ELENA_INPUT_LIMIT, false);
+assert.equal(ELENA_INPUT_LIMIT + 1 > ELENA_INPUT_LIMIT, true);
 assert.doesNotMatch(elenaSource, /maxLength=\{ELENA_INPUT_LIMIT\}/, "The UI must not silently truncate oversized input");
+assert.match(elenaSource, /setMessage\(event\.target\.value\)/, "Pasted input must remain intact in component state");
+assert.doesNotMatch(elenaSource, /setMessage\([^)]*\.slice\(/, "The UI must not truncate pasted input in JavaScript");
 assert.match(elenaSource, /message\.length > ELENA_INPUT_LIMIT/);
 assert.match(elenaSource, /Your question must be \$\{ELENA_INPUT_LIMIT\} characters or fewer/);
 assert.match(elenaSource, /disabled=\{isLoading \|\| !message\.trim\(\) \|\| isMessageTooLong\}/);

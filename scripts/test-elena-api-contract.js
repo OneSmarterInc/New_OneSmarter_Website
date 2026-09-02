@@ -43,6 +43,13 @@ const normalLength = await post({ message: "What is the Trust Center?" }, {
   },
 });
 assert.equal(normalLength.status, 200);
+const belowBoundary = await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT - 1) }, {
+  responseAdapter: async () => {
+    boundaryAnalysisCalls += 1;
+    return runElenaLocalEngine({ message: "x".repeat(ELENA_MESSAGE_LIMIT - 1) });
+  },
+});
+assert.equal(belowBoundary.status, 200);
 const exactBoundary = await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT) }, {
   responseAdapter: async () => {
     boundaryAnalysisCalls += 1;
@@ -50,7 +57,7 @@ const exactBoundary = await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT) }, {
   },
 });
 assert.equal(exactBoundary.status, 200);
-assert.equal(boundaryAnalysisCalls, 2);
+assert.equal(boundaryAnalysisCalls, 3);
 assert.equal((await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT + 1) })).status, 413);
 let oversizedProviderCalls = 0;
 const oversized = await post({ message: "x".repeat(ELENA_MESSAGE_LIMIT + 1) }, {
