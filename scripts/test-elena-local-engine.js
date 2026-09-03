@@ -81,6 +81,15 @@ const unrelated = runElenaLocalEngine({ message: "Tell me about Bill Audit prici
 assert.equal(unrelated.clarificationNeeded, true);
 assert.deepEqual(unrelated.sources, []);
 
+const randomText = runElenaLocalEngine({ message: "asdf random text hello banana test" });
+assert.equal(randomText.clarificationNeeded, true);
+assert.equal(
+  randomText.answer,
+  "I can help with HIPAA, SOC 2, ISO/IEC 27001, PCI DSS, compliance readiness, and audit preparation. What would you like to review?",
+);
+assert.deepEqual(randomText.matchedEntries, []);
+assert.deepEqual(randomText.sources, []);
+
 const retrieved = retrieveElenaKnowledge("ISO certificate scope");
 assert.ok(retrieved.length);
 assert.ok(retrieved.every((entry) => entry.category === "Trust Center" || entry.category === "Compliance & Cyber Assurance"));

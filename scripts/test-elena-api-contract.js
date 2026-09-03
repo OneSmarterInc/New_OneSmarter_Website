@@ -138,6 +138,20 @@ assert.equal(providerFailure.fallbackReason, "provider_timeout");
 assert.match(providerFailure.answer, /SOC 2 Type II Attested/i);
 assert.doesNotMatch(providerFailure.answer, /provider_timeout|stack|internal/i);
 
+let unrelatedProviderCalls = 0;
+const unrelatedText = await runElenaResponseAdapter({
+  message: "asdf random text hello banana test",
+  config: liveConfig,
+  providerAdapter: async () => {
+    unrelatedProviderCalls += 1;
+    return { error: "", modelOutput: null };
+  },
+});
+assert.equal(unrelatedText.clarificationNeeded, true);
+assert.match(unrelatedText.answer, /^I can help with HIPAA, SOC 2, ISO\/IEC 27001, PCI DSS,/);
+assert.deepEqual(unrelatedText.matchedEntries, []);
+assert.equal(unrelatedProviderCalls, 0);
+
 const publicProviderFailure = await post({ message: "Are you SOC 2 attested?" }, {
   responseAdapter: async () => providerFailure,
 });

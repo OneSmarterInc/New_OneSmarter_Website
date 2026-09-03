@@ -21,12 +21,21 @@ const TOPIC_TERMS = {
   trust: ["trust center", "security posture"],
 };
 
+const ELENA_CLARIFICATION_ANSWER =
+  "I can help with HIPAA, SOC 2, ISO/IEC 27001, PCI DSS, compliance readiness, and audit preparation. What would you like to review?";
+
 const normalized = (value = "") =>
   String(value).toLowerCase().replace(/[‐‑‒–—]/g, "-").replace(/[^a-z0-9/\s-]/g, " ")
     .replace(/\s+/g, " ").trim();
 
 const tokensFor = (value) => normalized(value).split(" ").filter((token) =>
   token.length > 1 && !STOP_WORDS.has(token));
+
+const hasSupportedElenaIntent = (value = "") => {
+  const search = ` ${normalized(value)} `;
+  return Object.values(TOPIC_TERMS).some((terms) =>
+    terms.some((term) => search.includes(` ${normalized(term)} `)));
+};
 
 const entryText = (entry) => normalized([
   entry.id,
@@ -102,7 +111,7 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
 
   if (/\bbill audit\b|\bcafe\b|\bcooking programmes?\b|\bodd animal\b/.test(text)) {
     return localResult({
-      answer: "I do not have approved compliance information for that question. I can help with OneSmarter's HIPAA, SOC 2, ISO/IEC 27001, PCI DSS readiness, audit-readiness, and Trust Center language.",
+      answer: ELENA_CLARIFICATION_ANSWER,
       ids: [],
       confidence: "low",
       clarificationNeeded: true,
@@ -237,7 +246,9 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
     });
   }
 
-  const matchedEntries = retrieveElenaKnowledge(contextualMessage);
+  const matchedEntries = hasSupportedElenaIntent(contextualMessage)
+    ? retrieveElenaKnowledge(contextualMessage)
+    : [];
   if (matchedEntries.length) {
     return localResult({
       answer: matchedEntries[0].approvedSummary,
@@ -246,7 +257,7 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
     });
   }
   return localResult({
-    answer: "I do not have approved compliance information for that question. I can help with OneSmarter's HIPAA, SOC 2, ISO/IEC 27001, PCI DSS readiness, audit-readiness, and Trust Center language.",
+    answer: ELENA_CLARIFICATION_ANSWER,
     ids: [],
     confidence: "low",
     clarificationNeeded: true,
