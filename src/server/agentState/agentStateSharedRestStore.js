@@ -22,9 +22,12 @@ if not version or tonumber(version) ~= tonumber(ARGV[1]) then
   redis.call('HSET', KEYS[1], 'schemaVersion', ARGV[1], 'energyUnits', ARGV[2], 'updatedAtMs', ARGV[3])
 end
 local energy = tonumber(redis.call('HGET', KEYS[1], 'energyUnits')) or tonumber(ARGV[2])
-energy = math.max(tonumber(ARGV[5]), math.min(tonumber(ARGV[6]), energy - tonumber(ARGV[4])))
+local previousUpdated = tonumber(redis.call('HGET', KEYS[1], 'updatedAtMs')) or tonumber(ARGV[3])
+local elapsedHours = math.max(0, math.floor((tonumber(ARGV[3]) - previousUpdated) / 3600000))
+energy = math.min(tonumber(ARGV[7]), energy + elapsedHours * tonumber(ARGV[5]))
+energy = math.max(tonumber(ARGV[6]), energy - tonumber(ARGV[4]))
 redis.call('HSET', KEYS[1], 'energyUnits', energy, 'updatedAtMs', ARGV[3], 'lastWorkAtMs', ARGV[3])
-redis.call('PEXPIRE', KEYS[1], ARGV[7])
+redis.call('PEXPIRE', KEYS[1], ARGV[8])
 return {ARGV[1], energy, ARGV[3], ARGV[3], redis.call('HGET', KEYS[1], 'lastCafeRestorationId') or '', 1}`;
 
 const RESTORE_SCRIPT = `-- agent-state:restore
@@ -37,9 +40,11 @@ local previous = redis.call('HGET', KEYS[1], 'lastCafeRestorationId')
 if previous == ARGV[4] then
   return {ARGV[1], redis.call('HGET', KEYS[1], 'energyUnits'), redis.call('HGET', KEYS[1], 'updatedAtMs'), redis.call('HGET', KEYS[1], 'lastWorkAtMs') or '', previous, 0}
 end
-local energy = math.max(tonumber(ARGV[6]), math.min(tonumber(ARGV[7]), tonumber(ARGV[5])))
+local energy = tonumber(redis.call('HGET', KEYS[1], 'energyUnits')) or tonumber(ARGV[2])
+if ARGV[6] == 'add' then energy = energy + tonumber(ARGV[5]) else energy = tonumber(ARGV[5]) end
+energy = math.max(tonumber(ARGV[7]), math.min(tonumber(ARGV[8]), energy))
 redis.call('HSET', KEYS[1], 'energyUnits', energy, 'updatedAtMs', ARGV[3], 'lastCafeRestorationId', ARGV[4])
-redis.call('PEXPIRE', KEYS[1], ARGV[8])
+redis.call('PEXPIRE', KEYS[1], ARGV[9])
 return {ARGV[1], energy, ARGV[3], redis.call('HGET', KEYS[1], 'lastWorkAtMs') or '', ARGV[4], 1}`;
 
 const assertAgentId = (agentId) => {
@@ -130,12 +135,15 @@ export const createAgentStateSharedRestStore = ({
     async applyWork(agentId, operation = {}, nowMs = Date.now()) {
       const cost = integer(operation.costUnits, "cost_units");
       if (cost < 0) throw new Error("invalid_cost_units");
+      const recovery = integer(operation.recoveryUnitsPerHour ?? 0, "recovery_units_per_hour");
+      if (recovery < 0) throw new Error("invalid_recovery_units_per_hour");
       const { min, max } = safeBounds(operation, initialEnergyUnits);
       const result = await execute(WORK_SCRIPT, agentId, [
         AGENT_STATE_SCHEMA_VERSION,
         initialEnergyUnits,
         integer(nowMs, "now_ms"),
         cost,
+        recovery,
         min,
         max,
         ttlMs,
@@ -147,14 +155,20 @@ export const createAgentStateSharedRestStore = ({
       if (!safeRestorationId || safeRestorationId.length > 120) {
         throw new Error("invalid_restoration_id");
       }
-      const restoreTo = integer(operation.restoreToEnergyUnits, "restore_to_energy_units");
+      const additive = operation.restoreUnits !== undefined;
+      const restorationValue = integer(
+        additive ? operation.restoreUnits : operation.restoreToEnergyUnits,
+        additive ? "restore_units" : "restore_to_energy_units",
+      );
+      if (additive && restorationValue < 0) throw new Error("invalid_restore_units");
       const { min, max } = safeBounds(operation, initialEnergyUnits);
       const result = await execute(RESTORE_SCRIPT, agentId, [
         AGENT_STATE_SCHEMA_VERSION,
         initialEnergyUnits,
         integer(nowMs, "now_ms"),
         safeRestorationId,
-        restoreTo,
+        restorationValue,
+        additive ? "add" : "set",
         min,
         max,
         ttlMs,

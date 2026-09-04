@@ -5,6 +5,7 @@ export default async function handler(req, res) {
     method: req.method,
     body: req.body,
     headers: req.headers,
+    isRequestAborted: () => Boolean(req.aborted || req.destroyed),
   });
 
   res.setHeader("Content-Type", "application/json; charset=utf-8");

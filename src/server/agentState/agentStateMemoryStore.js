@@ -75,11 +75,21 @@ export const createAgentStateMemoryStore = ({
       const timestamp = integer(nowMs, "now_ms");
       const costUnits = integer(operation.costUnits, "cost_units");
       if (costUnits < 0) throw new Error("invalid_cost_units");
+      const recoveryUnitsPerHour = integer(
+        operation.recoveryUnitsPerHour ?? 0,
+        "recovery_units_per_hour",
+      );
+      if (recoveryUnitsPerHour < 0) throw new Error("invalid_recovery_units_per_hour");
       const { minEnergyUnits, maxEnergyUnits } = boundsFor(operation, initialEnergyUnits);
       const state = initialize(agentId, timestamp);
+      const elapsedHours = Math.max(0, Math.floor((timestamp - state.updatedAtMs) / 3_600_000));
+      const recoveredEnergy = Math.min(
+        maxEnergyUnits,
+        state.energyUnits + elapsedHours * recoveryUnitsPerHour,
+      );
       state.energyUnits = Math.max(
         minEnergyUnits,
-        Math.min(maxEnergyUnits, state.energyUnits - costUnits),
+        recoveredEnergy - costUnits,
       );
       state.updatedAtMs = timestamp;
       state.lastWorkAtMs = timestamp;
@@ -93,17 +103,19 @@ export const createAgentStateMemoryStore = ({
         throw new Error("invalid_restoration_id");
       }
       const { minEnergyUnits, maxEnergyUnits } = boundsFor(operation, initialEnergyUnits);
-      const restoreToEnergyUnits = integer(
-        operation.restoreToEnergyUnits,
-        "restore_to_energy_units",
-      );
       const state = initialize(agentId, timestamp);
       if (state.lastCafeRestorationId === safeRestorationId) {
         return { applied: false, state: publicState(state) };
       }
+      const restoredEnergy = operation.restoreUnits === undefined
+        ? integer(operation.restoreToEnergyUnits, "restore_to_energy_units")
+        : state.energyUnits + integer(operation.restoreUnits, "restore_units");
+      if (operation.restoreUnits !== undefined && operation.restoreUnits < 0) {
+        throw new Error("invalid_restore_units");
+      }
       state.energyUnits = Math.max(
         minEnergyUnits,
-        Math.min(maxEnergyUnits, restoreToEnergyUnits),
+        Math.min(maxEnergyUnits, restoredEnergy),
       );
       state.updatedAtMs = timestamp;
       state.lastCafeRestorationId = safeRestorationId;

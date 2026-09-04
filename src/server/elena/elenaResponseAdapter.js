@@ -8,6 +8,11 @@ import { runElenaLocalEngine } from "./elenaLocalEngine.js";
 import { validateElenaModelOutput } from "./elenaOutputValidator.js";
 import { buildElenaPromptPayload } from "./elenaPromptContract.js";
 import { readElenaRuntimeConfig } from "./elenaRuntimeConfig.js";
+import {
+  chargeSuccessfulAgentWork,
+  readAgentDepletionContext,
+  sharedAgentStateStore,
+} from "../agentState/agentDepletionRuntime.js";
 
 export const ELENA_MESSAGE_LIMIT = 1000;
 export const ELENA_HISTORY_LIMIT = 6;
@@ -67,6 +72,7 @@ export const runElenaResponseAdapter = async ({
   message,
   conversationHistory = [],
   conversationId,
+  verbosityBand = "normal",
   config = readElenaRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
 } = {}) => {
@@ -82,6 +88,7 @@ export const runElenaResponseAdapter = async ({
     message,
     matchedEntries: localResult.matchedEntries,
     conversationHistory,
+    verbosityBand,
   });
   const providerResult = await providerAdapter({
     message,
@@ -135,6 +142,8 @@ export const handleElenaChatRequest = async ({
   body,
   headers = {},
   rateLimitStore,
+  agentStateStore = sharedAgentStateStore,
+  isRequestAborted = () => false,
   now = new Date(),
   responseAdapter = runElenaResponseAdapter,
 } = {}) => {
@@ -183,12 +192,18 @@ export const handleElenaChatRequest = async ({
   }
   const conversationId = typeof parsed.conversationId === "string" && parsed.conversationId.trim()
     ? parsed.conversationId.trim().slice(0, 120) : crypto.randomUUID();
+  const depletion = await readAgentDepletionContext({
+    agentId: "elena-cross",
+    stateStore: agentStateStore,
+    nowMs: now.getTime(),
+  });
   const result = await responseAdapter({
     message,
     conversationHistory: history.history,
     conversationId,
+    verbosityBand: depletion.verbosityBand,
   });
-  return {
+  const response = {
     status: 200,
     body: {
       requestId,
@@ -217,6 +232,14 @@ export const handleElenaChatRequest = async ({
         "Do not submit confidential documents, private security evidence, PHI, or personal data through this public agent.",
     },
   };
+  if (!result.fallbackUsed && !result.clarificationNeeded && !isRequestAborted()) {
+    await chargeSuccessfulAgentWork({
+      agentId: "elena-cross",
+      stateStore: agentStateStore,
+      nowMs: now.getTime(),
+    });
+  }
+  return response;
 };
 
 export default runElenaResponseAdapter;

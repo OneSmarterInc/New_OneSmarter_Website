@@ -118,9 +118,13 @@ const createRedisRestMock = () => {
       return response(resultFor(initialize(key, schemaVersion, initialEnergy, nowMs, ttlMs), 1));
     }
     if (script.includes("agent-state:work")) {
-      const [cost, min, max, ttlMs] = args.slice(3).map(Number);
+      const [cost, recovery, min, max, ttlMs] = args.slice(3).map(Number);
       const state = initialize(key, schemaVersion, initialEnergy, nowMs, ttlMs);
-      state.energyUnits = Math.max(min, Math.min(max, state.energyUnits - cost));
+      const elapsedHours = Math.max(0, Math.floor((nowMs - state.updatedAtMs) / 3_600_000));
+      state.energyUnits = Math.max(
+        min,
+        Math.min(max, state.energyUnits + elapsedHours * recovery) - cost,
+      );
       state.updatedAtMs = nowMs;
       state.lastWorkAtMs = nowMs;
       state.expiresAtMs = nowMs + ttlMs;
@@ -128,15 +132,19 @@ const createRedisRestMock = () => {
     }
     if (script.includes("agent-state:restore")) {
       const restorationId = args[3];
-      const restoreTo = Number(args[4]);
-      const min = Number(args[5]);
-      const max = Number(args[6]);
-      const ttlMs = Number(args[7]);
+      const restorationValue = Number(args[4]);
+      const restorationMode = args[5];
+      const min = Number(args[6]);
+      const max = Number(args[7]);
+      const ttlMs = Number(args[8]);
       const state = initialize(key, schemaVersion, initialEnergy, nowMs, ttlMs);
       if (state.lastCafeRestorationId === restorationId) {
         return response(resultFor(state, 0));
       }
-      state.energyUnits = Math.max(min, Math.min(max, restoreTo));
+      const restoredEnergy = restorationMode === "add"
+        ? state.energyUnits + restorationValue
+        : restorationValue;
+      state.energyUnits = Math.max(min, Math.min(max, restoredEnergy));
       state.updatedAtMs = nowMs;
       state.lastCafeRestorationId = restorationId;
       state.expiresAtMs = nowMs + ttlMs;

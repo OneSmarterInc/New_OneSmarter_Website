@@ -15,6 +15,11 @@ import { buildMiraAnswerStructure } from "./miraAnswerStructure.js";
 import { applyMiraAnswerCompleteness } from "./miraAnswerCompleteness.js";
 import { validateMiraFinalResponse } from "./miraFinalResponseValidator.js";
 import { sanitizeMiraVisitorAnswer } from "../../data/agentPresentation/miraAnswerFormatter.js";
+import {
+  chargeSuccessfulAgentWork,
+  readAgentDepletionContext,
+  sharedAgentStateStore,
+} from "../agentState/agentDepletionRuntime.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -284,6 +289,8 @@ export const handleMiraChatRequest = async ({
   now = new Date(),
   logger = console,
   rateLimitStore,
+  agentStateStore = sharedAgentStateStore,
+  isRequestAborted = () => false,
 } = {}) => {
   const timestamp = now.toISOString();
   let parsedBody = {};
@@ -510,6 +517,11 @@ export const handleMiraChatRequest = async ({
   try {
     const runtimeConfig = readMiraRuntimeConfig();
     logMiraRuntimeConfigOnce(runtimeConfig, activeRateLimitStore, logger);
+    const depletion = await readAgentDepletionContext({
+      agentId: "mira-vale",
+      stateStore: agentStateStore,
+      nowMs: now.getTime(),
+    });
     let result = await runMiraResponseAdapter({
       message: trimmedMessage,
       conversationId,
@@ -519,6 +531,7 @@ export const handleMiraChatRequest = async ({
       suggestedQuestionId:
         typeof suggestedQuestionId === "string" ? suggestedQuestionId : "",
       conversationHistory: normalizedHistory.history,
+      verbosityBand: depletion.verbosityBand,
       config: runtimeConfig,
     });
     result = applyMiraAnswerCompleteness(result);
@@ -619,6 +632,19 @@ export const handleMiraChatRequest = async ({
         ? { providerUsageReasoningTokens: result.providerUsageReasoningTokens }
         : {}),
     };
+
+    if (
+      !result.fallbackUsed &&
+      !(result.riskFlags || []).includes("out_of_scope") &&
+      !(result.riskFlags || []).includes("phi_or_confidential_data") &&
+      !isRequestAborted()
+    ) {
+      await chargeSuccessfulAgentWork({
+        agentId: "mira-vale",
+        stateStore: agentStateStore,
+        nowMs: now.getTime(),
+      });
+    }
 
     safeLogEvent(
       {

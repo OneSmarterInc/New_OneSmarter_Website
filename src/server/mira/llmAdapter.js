@@ -752,6 +752,7 @@ export const runMiraResponseAdapter = async ({
   empathyState,
   suggestedQuestionId = "",
   conversationHistory = [],
+  verbosityBand = "normal",
   config,
   localHarness = runMiraLocalHarness,
   openAiAdapter = runOpenAiMiraAdapter,
@@ -1695,6 +1696,12 @@ export const runMiraResponseAdapter = async ({
         ? "Answer directly in one short paragraph or two to four concise bullets using only approved context."
         : "",
     };
+    if (verbosityBand === "concise") {
+      requestContext.responseGuidance = [
+        requestContext.responseGuidance,
+        "Use concise wording and remove optional elaboration only. Preserve every required fact, safety statement, qualification, refusal, and handoff.",
+      ].filter(Boolean).join(" ");
+    }
     const promptPayload = buildMiraPromptPayload({
       message,
       retrievalResult: localResult,

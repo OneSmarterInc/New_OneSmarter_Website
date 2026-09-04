@@ -8,6 +8,11 @@ import { readTheoRuntimeConfig } from "./theoRuntimeConfig.js";
 import { runTheoLocalAnalysis, formatTheoVisitorAnswer, normalizeTheoAnalysisForVisitor } from "./theoLocalEngine.js";
 import { buildTheoPromptPayload } from "./theoPromptContract.js";
 import { validateTheoModelOutput } from "./theoOutputValidator.js";
+import {
+  chargeSuccessfulAgentWork,
+  readAgentDepletionContext,
+  sharedAgentStateStore,
+} from "../agentState/agentDepletionRuntime.js";
 
 export const THEO_MESSAGE_LIMIT = 1000;
 export const THEO_CONTENT_LIMIT = 20000;
@@ -66,6 +71,7 @@ export const runTheoResponseAdapter = async ({
   websiteContent,
   conversationHistory = [],
   conversationId,
+  verbosityBand = "normal",
   config = readTheoRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
 } = {}) => {
@@ -77,7 +83,7 @@ export const runTheoResponseAdapter = async ({
     return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
 
-  const promptPayload = buildTheoPromptPayload({ message, websiteContent, conversationHistory });
+  const promptPayload = buildTheoPromptPayload({ message, websiteContent, conversationHistory, verbosityBand });
   const providerResult = await providerAdapter({
     message,
     conversationId,
@@ -101,7 +107,7 @@ export const runTheoResponseAdapter = async ({
   return { analysis: validation.correctedOutput, mode: "staging_llm", fallbackUsed: false, fallbackReason: "" };
 };
 
-export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}, rateLimitStore, now = new Date(), responseAdapter = runTheoResponseAdapter } = {}) => {
+export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}, rateLimitStore, agentStateStore = sharedAgentStateStore, isRequestAborted = () => false, now = new Date(), responseAdapter = runTheoResponseAdapter } = {}) => {
   const requestId = crypto.randomUUID();
   let parsed;
   try { parsed = parseBody(body); } catch { return errorResult(400, "invalid_json", "Request body must be valid JSON.", requestId); }
@@ -126,9 +132,20 @@ export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}
 
   const conversationId = typeof parsed.conversationId === "string" && parsed.conversationId.trim()
     ? parsed.conversationId.trim().slice(0, 120) : crypto.randomUUID();
-  const result = await responseAdapter({ message, websiteContent, conversationHistory: history.history, conversationId });
+  const depletion = await readAgentDepletionContext({
+    agentId: "theo-mercer",
+    stateStore: agentStateStore,
+    nowMs: now.getTime(),
+  });
+  const result = await responseAdapter({
+    message,
+    websiteContent,
+    conversationHistory: history.history,
+    conversationId,
+    verbosityBand: depletion.verbosityBand,
+  });
   const visitorAnalysis = normalizeTheoAnalysisForVisitor(result.analysis);
-  return {
+  const response = {
     status: 200,
     body: {
       requestId, timestamp: now.toISOString(), agent: AGENT, conversationId,
@@ -138,6 +155,14 @@ export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}
       privacyReminder: "Submit only public website/page content. Do not include confidential information or personal data.",
     },
   };
+  if (!result.fallbackUsed && !visitorAnalysis.clarificationNeeded && !isRequestAborted()) {
+    await chargeSuccessfulAgentWork({
+      agentId: "theo-mercer",
+      stateStore: agentStateStore,
+      nowMs: now.getTime(),
+    });
+  }
+  return response;
 };
 
 export default runTheoResponseAdapter;

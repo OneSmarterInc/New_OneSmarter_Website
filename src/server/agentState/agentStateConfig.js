@@ -1,7 +1,8 @@
 import process from "node:process";
+import { AGENT_MAX_ENERGY } from "./agentDepletionPolicy.js";
 
 export const AGENT_STATE_SCHEMA_VERSION = 1;
-export const AGENT_STATE_DEFAULT_ENERGY_UNITS = 100;
+export const AGENT_STATE_DEFAULT_ENERGY_UNITS = AGENT_MAX_ENERGY;
 export const AGENT_STATE_DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 const normalizeUrl = (value = "") => String(value).trim().replace(/\/+$/, "");
