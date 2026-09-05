@@ -16,7 +16,9 @@ import { deriveTheoPresence } from "../data/agentPresentation/theoPresentation.j
 import { deriveElenaPresence } from "../data/agentPresentation/elenaPresentation.js";
 import {
   getEarlierCafeConversations,
+  getCafeWeekBucket,
   getCafePresenceForPersonaId,
+  isCafeConversationActive,
   selectCafeConversation,
 } from "../data/cafeConversations/index.js";
 import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
@@ -161,6 +163,7 @@ const personaResponses = {
 const MIRA_INPUT_LIMIT = 500;
 const MIRA_HISTORY_LIMIT = 6;
 const MIRA_HISTORY_TOTAL_LIMIT = 2000;
+const requestedCafeRestorationEvents = new Set();
 
 const isPresentationDebugEnabled = () =>
   typeof window !== "undefined" && window.location.hostname === "localhost";
@@ -1733,6 +1736,18 @@ const AiAgentsPage = () => {
   const [isElenaRequestInFlight, setIsElenaRequestInFlight] = useState(false);
   const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
   const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
+  useEffect(() => {
+    if (!currentCafeConversation || !isCafeConversationActive(cafeNow)) return undefined;
+
+    const bucketKey = getCafeWeekBucket(cafeNow).key;
+    const requestKey = `onesmarter:cafe-restoration:${bucketKey}:${currentCafeConversation.id}`;
+    if (requestedCafeRestorationEvents.has(requestKey)) return undefined;
+    requestedCafeRestorationEvents.add(requestKey);
+    fetch("/api/agents/cafe/restoration", {
+      method: "POST",
+    }).catch(() => requestedCafeRestorationEvents.delete(requestKey));
+    return undefined;
+  }, [cafeNow, currentCafeConversation]);
   const earlierPublishedCafeConversations = getEarlierCafeConversations(
     currentCafeConversation,
   );
