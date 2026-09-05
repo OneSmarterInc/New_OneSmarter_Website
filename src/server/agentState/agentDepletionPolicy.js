@@ -10,6 +10,8 @@ export const AGENT_WORK_COSTS = Object.freeze({
   "mira-vale": 5,
   "theo-mercer": 8,
   "elena-cross": 6,
+  // Ravi's bounded operational explanations are comparable to Elena's reader workload.
+  "ravi-sen": 6,
 });
 
 export const AGENT_VERBOSITY_BANDS = Object.freeze({

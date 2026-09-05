@@ -35,6 +35,7 @@ assert.deepEqual(AGENT_WORK_COSTS, {
   "mira-vale": 5,
   "theo-mercer": 8,
   "elena-cross": 6,
+  "ravi-sen": 6,
 });
 assert.equal(getAgentVerbosityBand(100), AGENT_VERBOSITY_BANDS.NORMAL);
 assert.equal(getAgentVerbosityBand(70), AGENT_VERBOSITY_BANDS.NORMAL);

@@ -207,7 +207,7 @@ export const evaluateRaviClaim = (claim = "") => {
     );
   }
 
-  if (/\b(?:secure ticketing|case management|secure intake|role-based access|audit history|controlled communication|workflow tracking|workflow modernization|claims workflow|workflow tools|issue resolution|operational continuity|knowledge transfer)\b/i.test(text)) {
+  if (/\b(?:secure ticketing|case management|secure intake|role-based access|audit history|controlled communication|workflow tracking|workflow modernization|claims workflow|claims technology|healthcare|TPA|secure operational systems|reporting|data integration|enterprise software|custom applications?|dashboards?|portals?|workflow tools|software support|maintenance|enhancements?|issue resolution|operational continuity|knowledge transfer)\b/i.test(text)) {
     return result(
       RAVI_CLAIM_STATUSES.ALLOW,
       "The claim is within Ravi's approved operations knowledge slice.",
