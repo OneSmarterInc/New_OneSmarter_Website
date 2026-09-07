@@ -113,7 +113,7 @@ const expectedStatuses = {
   "Mira Vale": "Live public-content guide",
   "Theo Mercer": "Live supplied-content analysis",
   "Elena Cross": "Live compliance reader",
-  "Ravi Sen": "Future workflow concept",
+  "Ravi Sen": "Live operations agent",
   "Selene Hart": "Future strategy concept",
 };
 if (Object.keys(agentEntries).length !== 5) {

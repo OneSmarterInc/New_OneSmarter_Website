@@ -14,6 +14,7 @@ import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisu
 import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
 import { deriveTheoPresence } from "../data/agentPresentation/theoPresentation.js";
 import { deriveElenaPresence } from "../data/agentPresentation/elenaPresentation.js";
+import { deriveRaviPresence } from "../data/agentPresentation/raviPresentation.js";
 import {
   getEarlierCafeConversations,
   getCafeWeekBucket,
@@ -23,6 +24,7 @@ import {
 } from "../data/cafeConversations/index.js";
 import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
 import ElenaConversationPanel from "./ElenaConversationPanel.jsx";
+import RaviConversationPanel from "./RaviConversationPanel.jsx";
 
 const agents = [
   {
@@ -66,7 +68,7 @@ const agents = [
     role: "Workflow, ticketing, escalation, and process design.",
     personality: "Practical, direct, grounded.",
     background: "Shaped by operations rooms, service backlogs, audit trails, and process handoffs.",
-    status: "Future workflow concept",
+    status: "Live operations agent",
     accent: "bg-red-800",
     memoryThemes: ["Case management", "Ticket routing", "Escalations", "Audit trails"],
   },
@@ -749,7 +751,7 @@ const AgentNetwork = () => (
       </p>
       <p className="mt-1 text-sm leading-6 text-zinc-300">
         Live public-content guide, alongside Theo&apos;s content analysis and
-        Elena&apos;s compliance review, with operations and strategy agents in development.
+        Elena&apos;s compliance review and Ravi&apos;s operations guidance, with strategy agents in development.
       </p>
     </div>
   </div>
@@ -759,6 +761,7 @@ const AgentCard = ({ agent }) => {
   const isInCafe = agent.presence === "in_cafe";
   const isTheo = agent.name === "Theo Mercer";
   const isElena = agent.name === "Elena Cross";
+  const isRavi = agent.name === "Ravi Sen";
 
   return (
     <article
@@ -813,6 +816,11 @@ const AgentCard = ({ agent }) => {
       {isElena && (
         <a href="#elena-professional-compliance" className="mt-6 inline-flex w-fit rounded-md bg-zinc-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700">
           Open Elena
+        </a>
+      )}
+      {isRavi && (
+        <a href="#ravi-professional-operations" className="mt-6 inline-flex w-fit rounded-md bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+          Open Ravi
         </a>
       )}
     </article>
@@ -1734,6 +1742,7 @@ const AiAgentsPage = () => {
   const [cafeNow] = useState(() => new Date());
   const [isTheoAnalysisInFlight, setIsTheoAnalysisInFlight] = useState(false);
   const [isElenaRequestInFlight, setIsElenaRequestInFlight] = useState(false);
+  const [isRaviRequestInFlight, setIsRaviRequestInFlight] = useState(false);
   const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
   const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
   useEffect(() => {
@@ -1773,7 +1782,9 @@ const AiAgentsPage = () => {
         ? deriveTheoPresence({ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight })
         : agent.name === "Elena Cross"
           ? deriveElenaPresence({ cafePresence, isRequestInFlight: isElenaRequestInFlight })
-          : cafePresence,
+          : agent.name === "Ravi Sen"
+            ? deriveRaviPresence({ cafePresence, isRequestInFlight: isRaviRequestInFlight })
+            : cafePresence,
     };
   });
   const cafeAgents = agentsWithPresence.filter(
@@ -1902,6 +1913,8 @@ const AiAgentsPage = () => {
       <TheoAnalysisPanel onAnalysisStateChange={setIsTheoAnalysisInFlight} />
 
       <ElenaConversationPanel onRequestStateChange={setIsElenaRequestInFlight} />
+
+      <RaviConversationPanel onRequestStateChange={setIsRaviRequestInFlight} />
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">

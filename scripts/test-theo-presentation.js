@@ -69,6 +69,7 @@ assert.match(theoSource, /onAnalysisStateChange\(true\)[\s\S]*?onAnalysisStateCh
 assert.doesNotMatch(theoSource, /cafePersonas|cafeConversations/i);
 assert.doesNotMatch(theoSource, /<textarea[\s\S]*?maxLength=\{THEO_CONTENT_LIMIT\}/, "The UI must not silently truncate oversized content before server validation");
 assert.match(pageSource, /Live compliance reader/);
-for (const status of ["Future workflow concept", "Future strategy concept"]) assert.match(pageSource, new RegExp(status));
+assert.match(pageSource, /Live operations agent/);
+assert.match(pageSource, /Future strategy concept/);
 
 console.log("Theo presentation tests passed.");
