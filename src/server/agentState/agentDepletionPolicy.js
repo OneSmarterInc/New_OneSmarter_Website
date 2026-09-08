@@ -12,6 +12,8 @@ export const AGENT_WORK_COSTS = Object.freeze({
   "elena-cross": 6,
   // Ravi's bounded operational explanations are comparable to Elena's reader workload.
   "ravi-sen": 6,
+  // Selene's bounded architecture explanations use the same conservative work cost.
+  "selene-hart": 6,
 });
 
 export const AGENT_VERBOSITY_BANDS = Object.freeze({
