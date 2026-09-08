@@ -141,8 +141,10 @@ assert.match(buildTheoPromptPayload({
 const elenaInput = { message: "Are you HIPAA certified?", config: { mode: "mock" } };
 const normalElena = await runElenaResponseAdapter({ ...elenaInput, verbosityBand: "normal" });
 const conciseElena = await runElenaResponseAdapter({ ...elenaInput, verbosityBand: "concise" });
-assert.equal(conciseElena.answer, normalElena.answer);
-assert.match(conciseElena.answer, /does not present itself as HIPAA certified/i);
+assert.ok(conciseElena.answer.length < normalElena.answer.length);
+assert.match(conciseElena.answer, /not presented as HIPAA certified/i);
+assert.match(conciseElena.answer, /HIPAA Security Rule Compliance Assessment Completed/i);
+assert.match(conciseElena.answer, /independent assessment/i);
 assert.match(buildElenaPromptPayload({
   message: elenaInput.message,
   matchedEntries: conciseElena.matchedEntries,

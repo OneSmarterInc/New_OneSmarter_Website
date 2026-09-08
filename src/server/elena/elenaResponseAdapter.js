@@ -76,7 +76,7 @@ export const runElenaResponseAdapter = async ({
   config = readElenaRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
 } = {}) => {
-  const localResult = runElenaLocalEngine({ message, conversationHistory });
+  const localResult = runElenaLocalEngine({ message, conversationHistory, verbosityBand });
   if (config.mode !== "staging_llm" || localResult.clarificationNeeded) {
     return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
   }

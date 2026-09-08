@@ -102,7 +102,11 @@ const contextualTopic = (message, conversationHistory = []) => {
   return topic ? `${message} ${topic} ${qualifier}`.trim() : message;
 };
 
-export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } = {}) => {
+export const runElenaLocalEngine = ({
+  message = "",
+  conversationHistory = [],
+  verbosityBand = "normal",
+} = {}) => {
   const contextualMessage = contextualTopic(message, conversationHistory);
   const text = normalized(contextualMessage);
   const platformQuestion = /\bplatforms?\b/.test(text);
@@ -137,7 +141,9 @@ export const runElenaLocalEngine = ({ message = "", conversationHistory = [] } =
     return localResult({
       answer: platformQuestion
         ? "No. OneSmarter does not claim that its platforms are HIPAA certified. Selected systems may be designed for HIPAA-regulated or PHI-sensitive workflows, but that does not certify a platform or guarantee customer compliance."
-        : "No. OneSmarter does not present itself as HIPAA certified. The approved status is HIPAA Security Rule Compliance Assessment Completed, based on an independent assessment.",
+        : verbosityBand === "concise"
+          ? "No. OneSmarter is not presented as HIPAA certified. Its approved status is HIPAA Security Rule Compliance Assessment Completed, based on an independent assessment."
+          : "No. OneSmarter does not present itself as HIPAA certified. The approved status is HIPAA Security Rule Compliance Assessment Completed, based on an independent assessment.",
       ids: ["hipaa-security-rule-assessment"],
       claimEvaluation: evaluateElenaClaim(platformQuestion
         ? "OneSmarter platforms are HIPAA certified"
