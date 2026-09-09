@@ -70,6 +70,6 @@ assert.doesNotMatch(theoSource, /cafePersonas|cafeConversations/i);
 assert.doesNotMatch(theoSource, /<textarea[\s\S]*?maxLength=\{THEO_CONTENT_LIMIT\}/, "The UI must not silently truncate oversized content before server validation");
 assert.match(pageSource, /Live compliance reader/);
 assert.match(pageSource, /Live operations agent/);
-assert.match(pageSource, /Future strategy concept/);
+assert.match(pageSource, /Live architecture strategist/);
 
 console.log("Theo presentation tests passed.");

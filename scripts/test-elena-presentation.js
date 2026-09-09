@@ -127,10 +127,10 @@ assert.match(elenaSource, /turnResponse\.sources/);
 assert.match(elenaSource, /turnResponse\.clarificationNeeded/);
 assert.match(elenaSource, /onRequestStateChange\(true\)[\s\S]*?onRequestStateChange\(false\)/);
 assert.doesNotMatch(elenaSource, /cafePersonas|cafeConversations|sourceLabel|fallback\.reason|provider|riskFlags|claimRule|prompt/i);
-assert.match(pageSource, /Future strategy concept/);
-assert.match(pageSource, /Live public-content guide, alongside Theo&apos;s content analysis and[\s\S]*Elena&apos;s compliance review and Ravi&apos;s operations guidance, with strategy agents in development\./);
+assert.match(pageSource, /Live architecture strategist/);
+assert.match(pageSource, /Five specialized AI agents for public guidance, supplied-content analysis,[\s\S]*compliance review, operations guidance, and agent architecture\./);
 assert.doesNotMatch(pageSource, /First guide concept, connected to future analysis, compliance/);
 assert.match(pageSource, /Open Ravi/);
-assert.doesNotMatch(pageSource, /Selene Hart[\s\S]{0,500}Open Selene/);
+assert.match(pageSource, /Open Selene/);
 
 console.log("Elena presentation tests passed.");

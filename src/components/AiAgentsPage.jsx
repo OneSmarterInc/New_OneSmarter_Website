@@ -15,6 +15,7 @@ import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
 import { deriveTheoPresence } from "../data/agentPresentation/theoPresentation.js";
 import { deriveElenaPresence } from "../data/agentPresentation/elenaPresentation.js";
 import { deriveRaviPresence } from "../data/agentPresentation/raviPresentation.js";
+import { deriveSelenePresence } from "../data/agentPresentation/selenePresentation.js";
 import {
   getEarlierCafeConversations,
   getCafeWeekBucket,
@@ -25,6 +26,7 @@ import {
 import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
 import ElenaConversationPanel from "./ElenaConversationPanel.jsx";
 import RaviConversationPanel from "./RaviConversationPanel.jsx";
+import SeleneConversationPanel from "./SeleneConversationPanel.jsx";
 
 const agents = [
   {
@@ -75,13 +77,13 @@ const agents = [
   {
     name: "Selene Hart",
     initials: "SH",
-    title: "The Strategist",
-    role: "Business strategy and agent-orchestration thinker.",
+    title: "The AI Agent Architecture Strategist",
+    role: "OneSmarter agent architecture, grounding, validation, and coordination.",
     personality: "Creative, reflective, composed.",
-    background: "Connects transformation programs, operating models, and technical capability to business direction.",
-    status: "Future strategy concept",
+    background: "Explains how OneSmarter separates focused agent roles and applies approved knowledge, review gates, and claim boundaries.",
+    status: "Live architecture strategist",
     accent: "bg-slate-700",
-    memoryThemes: ["AI adoption", "Positioning", "Collaboration", "Executive outcomes"],
+    memoryThemes: ["Agent architecture", "Knowledge boundaries", "Review gates", "Safe coordination"],
   },
 ];
 
@@ -750,8 +752,8 @@ const AgentNetwork = () => (
         Mira highlighted
       </p>
       <p className="mt-1 text-sm leading-6 text-zinc-300">
-        Live public-content guide, alongside Theo&apos;s content analysis and
-        Elena&apos;s compliance review and Ravi&apos;s operations guidance, with strategy agents in development.
+        Five specialized AI agents for public guidance, supplied-content analysis,
+        compliance review, operations guidance, and agent architecture.
       </p>
     </div>
   </div>
@@ -762,6 +764,7 @@ const AgentCard = ({ agent }) => {
   const isTheo = agent.name === "Theo Mercer";
   const isElena = agent.name === "Elena Cross";
   const isRavi = agent.name === "Ravi Sen";
+  const isSelene = agent.name === "Selene Hart";
 
   return (
     <article
@@ -821,6 +824,11 @@ const AgentCard = ({ agent }) => {
       {isRavi && (
         <a href="#ravi-professional-operations" className="mt-6 inline-flex w-fit rounded-md bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
           Open Ravi
+        </a>
+      )}
+      {isSelene && (
+        <a href="#selene-professional-architecture" className="mt-6 inline-flex w-fit rounded-md bg-violet-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-600">
+          Open Selene
         </a>
       )}
     </article>
@@ -1743,6 +1751,7 @@ const AiAgentsPage = () => {
   const [isTheoAnalysisInFlight, setIsTheoAnalysisInFlight] = useState(false);
   const [isElenaRequestInFlight, setIsElenaRequestInFlight] = useState(false);
   const [isRaviRequestInFlight, setIsRaviRequestInFlight] = useState(false);
+  const [isSeleneRequestInFlight, setIsSeleneRequestInFlight] = useState(false);
   const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
   const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
   useEffect(() => {
@@ -1784,7 +1793,9 @@ const AiAgentsPage = () => {
           ? deriveElenaPresence({ cafePresence, isRequestInFlight: isElenaRequestInFlight })
           : agent.name === "Ravi Sen"
             ? deriveRaviPresence({ cafePresence, isRequestInFlight: isRaviRequestInFlight })
-            : cafePresence,
+            : agent.name === "Selene Hart"
+              ? deriveSelenePresence({ cafePresence, isRequestInFlight: isSeleneRequestInFlight })
+              : cafePresence,
     };
   });
   const cafeAgents = agentsWithPresence.filter(
@@ -1915,6 +1926,8 @@ const AiAgentsPage = () => {
       <ElenaConversationPanel onRequestStateChange={setIsElenaRequestInFlight} />
 
       <RaviConversationPanel onRequestStateChange={setIsRaviRequestInFlight} />
+
+      <SeleneConversationPanel onRequestStateChange={setIsSeleneRequestInFlight} />
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">

@@ -113,8 +113,9 @@ assert.match(pageSource, /fetch\("\/api\/agents\/mira\/chat"/);
 assert.match(fs.readFileSync("src/data/agentPresentation/theoPresentation.js", "utf8"), /"\/api\/agents\/theo\/chat"/);
 assert.match(fs.readFileSync("src/data/agentPresentation/elenaPresentation.js", "utf8"), /"\/api\/agents\/elena\/chat"/);
 assert.match(pageSource, /Ravi Sen[\s\S]{0,500}Live operations agent/);
-assert.match(pageSource, /Selene Hart[\s\S]{0,500}Future strategy concept/);
-assert.doesNotMatch(pageSource, /Open Selene|Open Maya/);
+assert.match(pageSource, /Selene Hart[\s\S]{0,700}Live architecture strategist/);
+assert.match(pageSource, /Open Selene/);
+assert.doesNotMatch(pageSource, /Open Maya/);
 
 console.log("Ravi presentation tests passed.");
 console.log("Validated live card/panel wiring, bounded conversation flow, safe rendering, presence, endpoint isolation, and professional/Café separation.");

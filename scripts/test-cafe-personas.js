@@ -114,7 +114,7 @@ const expectedStatuses = {
   "Theo Mercer": "Live supplied-content analysis",
   "Elena Cross": "Live compliance reader",
   "Ravi Sen": "Live operations agent",
-  "Selene Hart": "Future strategy concept",
+  "Selene Hart": "Live architecture strategist",
 };
 if (Object.keys(agentEntries).length !== 5) {
   fail(`expected exactly 5 workplace agents, found ${Object.keys(agentEntries).length}.`);
