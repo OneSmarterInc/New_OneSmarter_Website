@@ -1940,8 +1940,9 @@ const AiAgentsPage = () => {
           <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
             The Café is intended to present selected conversations generated
             offline, reviewed by a person, and published to the site as data.
-            Its four café agents do not currently answer visitor questions;
-            Mira remains the separate working live agent.
+            The same four agents also have professional interfaces; Café
+            participation is a separate presentation layer and is never factual
+            evidence for professional answers.
           </p>
           <div className="mt-8">
             <CafeConversationTranscript

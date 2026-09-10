@@ -323,7 +323,7 @@ const TrustBadges = () => (
     </div>
 
     <div className="flex min-w-0 items-center gap-4 rounded border border-white/10 bg-white/[0.04] p-4 xl:flex-col xl:justify-center xl:text-center">
-      {/* TODO: swap the placeholder mark for the official ISO/IEC 27001 certification-body mark once received */}
+      {/* ARS does not provide body-branded ISO artwork; this generic badge intentionally supports the text-based credential details. */}
       <img
         src={isoLogo}
         alt="ISO/IEC 27001 Certified"
