@@ -114,7 +114,7 @@ const Footer = () => {
                 </div>
               </div>
               <div className="flex min-w-0 items-center gap-4 rounded-xl border border-white/10 p-4">
-                {/* ARS does not provide body-branded ISO artwork; this generic badge intentionally supports the text-based credential details. */}
+                {/* TODO: swap the placeholder mark for the official ISO/IEC 27001 certification-body mark once received */}
                 <img
                   src={isoLogo}
                   alt="ISO/IEC 27001 Certified"

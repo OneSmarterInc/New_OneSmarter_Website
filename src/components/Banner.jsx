@@ -222,7 +222,7 @@ const Banner = () => {
                 </span>
               </div>
               <div className="flex min-w-0 w-full items-center gap-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 lg:w-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:h-32 lg:gap-6 lg:px-0 lg:pl-16">
-                {/* ARS does not provide body-branded ISO artwork; this generic badge intentionally supports the text-based credential details. */}
+                {/* TODO: swap the placeholder mark for the official ISO/IEC 27001 certification-body mark once received */}
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-2 lg:h-28 lg:w-28">
                   <img
                     src={isoLogo}
