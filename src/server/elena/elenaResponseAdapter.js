@@ -46,6 +46,36 @@ const errorResult = (status, error, message, requestId = crypto.randomUUID()) =>
   body: { requestId, agent: AGENT, status, error, message },
 });
 
+const outOfScopeResult = (semanticIntent = {}) => {
+  const domain = String(semanticIntent.domain || "").toLowerCase();
+  const entities = new Set((semanticIntent.entities || []).map((entity) => String(entity).toLowerCase()));
+  const mentionedPerson = (semanticIntent.mentionedNames || []).length > 0;
+  let answer = "That request is outside Elena's OneSmarter compliance and readiness role. What compliance topic would you like to review?";
+  let clarificationQuestion = "What OneSmarter compliance or readiness topic would you like to review?";
+  if (entities.has("ravi") || (semanticIntent.mentionedNames || []).some((name) => String(name).toLowerCase() === "ravi") || domain === "operations") {
+    answer = "That is an operational question for Ravi rather than Elena's compliance role. You can open Ravi to ask it; I have not transferred or submitted the request.";
+    clarificationQuestion = "Would you like to ask Elena about a compliance boundary instead?";
+  } else if (semanticIntent.questionType === "recommendation_request" || domain === "customer_ai_strategy" || domain === "business_strategy" || domain === "agent_architecture") {
+    answer = "Customer-specific AI strategy is outside Elena's compliance role. Please contact the OneSmarter team for business-specific guidance; I have not submitted a request on your behalf.";
+    clarificationQuestion = "Would you like to review a OneSmarter compliance or readiness topic?";
+  } else if (domain === "website_analysis") {
+    answer = "Website or supplied-content analysis is outside Elena's compliance-reader role. Theo handles content analysis; I have not transferred the request.";
+    clarificationQuestion = "Would you like to review compliance language instead?";
+  } else if (domain === "person_information" || mentionedPerson) {
+    answer = "I do not have approved compliance information about that person. What OneSmarter compliance topic would you like to review?";
+    clarificationQuestion = "Which compliance topic is connected to your question?";
+  }
+  return {
+    answer,
+    matchedEntries: [],
+    sources: [],
+    confidence: "low",
+    clarificationNeeded: true,
+    clarificationQuestion,
+    claimEvaluation: null,
+  };
+};
+
 export const normalizeElenaConversationHistory = (history) => {
   if (history === undefined || history === null) return { ok: true, history: [] };
   if (!Array.isArray(history)) {
@@ -100,7 +130,9 @@ export const runElenaResponseAdapter = async ({
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider(request, { config })),
   });
   if (!semanticResolution.ok || semanticResolution.intent.clarificationNeeded || !semanticResolution.domainAllowed) {
-    const localResult = runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    const localResult = semanticResolution.ok
+      ? outOfScopeResult(semanticResolution.intent)
+      : runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
     return {
       ...localResult,
       mode: "local_deterministic",
@@ -113,7 +145,7 @@ export const runElenaResponseAdapter = async ({
   const semanticIntent = semanticResolution.intent;
   const localResult = runElenaLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent });
   if (localResult.clarificationNeeded) {
-    return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "", semanticIntent };
+    return { ...outOfScopeResult(semanticIntent), mode: "local_deterministic", fallbackUsed: false, fallbackReason: "unsupported_semantic_intent", semanticIntent };
   }
 
   const promptPayload = buildElenaPromptPayload({

@@ -109,7 +109,6 @@ export const runElenaLocalEngine = ({
   semanticIntent = null,
 } = {}) => {
   const semanticMessage = semanticIntent ? [
-    semanticIntent.domain,
     semanticIntent.topic,
     semanticIntent.proposition,
     ...(semanticIntent.entities || []),
@@ -291,7 +290,7 @@ export const runElenaLocalEngine = ({
   if (matchedEntries.length) {
     return localResult({
       answer: matchedEntries[0].approvedSummary,
-      ids: [matchedEntries[0].id],
+      ids: matchedEntries.map((entry) => entry.id),
       confidence: "medium",
     });
   }

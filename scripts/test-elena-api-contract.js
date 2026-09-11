@@ -177,7 +177,7 @@ const unrelatedText = await runElenaResponseAdapter({
   },
 });
 assert.equal(unrelatedText.clarificationNeeded, true);
-assert.match(unrelatedText.answer, /^I can help with HIPAA, SOC 2, ISO\/IEC 27001, PCI DSS,/);
+assert.match(unrelatedText.answer, /outside Elena's OneSmarter compliance and readiness role/i);
 assert.deepEqual(unrelatedText.matchedEntries, []);
 assert.equal(unrelatedProviderCalls, 0);
 

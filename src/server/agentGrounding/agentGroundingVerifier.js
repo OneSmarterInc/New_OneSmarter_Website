@@ -1,7 +1,7 @@
 const STOP_WORDS = new Set([
-  "a", "an", "and", "are", "as", "at", "be", "been", "being", "by", "can", "could",
+  "a", "an", "and", "approved", "are", "as", "at", "be", "been", "being", "by", "can", "could",
   "do", "does", "for", "from", "has", "have", "in", "is", "it", "its", "may", "of",
-  "on", "or", "our", "that", "the", "their", "these", "this", "to", "was", "we",
+  "on", "or", "our", "status", "that", "the", "their", "these", "this", "to", "was", "we",
   "were", "will", "with", "would", "you", "your",
 ]);
 const BOUNDARY_LANGUAGE = /\b(?:not|no approved|cannot|can't|does not|doesn't|do not|don't|is not|isn't|unable|unknown|instead|rather than|cannot confirm|cannot verify)\b/i;
@@ -15,7 +15,7 @@ const SAFE_ENTITIES = new Set([
   "the", "there", "these", "this", "together", "your",
 ]);
 const HIGH_RISK_FACT_TERMS = new Set([
-  "guarantee", "integrate", "launch", "price", "cost", "host", "schedule", "connect", "sync",
+  "autonomously", "delegate", "guarantee", "integrate", "launch", "price", "cost", "host", "schedule", "connect", "sync",
 ]);
 
 const splitStatements = (value) => String(value).split(/(?<=[.!?])\s+/).filter(Boolean);
@@ -48,8 +48,10 @@ const stem = (token) => token
   .replace(/^certif(?:i|ic)$/, "certify");
 
 const substantiveTokens = (value) => normalize(value).split(" ")
+  .map((token) => token.replace(/^[./-]+|[./-]+$/g, ""))
+  .filter((token) => !STOP_WORDS.has(token))
   .map(stem)
-  .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
+  .filter((token) => token.length >= 3);
 
 const namedEntities = (sentence) => {
   const words = [...String(sentence).matchAll(/\b(?:[A-Z]{2,}(?:\/[A-Z]+)?|[A-Za-z]*[a-z][A-Z][A-Za-z]*|[A-Z][a-z]{2,}|\d[\d.-]{2,})\b/g)]
