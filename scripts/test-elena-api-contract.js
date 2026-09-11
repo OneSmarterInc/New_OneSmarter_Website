@@ -177,9 +177,9 @@ const unrelatedText = await runElenaResponseAdapter({
   },
 });
 assert.equal(unrelatedText.clarificationNeeded, true);
-assert.match(unrelatedText.answer, /outside Elena's OneSmarter compliance and readiness role/i);
+assert.match(unrelatedText.answer, /approved Elena compliance evidence/i);
 assert.deepEqual(unrelatedText.matchedEntries, []);
-assert.equal(unrelatedProviderCalls, 0);
+assert.equal(unrelatedProviderCalls, 1);
 
 const publicProviderFailure = await post({ message: "Are you SOC 2 attested?" }, {
   responseAdapter: async () => providerFailure,

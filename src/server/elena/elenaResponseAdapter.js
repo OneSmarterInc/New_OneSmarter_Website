@@ -6,6 +6,7 @@ import {
 import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
 import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
 import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
+import { elenaApprovedKnowledge } from "../../data/agentKnowledge/elenaApprovedKnowledge.js";
 import { runElenaLocalEngine } from "./elenaLocalEngine.js";
 import { validateElenaModelOutput } from "./elenaOutputValidator.js";
 import { buildElenaPromptPayload } from "./elenaPromptContract.js";
@@ -23,6 +24,7 @@ export const ELENA_HISTORY_TOTAL_LIMIT = 2000;
 const AGENT = "Elena Cross";
 const ENDPOINT = "/api/agents/elena/chat";
 const degradedRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
+const elenaIntentTopics = elenaApprovedKnowledge.map(({ id, title }) => ({ id, title }));
 
 const parseBody = (body) => typeof body === "string" ? JSON.parse(body) : (body || {});
 const headerValue = (headers, key) => Object.entries(headers || {})
@@ -46,32 +48,22 @@ const errorResult = (status, error, message, requestId = crypto.randomUUID()) =>
   body: { requestId, agent: AGENT, status, error, message },
 });
 
-const outOfScopeResult = (semanticIntent = {}) => {
-  const domain = String(semanticIntent.domain || "").toLowerCase();
-  const entities = new Set((semanticIntent.entities || []).map((entity) => String(entity).toLowerCase()));
-  const mentionedPerson = (semanticIntent.mentionedNames || []).length > 0;
-  let answer = "That request is outside Elena's OneSmarter compliance and readiness role. What compliance topic would you like to review?";
-  let clarificationQuestion = "What OneSmarter compliance or readiness topic would you like to review?";
-  if (entities.has("ravi") || (semanticIntent.mentionedNames || []).some((name) => String(name).toLowerCase() === "ravi") || domain === "operations") {
-    answer = "That is an operational question for Ravi rather than Elena's compliance role. You can open Ravi to ask it; I have not transferred or submitted the request.";
-    clarificationQuestion = "Would you like to ask Elena about a compliance boundary instead?";
-  } else if (semanticIntent.questionType === "recommendation_request" || domain === "customer_ai_strategy" || domain === "business_strategy" || domain === "agent_architecture") {
-    answer = "Customer-specific AI strategy is outside Elena's compliance role. Please contact the OneSmarter team for business-specific guidance; I have not submitted a request on your behalf.";
-    clarificationQuestion = "Would you like to review a OneSmarter compliance or readiness topic?";
-  } else if (domain === "website_analysis") {
-    answer = "Website or supplied-content analysis is outside Elena's compliance-reader role. Theo handles content analysis; I have not transferred the request.";
-    clarificationQuestion = "Would you like to review compliance language instead?";
-  } else if (domain === "person_information" || mentionedPerson) {
-    answer = "I do not have approved compliance information about that person. What OneSmarter compliance topic would you like to review?";
-    clarificationQuestion = "Which compliance topic is connected to your question?";
-  }
+const intentAwareScopeFallback = (semanticIntent = {}) => {
+  const domain = String(semanticIntent.domain || "unresolved")
+    .replace(/[^a-z0-9 _-]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80) || "unresolved";
+  const questionType = String(semanticIntent.questionType || "request")
+    .replace(/[^a-z0-9_-]/gi, "")
+    .slice(0, 40) || "request";
   return {
-    answer,
+    answer: `I don't have approved Elena compliance evidence for this ${domain} ${questionType.replaceAll("_", "-")} request. I can help with OneSmarter's approved compliance and readiness topics.`,
     matchedEntries: [],
     sources: [],
     confidence: "low",
     clarificationNeeded: true,
-    clarificationQuestion,
+    clarificationQuestion: "Would you like to review a OneSmarter compliance or readiness topic?",
     claimEvaluation: null,
   };
 };
@@ -127,26 +119,37 @@ export const runElenaResponseAdapter = async ({
       ok: message.length <= ELENA_MESSAGE_LIMIT && !containsElenaSensitiveData(message),
       error: containsElenaSensitiveData(message) ? "sensitive_input" : "message_too_long",
     }),
-    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider(request, { config })),
+    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
+      ...request,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. Classify a request under the allowed compliance domain when its meaning concerns one of those approved compliance topic labels, even when the visitor uses different vocabulary.`,
+      input: {
+        ...request.input,
+        agentContext: {
+          ...request.input.agentContext,
+          approvedProfessionalTopicLabels: elenaIntentTopics,
+        },
+      },
+    }, { config })),
   });
-  if (!semanticResolution.ok || semanticResolution.intent.clarificationNeeded || !semanticResolution.domainAllowed) {
-    const localResult = semanticResolution.ok
-      ? outOfScopeResult(semanticResolution.intent)
-      : runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+  if (!semanticResolution.ok) {
+    const localResult = runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
     return {
       ...localResult,
       mode: "local_deterministic",
       fallbackUsed: !semanticResolution.ok,
-      fallbackReason: semanticResolution.error || (semanticResolution.domainAllowed ? "ambiguous_semantic_intent" : "out_of_scope_semantic_intent"),
+      fallbackReason: semanticResolution.error,
       semanticIntent: semanticResolution.intent,
     };
   }
 
   const semanticIntent = semanticResolution.intent;
-  const localResult = runElenaLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent });
-  if (localResult.clarificationNeeded) {
-    return { ...outOfScopeResult(semanticIntent), mode: "local_deterministic", fallbackUsed: false, fallbackReason: "unsupported_semantic_intent", semanticIntent };
-  }
+  const semanticScopeAllowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
+  const retrievedResult = semanticScopeAllowed
+    ? runElenaLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent })
+    : intentAwareScopeFallback(semanticIntent);
+  const localResult = retrievedResult.clarificationNeeded
+    ? intentAwareScopeFallback(semanticIntent)
+    : retrievedResult;
 
   const promptPayload = buildElenaPromptPayload({
     message,

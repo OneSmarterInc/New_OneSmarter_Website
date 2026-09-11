@@ -143,20 +143,62 @@ assert.match(indirect.result.answer, /HIPAA Security Rule Compliance Assessment 
 assert.deepEqual(indirect.result.semanticIntent.mentionedNames, ["Gaurav"]);
 assert.equal(indirect.result.semanticIntent.visitorDisplayName, null);
 
-for (const [message, domain, expected] of [
-  ["Tell me about Gaurav.", "person_information", /do not have approved compliance information about that person/i],
-  ["What should my company use for AI?", "customer_ai_strategy", /Customer-specific AI strategy is outside Elena's compliance role/i],
-  ["Can Ravi access our ticket queue?", "operations", /operational question for Ravi/i],
-  ["Analyze my website.", "website_analysis", /Theo handles content analysis/i],
-  ["What's the weather?", "weather", /outside Elena's OneSmarter compliance and readiness role/i],
-  ["Tell me a joke.", "entertainment", /outside Elena's OneSmarter compliance and readiness role/i],
+const scopeAnswers = [];
+for (const [message, domain] of [
+  ["Tell me about Gaurav.", "person_information"],
+  ["Who is Theo?", "agent_information"],
+  ["Tell me about the company logo.", "brand_information"],
+  ["What should my company use for AI?", "customer_ai_strategy"],
+  ["Can Ravi access our ticket queue?", "operations"],
+  ["Analyze my website.", "website_analysis"],
+  ["What's the weather?", "weather"],
+  ["Tell me a joke.", "entertainment"],
+  ["How tall is Mount Everest?", "general_knowledge"],
+  ["Recommend a restaurant nearby.", "local_recommendations"],
 ]) {
-  const resolved = await run(message, intent({ domain, topic: message, proposition: message }));
+  const resolved = await run(message, intent({
+    domain,
+    topic: message,
+    proposition: message,
+    requestedDetail: message,
+  }));
   assert.equal(resolved.result.clarificationNeeded, true);
   assert.deepEqual(resolved.result.matchedEntries, []);
-  assert.match(resolved.result.answer, expected);
-  assert.equal(resolved.answerCalls, 0);
+  assert.match(resolved.result.answer, /approved Elena compliance evidence/i);
+  assert.match(resolved.result.answer, new RegExp(domain.replaceAll("_", "[ _-]"), "i"));
+  scopeAnswers.push(resolved.result.answer);
+  assert.equal(resolved.answerCalls, 1);
 }
+assert.equal(new Set(scopeAnswers).size, scopeAnswers.length);
+
+const generatedScope = await runElenaResponseAdapter({
+  message: "Could you describe the visual symbol your company uses?",
+  config,
+  intentProvider: async () => ({ intent: intent({
+    domain: "brand_information",
+    topic: "OneSmarter visual identity",
+    entities: ["OneSmarter"],
+    proposition: "OneSmarter uses a particular visual symbol",
+    questionType: "status",
+    speechAct: "question",
+    requestedDetail: "information about OneSmarter's visual identity",
+  }) }),
+  providerAdapter: async ({ retrievalResult, promptPayload }) => {
+    assert.deepEqual(retrievalResult.matchedEntries, []);
+    assert.match(promptPayload.user, /visual identity/i);
+    return { modelOutput: {
+      answer: "I don't have approved information about OneSmarter's visual identity in my compliance evidence. I can help with an approved compliance or readiness topic.",
+      handoffNeeded: true,
+      handoffReason: "outside Elena's approved professional evidence",
+      suggestedFollowUps: ["Would you like to review a compliance or readiness topic?"],
+      groundingStatus: "insufficient_context",
+      outputSafetyStatus: "passed",
+    } };
+  },
+});
+assert.equal(generatedScope.mode, "staging_llm");
+assert.equal(generatedScope.clarificationNeeded, true);
+assert.match(generatedScope.answer, /visual identity/i);
 
 const followUpHistory = [
   { role: "user", content: "Are you HIPAA certified?" },
@@ -212,7 +254,8 @@ const ambiguous = await run("Are you not?", intent({
   clarificationNeeded: true,
 }));
 assert.equal(ambiguous.result.clarificationNeeded, true);
-assert.equal(ambiguous.answerCalls, 0);
+assert.equal(ambiguous.answerCalls, 1);
+assert.match(ambiguous.result.answer, /compliance follow-up request/i);
 
 const mislabeledRavi = await run("Can Ravi access our ticket queue?", intent({
   domain: "compliance",
@@ -224,7 +267,7 @@ const mislabeledRavi = await run("Can Ravi access our ticket queue?", intent({
   requestedDetail: "whether Ravi can access a live ticket queue",
   mentionedNames: ["Ravi"],
 }));
-assert.match(mislabeledRavi.result.answer, /operational question for Ravi/i);
+assert.match(mislabeledRavi.result.answer, /compliance scope-check request/i);
 assert.doesNotMatch(mislabeledRavi.result.answer, /HIPAA Security Rule/i);
 
 const broadStrategyDomain = await run("What should my company use for AI?", intent({
@@ -236,7 +279,7 @@ const broadStrategyDomain = await run("What should my company use for AI?", inte
   speechAct: "recommendation_request",
   requestedDetail: "which AI approach the visitor's company should use",
 }));
-assert.match(broadStrategyDomain.result.answer, /Customer-specific AI strategy is outside Elena's compliance role/i);
+assert.match(broadStrategyDomain.result.answer, /technology recommendation-request request/i);
 
 for (const [message, semanticIntent, required] of [
   ["Does ISO certification cover claims processing?", intent({
