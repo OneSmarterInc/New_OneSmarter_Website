@@ -1413,7 +1413,7 @@ const MiraConversationPanel = () => {
             </p>
             <p id="mira-question-help" className="mt-2 text-xs leading-5 text-zinc-400">
               Do not submit PHI, confidential documents, credentials, or private
-              operational details.
+              operational details..
             </p>
             <textarea
               id="mira-question"
