@@ -4,6 +4,8 @@ import {
   createMiraRateLimitStore,
 } from "../mira/miraRateLimitStore.js";
 import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
+import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
+import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
 import { runElenaLocalEngine } from "./elenaLocalEngine.js";
 import { validateElenaModelOutput } from "./elenaOutputValidator.js";
 import { buildElenaPromptPayload } from "./elenaPromptContract.js";
@@ -34,7 +36,7 @@ const clientKey = (headers) => {
 };
 
 const ELENA_SENSITIVE_FIELD_PATTERN =
-  /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn)\s*:\s*\S+/i;
+  /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn|api\s*key|password|secret|access\s+token|private\s+key)\s*:\s*\S+/i;
 
 export const containsElenaSensitiveData = (message = "") =>
   ELENA_SENSITIVE_FIELD_PATTERN.test(String(message));
@@ -75,13 +77,43 @@ export const runElenaResponseAdapter = async ({
   verbosityBand = "normal",
   config = readElenaRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
+  intentProvider,
 } = {}) => {
-  const localResult = runElenaLocalEngine({ message, conversationHistory, verbosityBand });
-  if (config.mode !== "staging_llm" || localResult.clarificationNeeded) {
+  if (config.mode !== "staging_llm") {
+    const localResult = runElenaLocalEngine({ message, conversationHistory, verbosityBand });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
   }
   if (config.provider !== "openai" || !config.providerConfigComplete) {
+    const localResult = runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
+  }
+
+  const semanticResolution = await resolveAgentIntent({
+    agentIdentity: "Elena Cross",
+    message,
+    conversationHistory,
+    allowedDomains: ["compliance"],
+    inputGuard: async () => ({
+      ok: message.length <= ELENA_MESSAGE_LIMIT && !containsElenaSensitiveData(message),
+      error: containsElenaSensitiveData(message) ? "sensitive_input" : "message_too_long",
+    }),
+    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider(request, { config })),
+  });
+  if (!semanticResolution.ok || semanticResolution.intent.clarificationNeeded || !semanticResolution.domainAllowed) {
+    const localResult = runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    return {
+      ...localResult,
+      mode: "local_deterministic",
+      fallbackUsed: !semanticResolution.ok,
+      fallbackReason: semanticResolution.error || (semanticResolution.domainAllowed ? "ambiguous_semantic_intent" : "out_of_scope_semantic_intent"),
+      semanticIntent: semanticResolution.intent,
+    };
+  }
+
+  const semanticIntent = semanticResolution.intent;
+  const localResult = runElenaLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent });
+  if (localResult.clarificationNeeded) {
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "", semanticIntent };
   }
 
   const promptPayload = buildElenaPromptPayload({
@@ -89,6 +121,7 @@ export const runElenaResponseAdapter = async ({
     matchedEntries: localResult.matchedEntries,
     conversationHistory,
     verbosityBand,
+    semanticIntent,
   });
   const providerResult = await providerAdapter({
     message,
@@ -97,6 +130,7 @@ export const runElenaResponseAdapter = async ({
       persona: "Professional Compliance Reader",
       memoryTheme: "Bounded request-carried context only",
       empathyState: "Careful and precise",
+      semanticIntent,
     },
     retrievalResult: { matchedEntries: localResult.matchedEntries },
     riskFlags: [],
@@ -109,6 +143,7 @@ export const runElenaResponseAdapter = async ({
       mode: "local_deterministic",
       fallbackUsed: true,
       fallbackReason: providerResult.error || "provider_error",
+      semanticIntent,
     };
   }
   const validation = validateElenaModelOutput(providerResult.modelOutput, {
@@ -121,6 +156,7 @@ export const runElenaResponseAdapter = async ({
       mode: "local_deterministic",
       fallbackUsed: true,
       fallbackReason: `output_validation_failed:${validation.violations.join(",")}`,
+      semanticIntent,
     };
   }
   return {
@@ -134,6 +170,7 @@ export const runElenaResponseAdapter = async ({
     clarificationQuestion: validation.correctedOutput.groundingStatus === "insufficient_context"
       ? validation.correctedOutput.suggestedFollowUps[0] || "Which approved compliance topic would you like to review?"
       : "",
+    semanticIntent,
   };
 };
 

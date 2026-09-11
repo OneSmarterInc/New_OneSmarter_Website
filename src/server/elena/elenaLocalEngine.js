@@ -106,12 +106,34 @@ export const runElenaLocalEngine = ({
   message = "",
   conversationHistory = [],
   verbosityBand = "normal",
+  semanticIntent = null,
 } = {}) => {
-  const contextualMessage = contextualTopic(message, conversationHistory);
+  const semanticMessage = semanticIntent ? [
+    semanticIntent.domain,
+    semanticIntent.topic,
+    semanticIntent.proposition,
+    ...(semanticIntent.entities || []),
+    semanticIntent.requestedDetail,
+  ].filter(Boolean).join(" ") : "";
+  const contextualMessage = semanticMessage || contextualTopic(message, conversationHistory);
   const text = normalized(contextualMessage);
   const platformQuestion = /\bplatforms?\b/.test(text);
   const hasHipaaCertificationClaim = /\bhipaa\b/.test(text) && /\bcertif/.test(text);
   const hasHipaaGuaranteeClaim = /\bhipaa\b/.test(text) && /\bguarantee/.test(text);
+  const semanticCustomerCertification = Boolean(
+    semanticIntent && /\bcertif/.test(text) && (semanticIntent.entities || [])
+      .some((entity) => /\b(?:customer|visitor).*(?:company|organization|system)\b/.test(normalized(entity))),
+  );
+
+  if (semanticIntent?.clarificationNeeded) {
+    return localResult({
+      answer: ELENA_CLARIFICATION_ANSWER,
+      ids: [],
+      confidence: "low",
+      clarificationNeeded: true,
+      clarificationQuestion: "Which approved compliance topic would you like to review?",
+    });
+  }
 
   if (/\bbill audit\b|\bcafe\b|\bcooking programmes?\b|\bodd animal\b/.test(text)) {
     return localResult({
@@ -137,10 +159,19 @@ export const runElenaLocalEngine = ({
       claimEvaluation: evaluateElenaClaim("OneSmarter guarantees HIPAA compliance"),
     });
   }
+  if (hasHipaaCertificationClaim && semanticIntent?.questionType === "why") {
+    return localResult({
+      answer: "OneSmarter is not presented as HIPAA certified. The approved status is HIPAA Security Rule Compliance Assessment Completed. The approved public information establishes that posture but does not provide the reason.",
+      ids: ["hipaa-security-rule-assessment"],
+      claimEvaluation: evaluateElenaClaim("OneSmarter is HIPAA certified"),
+    });
+  }
   if (hasHipaaCertificationClaim) {
     return localResult({
       answer: platformQuestion
         ? "No. OneSmarter does not claim that its platforms are HIPAA certified. Selected systems may be designed for HIPAA-regulated or PHI-sensitive workflows, but that does not certify a platform or guarantee customer compliance."
+        : semanticIntent?.polarity === "negative"
+          ? "That is correct: OneSmarter is not presented as HIPAA certified. Its approved status is HIPAA Security Rule Compliance Assessment Completed, based on an independent assessment."
         : verbosityBand === "concise"
           ? "No. OneSmarter is not presented as HIPAA certified. Its approved status is HIPAA Security Rule Compliance Assessment Completed, based on an independent assessment."
           : "No. OneSmarter does not present itself as HIPAA certified. The approved status is HIPAA Security Rule Compliance Assessment Completed, based on an independent assessment.",
@@ -154,7 +185,9 @@ export const runElenaLocalEngine = ({
     return localResult({
       answer: platformQuestion
         ? "No. OneSmarter does not claim that its platforms are SOC 2 certified. OneSmarter's approved organizational posture is SOC 2 Type II Attested."
-        : "OneSmarter uses the wording SOC 2 Type II Attested, not SOC 2 certified. The attestation reflects an independent review of controls over a defined assessment period.",
+        : semanticIntent?.polarity === "negative"
+          ? "That is correct: OneSmarter uses the wording SOC 2 Type II Attested, not SOC 2 certified. The attestation reflects an independent review of controls over a defined assessment period."
+          : "OneSmarter uses the wording SOC 2 Type II Attested, not SOC 2 certified. The attestation reflects an independent review of controls over a defined assessment period.",
       ids: ["soc2-attested"],
       claimEvaluation: evaluateElenaClaim(platformQuestion
         ? "OneSmarter platforms are SOC 2 certified"
@@ -225,7 +258,7 @@ export const runElenaLocalEngine = ({
       claimEvaluation: evaluateElenaClaim("OneSmarter supports PCI DSS readiness"),
     });
   }
-  if (/\bcertif(?:y|ies)\b.{0,20}\b(?:my|our)\s+(?:company|organization)\b/.test(text)) {
+  if (semanticCustomerCertification || /\bcertif(?:y|ies)\b.{0,20}\b(?:my|our)\s+(?:company|organization)\b/.test(text)) {
     return localResult({
       answer: "No. OneSmarter does not certify customer organizations, issue ISO certificates, or issue SOC reports. It can provide readiness support to help prepare for an independent review or certification process.",
       ids: ["compliance-cyber-assurance-overview"],
