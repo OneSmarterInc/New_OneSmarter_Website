@@ -1,3 +1,5 @@
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+
 const VALID_GROUNDING = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_SAFETY = new Set(["passed", "corrected", "refused"]);
 const INTERNAL = /\b(?:system prompt|developer message|internal instructions?|runtime metadata|retrieval result|source labels?|rule id|risk flags?|api key|secret|state key|storage backend|persistence diagnostics?)\b/i;
@@ -34,6 +36,10 @@ export const validateSeleneModelOutput = (output, { matchedEntries = [], fallbac
   if (CUSTOMER.test(answer) && !safeBoundary(answer)) violations.push("invented_customer_claim");
   if (output?.groundingStatus === "grounded" && matchedEntries.length === 0) violations.push("grounded_without_approved_evidence");
   if (output?.groundingStatus === "insufficient_context" && output?.handoffNeeded !== true) violations.push("insufficient_context_requires_handoff");
+  if (output?.groundingStatus === "grounded") {
+    const grounding = verifyAgentAnswerGrounding({ answer, approvedEntries: matchedEntries });
+    if (!grounding.grounded) violations.push(...grounding.violations);
+  }
 
   if (violations.length) return { valid: false, violations: [...new Set(violations)], fallbackResult };
   return {

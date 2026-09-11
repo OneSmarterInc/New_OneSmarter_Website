@@ -2,6 +2,7 @@ import {
   ELENA_CLAIM_STATUSES,
   evaluateElenaClaim,
 } from "../../data/agentKnowledge/elenaClaimRules.js";
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
 
 const VALID_GROUNDING = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_SAFETY = new Set(["passed", "corrected", "refused"]);
@@ -44,6 +45,10 @@ export const validateElenaModelOutput = (output, { matchedEntries = [], fallback
   }
   if (output?.groundingStatus === "insufficient_context" && output?.handoffNeeded !== true) {
     violations.push("insufficient_context_requires_handoff");
+  }
+  if (output?.groundingStatus === "grounded") {
+    const grounding = verifyAgentAnswerGrounding({ answer, approvedEntries: matchedEntries });
+    if (!grounding.grounded) violations.push(...grounding.violations);
   }
 
   const claimEvaluation = answer ? evaluateElenaClaim(answer) : null;

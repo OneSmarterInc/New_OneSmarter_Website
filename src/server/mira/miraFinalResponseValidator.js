@@ -4,6 +4,8 @@ import {
   capabilitySummaryAnswerForEntities,
 } from "./miraListingIntents.js";
 import { normalizeMiraAnswerPresentation } from "../../data/agentPresentation/miraAnswerFormatter.js";
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+import { stripInternalGuidance } from "./miraOutputValidator.js";
 
 const TRAILING_FOLLOW_UP =
   /\n+(?:would|do|can|could|what|which|how)\b[^\n?]*\?\s*$/i;
@@ -400,6 +402,21 @@ export const validateMiraFinalResponse = (result = {}) => {
       ["multiple_clarification_questions_trimmed"],
       "trim",
     );
+  }
+
+  if (result.groundingStatus === "grounded") {
+    const grounding = verifyAgentAnswerGrounding({
+      answer,
+      approvedEntries: result.matchedEntries || [],
+    });
+    if (!grounding.grounded) {
+      return correctionResult(
+        result,
+        stripInternalGuidance(fallbackAnswerFor(result)),
+        grounding.violations,
+        "fallback",
+      );
+    }
   }
 
   return {

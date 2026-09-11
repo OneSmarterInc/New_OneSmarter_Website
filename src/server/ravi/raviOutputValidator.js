@@ -1,3 +1,5 @@
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+
 const VALID_GROUNDING = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_SAFETY = new Set(["passed", "corrected", "refused"]);
 const INTERNAL_LEAK = /\b(?:system prompt|developer message|internal instructions?|runtime metadata|retrieval result|matched sources?|source labels?|rule id|risk flags?|api key|secret|generation notes?)\b/i;
@@ -44,6 +46,10 @@ export const validateRaviModelOutput = (output, { matchedEntries = [], fallbackR
   }
   if (output?.groundingStatus === "insufficient_context" && output?.handoffNeeded !== true) {
     violations.push("insufficient_context_requires_handoff");
+  }
+  if (output?.groundingStatus === "grounded") {
+    const grounding = verifyAgentAnswerGrounding({ answer, approvedEntries: matchedEntries });
+    if (!grounding.grounded) violations.push(...grounding.violations);
   }
 
   if (violations.length) {
