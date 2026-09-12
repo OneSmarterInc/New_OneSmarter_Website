@@ -190,15 +190,18 @@ export const onesmarterPublicKnowledgeBase = [
       "AI Agentic Services are practical AI services for controlled automation, document workflows, decision support, human-in-the-loop review, enterprise integration, and repeatable business processes.",
     sourceFacts: [
       "The service emphasizes controlled automation and practical workflow design.",
-      "OneSmarter's V2 AI Agents page is a public-content concept and showcase, not a live AI service yet.",
-      "The first live agent candidate is Mira Vale, scoped to approved public website content.",
+      "Mira Vale is OneSmarter's public-content guide.",
+      "Theo Mercer analyzes supplied website or page content and AI readability.",
+      "Elena Cross reviews compliance, certification, and readiness language.",
+      "Ravi Sen explains approved operations, workflow, ticketing, and routing capabilities without accessing customer systems.",
+      "Selene Hart explains OneSmarter's AI-agent architecture and current orchestration boundaries.",
     ],
     allowedClaims: [
       "AI-assisted workflow design",
       "Document automation",
       "Human-in-the-loop review",
       "Enterprise integration",
-      "Public-content website guide concept",
+      "Live professional agents with separate approved roles",
     ],
     disallowedClaims: [
       "Autonomous replacement of professional judgment",

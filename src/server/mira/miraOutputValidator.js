@@ -1,6 +1,7 @@
 import { miraClaimRules } from "../../data/agentKnowledge/miraClaimRules.js";
 import { runMiraLocalHarness } from "../../data/agentKnowledge/miraLocalEngine.js";
 import { normalizeMiraAnswerPresentation } from "../../data/agentPresentation/miraAnswerFormatter.js";
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
 
 const VALID_GROUNDING_STATUSES = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_OUTPUT_SAFETY_STATUSES = new Set(["passed", "corrected", "refused"]);
@@ -66,7 +67,7 @@ const UNSUPPORTED_EXAMPLE_PATTERNS = [
   {
     label: "unsupported_integration",
     pattern:
-      /\b((integrated|integration|syncs?|connects?|connected)\b[^.]{0,100}\b(secure ticketing|case management|bill audit|bill pay|claims processing)|(secure ticketing|case management|bill audit|bill pay|claims processing)\b[^.]{0,100}\b(integrated|integration|syncs?|connects?|connected))\b/i,
+      /\b((integrates?|integrated|integration|syncs?|connects?|connected)\b[^.]{0,100}\b(secure ticketing|case management|bill audit|bill pay|claims processing)|(secure ticketing|case management|bill audit|bill pay|claims processing)\b[^.]{0,100}\b(integrates?|integrated|integration|syncs?|connects?|connected))\b/i,
   },
   {
     label: "unsupported_clinical_workflow",
@@ -260,6 +261,13 @@ export const validateMiraModelOutput = (
 
   for (const { label, pattern } of UNSUPPORTED_EXAMPLE_PATTERNS) {
     if (pattern.test(answer)) {
+      if (label === "unsupported_integration") {
+        const grounding = verifyAgentAnswerGrounding({
+          answer,
+          approvedEntries: localHarnessResult?.matchedEntries || [],
+        });
+        if (grounding.grounded) continue;
+      }
       violations.push(label);
     }
   }
