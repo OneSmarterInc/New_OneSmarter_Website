@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import { createMiraMemoryRateLimitStore, createMiraRateLimitStore } from "../mira/miraRateLimitStore.js";
 import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
+import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
+import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
+import { seleneApprovedKnowledge } from "../../data/agentKnowledge/seleneApprovedKnowledge.js";
 import { chargeSuccessfulAgentWork, readAgentDepletionContext, sharedAgentStateStore } from "../agentState/agentDepletionRuntime.js";
 import { runSeleneLocalEngine } from "./seleneLocalEngine.js";
 import { validateSeleneModelOutput } from "./seleneOutputValidator.js";
@@ -14,6 +17,7 @@ export const SELENE_HISTORY_TOTAL_LIMIT = 2000;
 const AGENT = "Selene Hart";
 const ENDPOINT = "/api/agents/selene/chat";
 const fallbackRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
+const seleneIntentTopics = seleneApprovedKnowledge.map(({ id, title }) => ({ id, title }));
 const SENSITIVE = /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn)\s*:\s*\S+|\b(?:api key|password|secret|access token|private key)\s*:\s*\S+/i;
 const UPLOAD_FIELDS = new Set(["file", "files", "upload", "uploads", "attachment", "attachments"]);
 
@@ -30,6 +34,19 @@ const errorResult = (status, error, message, requestId = crypto.randomUUID()) =>
   status,
   body: { requestId, agent: AGENT, status, error, message },
 });
+
+const intentAwareScopeFallback = (semanticIntent = {}) => {
+  const domain = String(semanticIntent.domain || "unresolved")
+    .replace(/[^a-z0-9 _-]/gi, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "unresolved";
+  const questionType = String(semanticIntent.questionType || "request")
+    .replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "request";
+  return {
+    answer: `I don't have approved Selene architecture evidence for this ${domain} ${questionType.replaceAll("_", "-")} request. I can explain OneSmarter's focused-agent architecture, professional roles, knowledge boundaries, claim validation, Café separation, and current orchestration.`,
+    matchedEntries: [], sources: [], confidence: "low", clarificationNeeded: true,
+    clarificationQuestion: "Which approved OneSmarter agent-architecture topic would you like to review?",
+    claimEvaluation: null,
+  };
+};
 
 export const containsSeleneSensitiveData = (message = "") => SENSITIVE.test(String(message));
 
@@ -56,22 +73,55 @@ export const runSeleneResponseAdapter = async ({
   verbosityBand = "normal",
   config = readSeleneRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
+  intentProvider,
 } = {}) => {
-  const localResult = runSeleneLocalEngine({ message, conversationHistory, verbosityBand });
-  if (config.mode !== "staging_llm" || localResult.clarificationNeeded) return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
-  if (config.provider !== "openai" || !config.providerConfigComplete) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
+  if (config.mode !== "staging_llm") {
+    const localResult = runSeleneLocalEngine({ message, verbosityBand });
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
+  }
+  if (config.provider !== "openai" || !config.providerConfigComplete) {
+    const localResult = runSeleneLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
+  }
+  const semanticResolution = await resolveAgentIntent({
+    agentIdentity: "Selene Hart",
+    message,
+    conversationHistory,
+    allowedDomains: ["agent_architecture", "ai_agent_architecture", "agent_orchestration", "identity", "agent_identity", "agent_roles", "professional_agents"],
+    inputGuard: async () => ({
+      ok: message.length <= SELENE_MESSAGE_LIMIT && !containsSeleneSensitiveData(message),
+      error: containsSeleneSensitiveData(message) ? "sensitive_input" : "message_too_long",
+    }),
+    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
+      ...request,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Professional Agent Role Separation for self-description, descriptions of another professional agent, and role comparisons. Classify semantic equivalents under an allowed domain even when vocabulary differs. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
+      input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: seleneIntentTopics } },
+    }, { config })),
+  });
+  if (!semanticResolution.ok) {
+    const localResult = runSeleneLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent };
+  }
+  const semanticIntent = semanticResolution.intent;
+  const retrieved = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded
+    ? runSeleneLocalEngine({ message, verbosityBand, semanticIntent })
+    : intentAwareScopeFallback(semanticIntent);
+  const localResult = retrieved.clarificationNeeded ? intentAwareScopeFallback(semanticIntent) : retrieved;
+  if (localResult.chargeEligible === false) {
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "", semanticIntent };
+  }
   const providerResult = await providerAdapter({
     message,
     conversationId,
-    requestContext: { persona: "Professional AI Agent Architecture Strategist", memoryTheme: "Bounded request-carried context only", empathyState: "Reflective and precise" },
+    requestContext: { persona: "Professional AI Agent Architecture Strategist", memoryTheme: "Bounded request-carried context only", empathyState: "Reflective and precise", semanticIntent },
     retrievalResult: { matchedEntries: localResult.matchedEntries },
     riskFlags: [],
-    promptPayload: buildSelenePromptPayload({ message, matchedEntries: localResult.matchedEntries, conversationHistory, verbosityBand }),
+    promptPayload: buildSelenePromptPayload({ message, matchedEntries: localResult.matchedEntries, conversationHistory, verbosityBand, semanticIntent }),
     config,
   });
-  if (providerResult.error || !providerResult.modelOutput) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: providerResult.error || "provider_error" };
+  if (providerResult.error || !providerResult.modelOutput) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: providerResult.error || "provider_error", semanticIntent };
   const validation = validateSeleneModelOutput(providerResult.modelOutput, { matchedEntries: localResult.matchedEntries, fallbackResult: localResult });
-  if (!validation.valid) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}` };
+  if (!validation.valid) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}`, semanticIntent };
   return {
     ...localResult,
     answer: validation.correctedOutput.answer,
@@ -81,6 +131,7 @@ export const runSeleneResponseAdapter = async ({
     confidence: validation.correctedOutput.groundingStatus === "grounded" ? "high" : "low",
     clarificationNeeded: validation.correctedOutput.groundingStatus === "insufficient_context",
     clarificationQuestion: validation.correctedOutput.suggestedFollowUps[0] || "",
+    semanticIntent,
   };
 };
 

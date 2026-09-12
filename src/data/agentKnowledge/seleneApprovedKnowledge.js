@@ -32,11 +32,15 @@ export const seleneApprovedKnowledge = [
     approvedSummary:
       "OneSmarter designs a team of focused professional agents with narrow roles rather than one unrestricted general-purpose chatbot.",
     sourceFacts: [
+      "Selene Hart is OneSmarter's AI Agent Architecture Strategist.",
+      "Selene explains OneSmarter's focused-agent architecture, orchestration boundaries, knowledge and evidence controls, claim validation, Café separation, and accuracy-preserving operational state.",
+      "Selene does not provide customer-specific AI strategy, architecture, agent selection, or implementation advice.",
       "The professional agent model uses named agents with narrow work specialties.",
       "Professional answers remain grounded in approved, role-appropriate knowledge.",
       "Human review remains appropriate when judgment, sensitive context, or customer-specific decisions are required.",
     ],
     allowedClaims: [
+      "Selene can describe her approved professional role and its limits.",
       "OneSmarter uses focused agents with separate professional responsibilities.",
       "Narrow roles and approved evidence boundaries support accountable visitor interactions.",
     ],

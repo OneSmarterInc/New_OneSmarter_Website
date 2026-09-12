@@ -36,6 +36,11 @@ for (const record of seleneApprovedKnowledge) {
 const serialized = JSON.stringify(seleneApprovedKnowledge);
 assert.match(serialized, /autonomous agent-to-agent production (?:delegation|orchestration).*not currently implemented/i);
 assert.match(serialized, /operational state may (?:change|reduce|affect)/i);
+assert.match(serialized, /Selene Hart is OneSmarter's AI Agent Architecture Strategist/i);
+assert.match(serialized, /Mira is the public-content guide/i);
+assert.match(serialized, /Theo analyzes supplied public content/i);
+assert.match(serialized, /Elena reviews compliance/i);
+assert.match(serialized, /Ravi explains approved operations/i);
 assert.match(serialized, /never change facts|never facts/i);
 assert.doesNotMatch(serialized, /six towns|father collected|second-hand books|radio documentaries|the sea without|childhood/i);
 assert.doesNotMatch(serialized, /Certificate number: 210826050107|claims processing services|secure ticketing supports/i);
