@@ -290,6 +290,7 @@ export const handleMiraChatRequest = async ({
   logger = console,
   rateLimitStore,
   agentStateStore = sharedAgentStateStore,
+  semanticIntentProvider = null,
   isRequestAborted = () => false,
 } = {}) => {
   const timestamp = now.toISOString();
@@ -533,6 +534,7 @@ export const handleMiraChatRequest = async ({
       conversationHistory: normalizedHistory.history,
       verbosityBand: depletion.verbosityBand,
       config: runtimeConfig,
+      semanticIntentProvider,
     });
     result = applyMiraAnswerCompleteness(result);
     result = validateMiraFinalResponse(result);

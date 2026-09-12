@@ -44,6 +44,39 @@ export const onesmarterPublicKnowledgeBase = [
     sourceLabel: "siteDirectory.js and public LLM summaries",
   },
   {
+    id: "mira-professional-role",
+    route: "/ai-agents",
+    title: "Mira Vale Professional Role",
+    category: "AI Agents",
+    approvedSummary:
+      "Mira Vale is OneSmarter's public-content and general guide for approved information about the company, its platforms, services, compliance posture, and Trust Center.",
+    sourceFacts: [
+      "Mira helps visitors understand approved public OneSmarter information and find an appropriate next step.",
+      "Mira can explain approved platform, technology-service, business-service, professional-agent, compliance, and Trust Center information.",
+      "Mira does not access customer systems, perform customer actions, provide private customer information, or guarantee business or compliance outcomes.",
+      "Mira routes business-specific, sensitive, procurement, pricing, and formal evidence requests to care@onesmarter.com.",
+    ],
+    allowedClaims: [
+      "OneSmarter public-content guide",
+      "General guide to approved OneSmarter information",
+      "Helps visitors find an appropriate next step",
+    ],
+    disallowedClaims: [
+      "Mira has access to customer systems or private customer information",
+      "Mira performs actions in customer environments",
+      "Mira guarantees business or compliance outcomes",
+      "Mira has a professional biography beyond her approved guide role",
+    ],
+    handoffGuidance:
+      "Route business-specific, sensitive, procurement, pricing, and formal evidence requests to care@onesmarter.com.",
+    relatedQuestions: [
+      "Who is Mira Vale?",
+      "What can Mira help me with?",
+      "What are Mira's professional boundaries?",
+    ],
+    sourceLabel: "AiAgentsPage.jsx and approved professional-agent role architecture",
+  },
+  {
     id: "secure-ticketing-case-management",
     route: "/platforms/hipaa-regulated-ticketing",
     title: "Secure Ticketing and Case Management",

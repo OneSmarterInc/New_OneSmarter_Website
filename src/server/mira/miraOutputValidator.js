@@ -52,6 +52,8 @@ const PROHIBITED_PATTERNS = [
 const PHI_INVITATION_PATTERN =
   /\b(upload|paste|send|share|provide)\b.*\b(PHI|patient|claim number|claims data|confidential|credentials|private operational)\b/i;
 const RAW_HTML_PATTERN = /<\/?[a-z][\s\S]*>/i;
+const GRAMMATICAL_NEGATION_PATTERN =
+  /\b(?:do\s+not|does\s+not|did\s+not|don['’]t|doesn['’]t|didn['’]t|cannot|can['’]t|never|no|not|without\s+claiming)\b/i;
 const INTERNAL_RETRIEVAL_LANGUAGE_PATTERNS = [
   { label: "internal_related_topics", pattern: /\bRelated approved topics\b/i },
   { label: "internal_page_language", pattern: /\bThe page uses supporting language\b/i },
@@ -79,6 +81,12 @@ const UNSUPPORTED_EXAMPLE_PATTERNS = [
       /\b(reduce costs by|saves? \d+|improves? outcomes?|guarantees? savings|guaranteed savings)\b/i,
   },
 ];
+
+const hasAffirmativeClaim = (answer = "", claimPattern) =>
+  answer
+    .split(/(?<=[.!?;])\s+|\n+/)
+    .filter((clause) => claimPattern.test(clause))
+    .some((clause) => !GRAMMATICAL_NEGATION_PATTERN.test(clause));
 
 export const normalizeMiraPublicAnswerText = (answer = "") =>
   normalizeMiraAnswerPresentation(answer, { suppressInternal: false })
@@ -254,7 +262,11 @@ export const validateMiraModelOutput = (
   }
 
   for (const { label, pattern } of PROHIBITED_PATTERNS) {
-    if (pattern.test(answer) && !isSafeCorrectionContext(answer, label)) {
+    if (
+      pattern.test(answer) &&
+      hasAffirmativeClaim(answer, pattern) &&
+      !isSafeCorrectionContext(answer, label)
+    ) {
       violations.push(`prohibited_phrase:${label}`);
     }
   }
@@ -276,7 +288,10 @@ export const validateMiraModelOutput = (
     violations.push("invites_phi_or_confidential_submission");
   }
 
-  if (/\bguarantee(s|d)?\b.*\b(compliance|secure|security)\b/i.test(answer)) {
+  if (hasAffirmativeClaim(
+    answer,
+    /\b(?:guarantee(?:s|d)?|promise(?:s|d)?)\b[^.!?;]*\b(?:compliance|compliant|secure|security|business outcomes?)\b/i,
+  )) {
     violations.push("unsupported_guarantee");
   }
 

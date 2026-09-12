@@ -66,7 +66,7 @@ const ambiguous = await runMiraResponseAdapter({
   openAiAdapter: async () => { throw new Error("ambiguous follow-up must not reach answer generation"); },
 });
 assert.equal(ambiguous.clarificationNeeded || ambiguous.confidence === "low", true);
-assert.equal(ambiguous.semanticIntentSupplement, undefined);
+assert.equal(ambiguous.semanticIntentSupplement.clarificationNeeded, true);
 
 const agentEntry = onesmarterPublicKnowledgeBase.find(({ id }) => id === "ai-agentic-services");
 for (const expected of ["Mira Vale", "Theo Mercer", "Elena Cross", "Ravi Sen", "Selene Hart"]) {
@@ -126,6 +126,16 @@ let healthcareProviderCalls = 0;
 const healthcareResponse = await runMiraResponseAdapter({
   message: "Explain healthcare and TPA workflow operations, including legacy data integration.",
   config,
+  semanticIntentProvider: async () => ({ intent: intent({
+    domain: "healthcare",
+    topic: "Claims Processing Services",
+    entities: ["OneSmarter", "healthcare organizations", "TPAs"],
+    proposition: "OneSmarter supports healthcare and TPA workflow operations",
+    questionType: "how",
+    speechAct: "explanation_request",
+    requestedDetail: "claims workflow modernization and legacy data integration",
+    followUpReferences: [],
+  }) }),
   openAiAdapter: async () => {
     healthcareProviderCalls += 1;
     return { modelOutput: supportedHealthcare };
@@ -144,5 +154,39 @@ const unsupportedIntegration = validateMiraModelOutput({
 });
 assert.equal(unsupportedIntegration.valid, false);
 assert.equal(unsupportedIntegration.violations.includes("unsupported_integration"), true);
+
+for (const answer of [
+  "We do not guarantee compliance outcomes.",
+  "We don't guarantee business or compliance outcomes.",
+  "OneSmarter cannot guarantee compliance.",
+  "OneSmarter can't promise compliance outcomes.",
+  "OneSmarter never guarantees compliance.",
+  "This is readiness support without claiming guaranteed compliance.",
+]) {
+  const validation = validateMiraModelOutput({
+    ...supportedHealthcare,
+    answer,
+  }, {
+    message: "What boundaries apply?",
+    localHarnessResult: runMiraLocalHarness("OneSmarter compliance readiness"),
+  });
+  assert.equal(validation.valid, true, `${answer}: ${validation.violations.join(",")}`);
+}
+
+for (const answer of [
+  "We guarantee compliance outcomes.",
+  "OneSmarter promises customer compliance.",
+  "The platform guarantees security.",
+]) {
+  const validation = validateMiraModelOutput({
+    ...supportedHealthcare,
+    answer,
+  }, {
+    message: "Do you guarantee this outcome?",
+    localHarnessResult: runMiraLocalHarness("OneSmarter compliance readiness"),
+  });
+  assert.equal(validation.valid, false, answer);
+  assert.equal(validation.violations.includes("unsupported_guarantee"), true, answer);
+}
 
 console.log("Mira limited semantic-gap tests passed.");
