@@ -20,11 +20,13 @@ const normalized = (value = "") =>
 
 const questionCount = (answer = "") => (String(answer).match(/\?/g) || []).length;
 
-const sentenceCount = (answer = "") =>
+const splitStatements = (answer = "") =>
   String(answer)
     .replace(/^[-*]\s+/gm, "")
     .split(/(?<=[.!?])(?:\s+|$)/)
-    .filter((sentence) => sentence.trim()).length;
+    .filter((sentence) => sentence.trim());
+
+const sentenceCount = (answer = "") => splitStatements(answer).length;
 
 const canonicalNames = (result = {}) =>
   (result.resolvedConversationEntities || [])
@@ -410,6 +412,24 @@ export const validateMiraFinalResponse = (result = {}) => {
       approvedEntries: result.matchedEntries || [],
     });
     if (!grounding.grounded) {
+      const answerStatements = splitStatements(answer);
+      const groundedSemanticTail = result.semanticIntentSupplement && answerStatements.length > 1
+        ? answerStatements.slice(1).join(" ")
+        : "";
+      const semanticTailGrounding = groundedSemanticTail
+        ? verifyAgentAnswerGrounding({
+            answer: groundedSemanticTail,
+            approvedEntries: result.matchedEntries || [],
+          })
+        : null;
+      if (semanticTailGrounding?.grounded) {
+        return correctionResult(
+          result,
+          `Regarding the proposition in your question:\n${groundedSemanticTail}`,
+          grounding.violations,
+          "trim",
+        );
+      }
       return correctionResult(
         result,
         stripInternalGuidance(fallbackAnswerFor(result)),

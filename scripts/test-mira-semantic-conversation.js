@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { runMiraResponseAdapter } from "../src/server/mira/llmAdapter.js";
+import { validateMiraFinalResponse } from "../src/server/mira/miraFinalResponseValidator.js";
 
 const config = {
   mode: "staging_llm",
@@ -466,5 +467,113 @@ assert.equal(genericPlatformComparison.comparison?.status, "complete");
 assert.equal(genericPlatformComparison.clarificationNeeded, false);
 assert.equal(genericPlatformComparison.matchedEntries.some(({ id }) => id === "secure-ticketing-case-management"), true);
 assert.equal(genericPlatformComparison.matchedEntries.some(({ id }) => id === "bill-audit-bill-pay"), true);
+
+const propositionCases = [
+  {
+    message: "Would it be inaccurate to say you serve health-plan operations?",
+    intent: intent({ domain: "healthcare", topic: "Claims Processing Services", entities: ["OneSmarter", "health-plan operations"], proposition: "OneSmarter does not serve healthcare operations", polarity: "negative", negationScope: [{ marker: "inaccurate", scope: "serving health-plan operations" }], questionType: "negative_confirmation", speechAct: "confirmation_request", requestedDetail: "whether healthcare operations are supported" }),
+    expectedId: "claims-processing-services",
+    excludedId: "hipaa-security-rule-assessment",
+  },
+  {
+    message: "Is controlled case intake part of what the ticketing platform provides?",
+    intent: intent({ domain: "platforms", topic: "Secure Ticketing and Case Management", entities: ["Secure Ticketing and Case Management"], proposition: "The ticketing platform provides controlled case intake", questionType: "positive_yes_no", speechAct: "confirmation_request", requestedDetail: "controlled case intake capability" }),
+    expectedId: "secure-ticketing-case-management",
+  },
+  {
+    message: "The ticketing platform cannot track workflows, can it?",
+    intent: intent({ domain: "platforms", topic: "Secure Ticketing and Case Management", entities: ["Secure Ticketing and Case Management"], proposition: "The ticketing platform cannot track workflows", polarity: "negative", negationScope: [{ marker: "cannot", scope: "track workflows" }], questionType: "negative_confirmation", speechAct: "confirmation_request", requestedDetail: "workflow tracking capability" }),
+    expectedId: "secure-ticketing-case-management",
+  },
+  {
+    message: "Why would claims modernization be absent from your healthcare work?",
+    intent: intent({ domain: "healthcare", topic: "Claims Processing Services", entities: ["Claims Processing Services"], proposition: "Claims modernization is absent from OneSmarter's healthcare work", polarity: "negative", negationScope: [{ marker: "absent", scope: "claims modernization" }], questionType: "why", speechAct: "explanation_request", requestedDetail: "reason for the claimed absence" }),
+    expectedId: "claims-processing-services",
+    excludedId: "hipaa-security-rule-assessment",
+  },
+  {
+    message: "Vendor invoice review is not offered through your bill service, right?",
+    intent: intent({ domain: "platforms", topic: "Bill Audit & Bill Pay", entities: ["Bill Audit & Bill Pay"], proposition: "Bill Audit & Bill Pay does not offer vendor invoice review", polarity: "negative", negationScope: [{ marker: "not", scope: "vendor invoice review" }], questionType: "negative_confirmation", speechAct: "confirmation_request", requestedDetail: "vendor invoice review capability" }),
+    expectedId: "bill-audit-bill-pay",
+  },
+  {
+    message: "Where does software delivery currently fit within your technical services?",
+    intent: intent({ domain: "technology_solutions", topic: "Technology Solutions Overview", entities: ["OneSmarter"], proposition: "OneSmarter provides software delivery capabilities", questionType: "status", speechAct: "question", requestedDetail: "current software delivery scope" }),
+    expectedId: "technology-solutions-overview",
+  },
+  {
+    message: "Your professional agents do not replace human judgment, correct?",
+    intent: intent({ domain: "professional_agents", topic: "AI Agentic Services", entities: ["OneSmarter professional agents"], proposition: "OneSmarter professional agents do not replace human judgment", polarity: "negative", negationScope: [{ marker: "do not", scope: "replace human judgment" }], questionType: "negative_confirmation", speechAct: "confirmation_request", requestedDetail: "human review boundary" }),
+    expectedId: "ai-agentic-services",
+  },
+  {
+    message: "Would assurance-readiness work help organize evidence for a review?",
+    intent: intent({ domain: "compliance", topic: "Compliance & Cyber Assurance Overview", entities: ["OneSmarter"], proposition: "OneSmarter assurance work includes audit preparation support", questionType: "positive_yes_no", speechAct: "confirmation_request", requestedDetail: "audit preparation support" }),
+    expectedId: "compliance-cyber-assurance-overview",
+  },
+  {
+    message: "What is the current status of your promoted software offerings?",
+    intent: intent({ domain: "platforms", topic: "OneSmarter Overview", entities: ["OneSmarter platforms"], proposition: "OneSmarter has promoted software offerings", questionType: "status", speechAct: "question", requestedDetail: "current promoted software offerings" }),
+    expectedId: "company-overview",
+  },
+  {
+    message: "Back-office workflow support is not among your business services, is it?",
+    intent: intent({ domain: "business_services", topic: "Business Services Overview", entities: ["OneSmarter business services"], proposition: "OneSmarter business services do not include back-office workflow support", polarity: "negative", negationScope: [{ marker: "not", scope: "back-office workflow support" }], questionType: "negative_confirmation", speechAct: "confirmation_request", requestedDetail: "back-office workflow support" }),
+    expectedId: "business-services-overview",
+  },
+];
+
+for (const testCase of propositionCases) {
+  const result = await runMiraResponseAdapter({
+    message: testCase.message,
+    config,
+    semanticIntentProvider: async () => ({ intent: testCase.intent }),
+    openAiAdapter: async () => ({
+      modelOutput: modelOutput(""),
+    }),
+  });
+  assert.equal(
+    result.matchedEntries.some(({ id }) => id === testCase.expectedId),
+    true,
+    testCase.message,
+  );
+  if (testCase.excludedId) {
+    assert.equal(result.matchedEntries.some(({ id }) => id === testCase.excludedId), false, testCase.message);
+  }
+  if (result.semanticIntentSupplement && !result.responseMode.fastPath) {
+    assert.equal(result.semanticIntentSupplement.proposition, testCase.intent.proposition, testCase.message);
+    assert.equal(result.semanticIntentSupplement.polarity, testCase.intent.polarity, testCase.message);
+    assert.equal(result.semanticIntentSupplement.questionType, testCase.intent.questionType, testCase.message);
+    assert.match(result.answerSeed, new RegExp(testCase.intent.proposition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), testCase.message);
+    assert.equal(result.fallbackUsed, true, testCase.message);
+  } else {
+    assert.equal(result.responseMode.fastPath, true, testCase.message);
+    assert.notEqual(result.answerSeed.trim(), "", testCase.message);
+  }
+}
+
+const groundedTailResult = await runMiraResponseAdapter({
+  message: "Why would your healthcare workflow support be unavailable?",
+  config,
+  semanticIntentProvider: async () => ({ intent: intent({
+    domain: "healthcare",
+    topic: "Claims Processing Services",
+    entities: ["OneSmarter", "healthcare workflows"],
+    proposition: "OneSmarter healthcare workflow support is unavailable",
+    polarity: "negative",
+    negationScope: [{ marker: "unavailable", scope: "healthcare workflow support" }],
+    questionType: "why",
+    speechAct: "explanation_request",
+    requestedDetail: "reason for the claimed lack of workflow support",
+  }) }),
+  openAiAdapter: async () => ({ modelOutput: modelOutput(
+    "That premise is inaccurate. Claims Processing Services support healthcare and TPA workflows through claims workflow modernization, claims technology support, member and provider portals, legacy data integration, reporting, and operational visibility.",
+  ) }),
+});
+const groundedTailFinal = validateMiraFinalResponse(groundedTailResult);
+assert.equal(groundedTailFinal.finalResponseValidation.action, "trim");
+assert.match(groundedTailFinal.answerSeed, /^Regarding the proposition in your question:/);
+assert.match(groundedTailFinal.answerSeed, /Claims Processing Services support healthcare and TPA workflows/i);
+assert.doesNotMatch(groundedTailFinal.answerSeed, /HIPAA Security Rule/i);
 
 console.log("Mira semantic-conversation supplement tests passed.");
