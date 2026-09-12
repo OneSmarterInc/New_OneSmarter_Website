@@ -18,7 +18,7 @@ const AGENT = "Selene Hart";
 const ENDPOINT = "/api/agents/selene/chat";
 const fallbackRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
 const seleneIntentTopics = seleneApprovedKnowledge.map(({ id, title }) => ({ id, title }));
-const SENSITIVE = /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn)\s*:\s*\S+|\b(?:api key|password|secret|access token|private key)\s*:\s*\S+/i;
+const SENSITIVE = /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn)\s*:\s*\S+|\b(?:aadhaar|aadhar)(?:\s+(?:number|no\.?))?\s*(?::|is)?\s*\d[\d\s-]{7,}|\b(?:api key|password|secret|access token|private key)\s*:\s*\S+/i;
 const UPLOAD_FIELDS = new Set(["file", "files", "upload", "uploads", "attachment", "attachments"]);
 
 const parseBody = (body) => typeof body === "string" ? JSON.parse(body) : (body || {});
@@ -94,7 +94,7 @@ export const runSeleneResponseAdapter = async ({
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Professional Agent Role Separation for self-description, descriptions of another professional agent, and role comparisons. Classify semantic equivalents under an allowed domain even when vocabulary differs. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. Classify semantic equivalents under an allowed domain even when vocabulary differs. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: seleneIntentTopics } },
     }, { config })),
   });
@@ -107,20 +107,36 @@ export const runSeleneResponseAdapter = async ({
     ? runSeleneLocalEngine({ message, verbosityBand, semanticIntent })
     : intentAwareScopeFallback(semanticIntent);
   const localResult = retrieved.clarificationNeeded ? intentAwareScopeFallback(semanticIntent) : retrieved;
-  if (localResult.chargeEligible === false) {
-    return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "", semanticIntent };
-  }
   const providerResult = await providerAdapter({
     message,
     conversationId,
-    requestContext: { persona: "Professional AI Agent Architecture Strategist", memoryTheme: "Bounded request-carried context only", empathyState: "Reflective and precise", semanticIntent },
+    requestContext: { persona: "Professional AI Agent Architecture Strategist", memoryTheme: "Bounded request-carried context only", empathyState: "Reflective and precise", semanticIntent, claimEvaluation: localResult.claimEvaluation },
     retrievalResult: { matchedEntries: localResult.matchedEntries },
     riskFlags: [],
-    promptPayload: buildSelenePromptPayload({ message, matchedEntries: localResult.matchedEntries, conversationHistory, verbosityBand, semanticIntent }),
+    promptPayload: buildSelenePromptPayload({ message, matchedEntries: localResult.matchedEntries, conversationHistory, verbosityBand, semanticIntent, claimEvaluation: localResult.claimEvaluation }),
     config,
   });
   if (providerResult.error || !providerResult.modelOutput) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: providerResult.error || "provider_error", semanticIntent };
-  const validation = validateSeleneModelOutput(providerResult.modelOutput, { matchedEntries: localResult.matchedEntries, fallbackResult: localResult });
+  let validation = validateSeleneModelOutput(providerResult.modelOutput, { matchedEntries: localResult.matchedEntries, fallbackResult: localResult });
+  if (!validation.valid && validation.violations.some((violation) => violation.startsWith("unsupported_") || violation.includes("grounded"))) {
+    const repairPayload = buildSelenePromptPayload({
+      message, matchedEntries: localResult.matchedEntries, conversationHistory, verbosityBand,
+      semanticIntent, claimEvaluation: localResult.claimEvaluation,
+    });
+    repairPayload.system += " The previous draft did not pass deterministic grounding. Rewrite it once using only factual clauses directly supported by the approved evidence block. Keep the response natural and responsive to the semantic intent, but introduce no new names, labels, reasons, capabilities, or factual paraphrases. Preserve every required qualification, refusal, and handoff.";
+    const repairResult = await providerAdapter({
+      message,
+      conversationId,
+      requestContext: { persona: "Professional AI Agent Architecture Strategist", memoryTheme: "Bounded request-carried context only", empathyState: "Grounded rewrite", semanticIntent, claimEvaluation: localResult.claimEvaluation },
+      retrievalResult: { matchedEntries: localResult.matchedEntries },
+      riskFlags: [],
+      promptPayload: repairPayload,
+      config,
+    });
+    if (!repairResult.error && repairResult.modelOutput) {
+      validation = validateSeleneModelOutput(repairResult.modelOutput, { matchedEntries: localResult.matchedEntries, fallbackResult: localResult });
+    }
+  }
   if (!validation.valid) return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}`, semanticIntent };
   return {
     ...localResult,

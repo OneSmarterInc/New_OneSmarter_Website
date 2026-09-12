@@ -10,8 +10,9 @@ const intent = (topic, overrides = {}) => ({
 });
 
 for (const [topic, pattern] of [
+  ["Selene Hart Professional Role", /AI Agent Architecture Strategist/i],
   ["OneSmarter Focused-Agent Architecture", /professional role|focused professional agents/i],
-  ["Professional Agent Role Separation", /Mira is.*Theo analyzes.*Elena reviews.*Ravi explains.*Selene explains/is],
+  ["Professional Agent Role Separation", /separate professional responsibilities/i],
   ["Canonical Knowledge and Evidence Boundary", /sole factual source|canonical professional content/i],
   ["Claim Validation and Fail-Closed Design", /approved evidence.*claim boundaries.*output validation/is],
   ["Professional and Café Separation", /separate from professional evidence/i],

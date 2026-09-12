@@ -47,6 +47,12 @@ const rejectedPhi = await post({ message: phi }, { responseAdapter: async () => 
 assert.equal(rejectedPhi.status, 400);
 assert.equal(phiCalls, 0);
 assert.doesNotMatch(JSON.stringify(rejectedPhi.body), /Jane Doe|MRN-123456/);
+assert.equal(containsSeleneSensitiveData("Aadhaar number is 5665 1234 9876"), true);
+let aadhaarCalls = 0;
+const rejectedAadhaar = await post({ message: "Aadhaar number is 5665 1234 9876" }, { responseAdapter: async () => { aadhaarCalls += 1; return {}; } });
+assert.equal(rejectedAadhaar.status, 400);
+assert.equal(aadhaarCalls, 0);
+assert.doesNotMatch(JSON.stringify(rejectedAadhaar.body), /5665/);
 
 const liveConfig = readSeleneRuntimeConfig({ SELENE_LLM_MODE: "staging_llm", SELENE_LLM_PROVIDER: "openai", SELENE_LLM_MODEL: "test", SELENE_LLM_API_KEY: "secret" });
 assert.equal(liveConfig.providerConfigComplete, true);

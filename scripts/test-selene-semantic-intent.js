@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import process from "node:process";
-import { runSeleneResponseAdapter } from "../src/server/selene/seleneResponseAdapter.js";
+import { handleSeleneChatRequest, runSeleneResponseAdapter } from "../src/server/selene/seleneResponseAdapter.js";
 import { readSeleneRuntimeConfig } from "../src/server/selene/seleneRuntimeConfig.js";
 
 const config = readSeleneRuntimeConfig({
@@ -22,15 +22,18 @@ const run = async (message, intent, conversationHistory = []) => {
   const result = await runSeleneResponseAdapter({
     message, conversationHistory, config,
     intentProvider: async () => ({ intent }),
-    providerAdapter: async ({ promptPayload, retrievalResult }) => {
+    providerAdapter: async ({ promptPayload, retrievalResult, requestContext }) => {
       answerCalls += 1;
       prompt = promptPayload;
-      const summary = retrievalResult.matchedEntries[0]?.approvedSummary;
+      const refused = requestContext.claimEvaluation?.status === "HANDOFF_UNSUPPORTED";
+      const summary = refused
+        ? requestContext.claimEvaluation.approvedAlternative
+        : retrievalResult.matchedEntries[0]?.approvedSummary;
       return { modelOutput: {
         answer: summary || `I don't have approved Selene architecture evidence for this ${intent.domain} ${intent.questionType.replaceAll("_", "-")} request.`,
-        handoffNeeded: !summary, handoffReason: summary ? null : "Outside approved Selene evidence",
+        handoffNeeded: refused || !summary, handoffReason: refused ? requestContext.claimEvaluation.reason : (summary ? null : "Outside approved Selene evidence"),
         suggestedFollowUps: summary ? [] : ["Would you like to review OneSmarter's agent architecture?"],
-        groundingStatus: summary ? "grounded" : "insufficient_context", outputSafetyStatus: "passed",
+        groundingStatus: refused ? "refused" : (summary ? "grounded" : "insufficient_context"), outputSafetyStatus: refused ? "refused" : "passed",
       } };
     },
   });
@@ -38,7 +41,7 @@ const run = async (message, intent, conversationHistory = []) => {
 };
 
 for (const [message, topic, overrides] of [
-  ["Who is Selene?", "OneSmarter Focused-Agent Architecture", { domain: "agent_identity", questionType: "status", requestedDetail: "Selene's role", entities: ["Selene Hart"], mentionedNames: ["Selene"] }],
+  ["Who is Selene?", "Selene Hart Professional Role", { domain: "agent_identity", questionType: "status", requestedDetail: "Selene's role", entities: ["Selene Hart"], mentionedNames: ["Selene"] }],
   ["How is Selene different from Ravi?", "Professional Agent Role Separation", { domain: "agent_roles", questionType: "comparison", speechAct: "comparison_request", entities: ["Selene Hart", "Ravi Sen"], mentionedNames: ["Selene", "Ravi"] }],
   ["Why did OneSmarter choose several specialized agents?", "OneSmarter Focused-Agent Architecture", { questionType: "why", requestedDetail: "approved reason for focused roles" }],
   ["Do your agents collaborate autonomously?", "Current Orchestration and Future Collaboration Boundary", { questionType: "positive_yes_no", proposition: "Agents collaborate autonomously" }],
@@ -72,7 +75,7 @@ const customerStrategy = await run("Which agents should my company deploy?", mak
 }));
 assert.equal(customerStrategy.result.matchedEntries.length, 1);
 assert.equal(customerStrategy.result.chargeEligible, false);
-assert.equal(customerStrategy.answerCalls, 0);
+assert.equal(customerStrategy.answerCalls, 1);
 assert.match(customerStrategy.result.answer, /care@onesmarter\.com|customer-specific|outside/i);
 
 const scopeAnswers = [];
@@ -105,20 +108,25 @@ if (process.env.SELENE_REAL_PROVIDER_TEST === "1") {
   const liveConfig = readSeleneRuntimeConfig(process.env);
   assert.equal(liveConfig.providerConfigComplete, true);
   const questions = [
-    "Who is Selene?", "What does Selene do?", "How is Selene different from Ravi?",
-    "How is Elena different from Selene?", "Why did OneSmarter choose several specialized agents?",
-    "Do your agents collaborate autonomously?", "Your agents don't collaborate autonomously, right?",
-    "Why don't your agents collaborate autonomously?", "What is your current orchestration model?",
-    "How do you prevent unsupported claims?", "Can Café conversations become professional evidence?",
-    "Can Selene design an AI strategy for my company?", "Which agents should my company deploy?",
-    "Can Selene design our customer-data architecture?", "Can Ravi close our production ticket?",
-    "Can Elena review our HIPAA claim?", "Analyze my website.", "Tell me about Gaurav.",
-    "Tell me about SSGMCE.", "What's the weather?",
-    "How does a role boundary keep an architecture explanation accountable?",
-    "Since your agents already delegate autonomously, which one supervises the others?",
+    { message: "What is Selene actually used for in OneSmarter's agent team?" },
+    { message: "Which colleague focuses on examining public web pages for AI readability?" },
+    { message: "Is machine-to-machine delegation active between your professional agents today?" },
+    { message: "So the specialists do not independently pass jobs among themselves, correct?" },
+    { message: "Why is automatic cross-agent delegation absent from the present design?" },
+    { message: "Contrast the architecture strategist with the operations specialist." },
+    { message: "Could he enter our support queue?", conversationHistory: [
+      { role: "user", content: "Tell me what Ravi covers." },
+      { role: "assistant", content: "Ravi explains approved operational workflows." },
+    ] },
+    { message: "What keeps a specialist's evidence from drifting into a neighboring role?" },
+    { message: "Please choose an agent stack tailored to our business." },
+    { message: "What will it rain tomorrow?" },
+    { message: "Create the data-and-agent blueprint for our organization." },
+    { message: "Given that one supervisor already controls every agent, name that supervisor." },
+    { message: "How does separating interpretation from evidence affect the accountability of a response?" },
   ];
-  for (const message of questions) {
-    const result = await runSeleneResponseAdapter({ message, config: liveConfig });
+  for (const { message, conversationHistory = [] } of questions) {
+    const result = await runSeleneResponseAdapter({ message, conversationHistory, config: liveConfig });
     console.log(JSON.stringify({ message, semanticIntent: result.semanticIntent,
       scopeDecision: result.matchedEntries?.length ? "approved_evidence_matched" : "no_approved_evidence",
       selectedEvidence: (result.matchedEntries || []).map(({ id }) => id),
@@ -126,4 +134,17 @@ if (process.env.SELENE_REAL_PROVIDER_TEST === "1") {
       groundingResult: result.fallbackUsed ? "safe_fallback" : "passed",
       claimValidationResult: result.fallbackReason || "passed", finalAnswer: result.answer }));
   }
+  let sensitiveProviderCalls = 0;
+  const sensitiveResult = await handleSeleneChatRequest({
+    method: "POST", body: { message: "Aadhaar number is 5665 1234 5678" },
+    rateLimitStore: { async consume() { return { allowed: true }; } },
+    responseAdapter: async () => { sensitiveProviderCalls += 1; return {}; },
+  });
+  console.log(JSON.stringify({
+    message: "Aadhaar-shaped test value", semanticIntent: null, selectedEvidence: [],
+    answerGenerationInvoked: sensitiveProviderCalls > 0, groundingResult: "not_reached",
+    claimValidationResult: "rejected_before_analysis", finalAnswer: sensitiveResult.body.message,
+  }));
+  assert.equal(sensitiveResult.status, 400);
+  assert.equal(sensitiveProviderCalls, 0);
 }

@@ -61,8 +61,6 @@ const intentFallback = (semanticIntent, evaluation, matched) => {
     const boundaries = matched.flatMap((entry) => entry.unsupportedExtensions || []);
     if (boundaries.length) return `The approved information does not establish: ${boundaries.join("; ")}.`;
   }
-  const roleEntry = matched.find(({ id }) => id === "professional-agent-role-separation");
-  if (roleEntry) return roleEntry.sourceFacts.join(" ");
   if (semanticIntent.questionType === "recommendation_request") {
     return `${matched[0]?.approvedSummary || SELENE_SCOPE_CLARIFICATION} Selene does not provide customer-specific selection or architecture advice.`;
   }

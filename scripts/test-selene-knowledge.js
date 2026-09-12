@@ -6,6 +6,7 @@ import {
 } from "../src/data/agentKnowledge/seleneApprovedKnowledge.js";
 
 const expectedIds = [
+  "selene-professional-role",
   "agent-architecture-overview",
   "professional-agent-role-separation",
   "canonical-knowledge-boundary",
@@ -57,4 +58,4 @@ const stateEntry = seleneApprovedKnowledge.find(({ id }) => id === "operational-
 assert.doesNotMatch(stateEntry.allowedClaims.join(" "), /\b(?:40|69|100|Redis|Upstash|REST token)\b/i);
 
 console.log("Selene Phase 1 approved-knowledge tests passed.");
-console.log("Validated 8 focused architecture entries, source boundaries, Café isolation, and accuracy-preserving depletion wording.");
+console.log("Validated 9 focused architecture entries, source boundaries, Café isolation, and accuracy-preserving depletion wording.");

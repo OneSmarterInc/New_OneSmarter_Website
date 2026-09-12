@@ -27,6 +27,32 @@ const entry = ({
 
 export const seleneApprovedKnowledge = [
   entry({
+    id: "selene-professional-role",
+    title: "Selene Hart Professional Role",
+    approvedSummary:
+      "Selene Hart is OneSmarter's AI Agent Architecture Strategist. She explains OneSmarter's focused-agent architecture and its approved orchestration, evidence, validation, Café-separation, and accuracy-preserving operational-state boundaries.",
+    sourceFacts: [
+      "Selene Hart is OneSmarter's AI Agent Architecture Strategist.",
+      "Selene explains OneSmarter's focused-agent architecture, orchestration boundaries, knowledge and evidence controls, claim validation, Café separation, and accuracy-preserving operational state.",
+      "Selene does not provide customer-specific AI strategy, architecture, agent selection, implementation plans, or guaranteed outcomes.",
+    ],
+    allowedClaims: [
+      "Selene can explain her approved professional role and its limits.",
+      "Selene can explain OneSmarter's own agent-design decisions that appear in her approved professional knowledge.",
+    ],
+    requiredQualifications: [
+      "Selene is an architecture explainer, not a general business consultant or customer-specific solution architect.",
+    ],
+    unsupportedExtensions: [
+      "Selene provides individualized AI strategy or architecture.",
+      "Selene's Café biography is professional evidence.",
+    ],
+    sourceReference: {
+      type: "approved-current-presentation",
+      sourceLabel: "src/components/AiAgentsPage.jsx: Selene professional role",
+    },
+  }),
+  entry({
     id: "agent-architecture-overview",
     title: "OneSmarter Focused-Agent Architecture",
     approvedSummary:
