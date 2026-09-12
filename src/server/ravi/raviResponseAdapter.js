@@ -108,14 +108,17 @@ export const runRaviResponseAdapter = async ({
   }
 
   const semanticResolution = await resolveAgentIntent({
-    agentIdentity: "Ravi Sen", message, conversationHistory, allowedDomains: ["operations"],
+    agentIdentity: "Ravi Sen",
+    message,
+    conversationHistory,
+    allowedDomains: ["operations", "identity", "agent_identity", "agent_roles", "agent roles", "professional agents"],
     inputGuard: async () => ({
       ok: message.length <= RAVI_MESSAGE_LIMIT && !containsRaviSensitiveData(message),
       error: containsRaviSensitiveData(message) ? "sensitive_input" : "message_too_long",
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. Classify a request under the allowed operations domain when its meaning concerns one of those approved operations topic labels, even when the visitor uses different vocabulary.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. When a request is supported, set topic to the exact title of the single best matching supplied label. Use the professional-agent role-directory label for descriptions or comparisons of OneSmarter's professional agents. Classify a request under an allowed domain when its meaning concerns one of those approved labels, even when the visitor uses different vocabulary. Populate followUpReferences only for references that require prior conversation to resolve; direct references to the current agent such as you or your do not require history.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: raviIntentTopics } },
     }, { config })),
   });

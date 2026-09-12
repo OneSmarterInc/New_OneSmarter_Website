@@ -82,6 +82,52 @@ export const retrieveRaviKnowledge = (message = "", limit = 3) => {
     .slice(0, limit);
 };
 
+const retrieveRaviKnowledgeForIntent = (semanticIntent, limit = 3) => {
+  const normalizedTopic = normalized(semanticIntent?.topic);
+  const exactTopicMatches = raviApprovedKnowledge.filter((entry) =>
+    [entry.id, entry.title].some((value) => normalized(value) === normalizedTopic));
+  if (exactTopicMatches.length) return exactTopicMatches.slice(0, limit);
+  const semanticText = [
+    semanticIntent?.topic,
+    semanticIntent?.proposition,
+    ...(semanticIntent?.entities || []),
+    semanticIntent?.requestedDetail,
+  ].filter(Boolean).join(" ");
+  return retrieveRaviKnowledge(semanticText, limit);
+};
+
+const semanticBoundaryFallback = (semanticIntent, claimEvaluation, matchedEntries) => {
+  if (claimEvaluation.status === RAVI_CLAIM_STATUSES.REFUSE_UNSUPPORTED) {
+    if (semanticIntent.questionType === "negative_confirmation") {
+      return `Correct. ${claimEvaluation.reason} ${claimEvaluation.approvedAlternative}`;
+    }
+    if (semanticIntent.questionType === "why") {
+      return `${claimEvaluation.reason} The approved information does not provide a reason beyond that boundary.`;
+    }
+    if (semanticIntent.questionType === "positive_yes_no") {
+      return `No. ${claimEvaluation.reason} ${claimEvaluation.approvedAlternative}`;
+    }
+    return claimEvaluation.approvedAlternative;
+  }
+  if (claimEvaluation.status === RAVI_CLAIM_STATUSES.ALLOW_WITH_QUALIFICATION) {
+    return claimEvaluation.approvedAlternative;
+  }
+  if (semanticIntent.polarity === "negative") {
+    const boundaries = matchedEntries.flatMap((entry) => entry.unsupportedExtensions || []);
+    if (boundaries.length) return `The approved information does not establish: ${boundaries.join("; ")}.`;
+  }
+  if (semanticIntent.questionType === "unknown" || semanticIntent.speechAct === "unknown") {
+    const boundaries = matchedEntries.flatMap((entry) => entry.unsupportedExtensions || []);
+    if (boundaries.length) return `The approved information does not establish: ${boundaries.join("; ")}.`;
+  }
+  const roleDirectory = matchedEntries.find(({ id }) => id === "professional-agent-role-directory");
+  if (roleDirectory) return roleDirectory.sourceFacts.join(" ");
+  if (semanticIntent.questionType === "recommendation_request" && matchedEntries.length) {
+    return `${matchedEntries[0].approvedSummary} The approved evidence supports general explanation only; it does not establish a customer-specific selection, implementation, or action.`;
+  }
+  return matchedEntries[0]?.approvedSummary || RAVI_CLARIFICATION;
+};
+
 const contextualMessage = (message, conversationHistory = []) => {
   if (!/\b(?:it|that|this|those|they|them)\b/i.test(message)) return message;
   const priorUser = [...conversationHistory].reverse().find(({ role }) => role === "user");
@@ -106,10 +152,12 @@ export const runRaviLocalEngine = ({ message = "", conversationHistory = [], sem
   ].filter(Boolean).join(" ") : "";
   const contextual = semanticMessage || contextualMessage(message, conversationHistory);
   const text = normalized(contextual);
-  const matchedEntries = retrieveRaviKnowledge(contextual);
+  const matchedEntries = semanticIntent
+    ? retrieveRaviKnowledgeForIntent(semanticIntent)
+    : retrieveRaviKnowledge(contextual);
   const matchedIds = matchedEntries.map(({ id }) => id);
 
-  if (/\b(?:close|change|edit|open|assign|route|escalate|perform)\b.{0,50}\b(?:this|that|the|a)\s+(?:ticket|case)\b/i.test(contextual)) {
+  if (!semanticIntent && /\b(?:close|change|edit|open|assign|route|escalate|perform)\b.{0,50}\b(?:this|that|the|a)\s+(?:ticket|case)\b/i.test(contextual)) {
     return localResult({
       answer: "I cannot access or change a real ticket, queue, case, or production environment. I can explain a safe routing or escalation design using approved workflow capabilities.",
       ids: matchedIds,
@@ -117,11 +165,30 @@ export const runRaviLocalEngine = ({ message = "", conversationHistory = [], sem
     });
   }
 
-  const claimEvaluation = evaluateRaviClaim(contextual);
+  const evaluatedClaim = evaluateRaviClaim(contextual);
+  const claimEvaluation = semanticIntent && matchedEntries.length
+    && evaluatedClaim.ruleId === "outside-approved-operations-slice"
+    ? {
+        status: RAVI_CLAIM_STATUSES.ALLOW,
+        reason: "The validated semantic topic matched Ravi's approved professional knowledge.",
+        ruleId: "approved-semantic-topic",
+        approvedAlternative: matchedEntries[0].approvedSummary,
+      }
+    : evaluatedClaim;
+  if (semanticIntent && matchedEntries.length) {
+    return localResult({
+      answer: semanticBoundaryFallback(semanticIntent, claimEvaluation, matchedEntries),
+      ids: matchedIds,
+      confidence: "high",
+      claimEvaluation,
+    });
+  }
   if (claimEvaluation.status === RAVI_CLAIM_STATUSES.REFUSE_UNSUPPORTED) {
     const unrelated = claimEvaluation.ruleId === "outside-approved-operations-slice";
     return localResult({
-      answer: unrelated ? RAVI_CLARIFICATION : claimEvaluation.approvedAlternative,
+      answer: semanticIntent
+        ? semanticBoundaryFallback(semanticIntent, claimEvaluation, matchedEntries)
+        : unrelated ? RAVI_CLARIFICATION : claimEvaluation.approvedAlternative,
       ids: unrelated ? [] : matchedIds,
       confidence: unrelated ? "low" : "high",
       clarificationNeeded: unrelated,
@@ -134,7 +201,17 @@ export const runRaviLocalEngine = ({ message = "", conversationHistory = [], sem
 
   if (claimEvaluation.status === RAVI_CLAIM_STATUSES.ALLOW_WITH_QUALIFICATION) {
     return localResult({
-      answer: claimEvaluation.approvedAlternative,
+      answer: semanticIntent
+        ? semanticBoundaryFallback(semanticIntent, claimEvaluation, matchedEntries)
+        : claimEvaluation.approvedAlternative,
+      ids: matchedIds,
+      claimEvaluation,
+    });
+  }
+
+  if (semanticIntent) {
+    return localResult({
+      answer: semanticBoundaryFallback(semanticIntent, claimEvaluation, matchedEntries),
       ids: matchedIds,
       claimEvaluation,
     });

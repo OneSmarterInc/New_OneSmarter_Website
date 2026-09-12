@@ -14,6 +14,8 @@ assert.deepEqual(raviApprovedKnowledgeIds, [
   "healthcare-tpa-workflow-modernization",
   "enterprise-workflow-tools",
   "software-support-continuity",
+  "ravi-professional-role",
+  "professional-agent-role-directory",
 ]);
 assert.equal(new Set(raviApprovedKnowledgeIds).size, raviApprovedKnowledgeIds.length);
 
@@ -31,12 +33,31 @@ for (const entry of raviApprovedKnowledge) {
   );
 }
 
+const raviRole = raviApprovedKnowledge.find(({ id }) => id === "ravi-professional-role");
+assert.match(raviRole.approvedSummary, /Operations Agent/i);
+assert.match(raviRole.sourceFacts.join(" "), /does not access or modify customer systems/i);
+
+const roleDirectory = raviApprovedKnowledge.find(({ id }) => id === "professional-agent-role-directory");
+for (const expectedRole of [
+  /Mira Vale.*OneSmarter Guide/i,
+  /Theo Mercer.*website.*AI[- ]readability/i,
+  /Elena Cross.*Compliance Reader/i,
+  /Ravi Sen.*Operations Agent/i,
+  /Selene Hart.*AI Agent Architecture Strategist/i,
+]) assert.match(roleDirectory.sourceFacts.join(" "), expectedRole);
+assert.doesNotMatch(
+  JSON.stringify([raviRole, roleDirectory].flatMap(({ sourceFacts, allowedClaims }) => [sourceFacts, allowedClaims])),
+  /cricket|street food|café persona|depletion|api endpoint|provider/i,
+);
+
 assert.deepEqual(raviApprovedRoutes, [
   "/platforms/hipaa-regulated-ticketing",
   "/technology-solutions/claims-processing-services",
   "/technology-solutions/healthcare-tpa",
   "/technology-solutions/enterprise-software",
   "/technology-solutions/software-support-consolidation",
+  "/ai-agents",
+  "/ai-agents",
 ]);
 
 const serialized = JSON.stringify(raviApprovedKnowledge);
@@ -65,4 +86,4 @@ const source = fs.readFileSync(
 assert.doesNotMatch(source, /cafePersonas|cafeConversations/);
 
 console.log("Ravi Phase 1 approved-knowledge tests passed.");
-console.log("Validated 5 canonical operations entries, source linkage, narrow scope, and professional/Café isolation.");
+console.log("Validated 7 approved operations and professional-role entries, source linkage, narrow scope, and professional/Café isolation.");
