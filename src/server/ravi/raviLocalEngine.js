@@ -88,8 +88,23 @@ const contextualMessage = (message, conversationHistory = []) => {
   return priorUser?.content ? `${message} ${priorUser.content}` : message;
 };
 
-export const runRaviLocalEngine = ({ message = "", conversationHistory = [] } = {}) => {
-  const contextual = contextualMessage(message, conversationHistory);
+export const runRaviLocalEngine = ({ message = "", conversationHistory = [], semanticIntent = null } = {}) => {
+  if (semanticIntent?.clarificationNeeded) {
+    return localResult({
+      answer: RAVI_CLARIFICATION,
+      ids: [],
+      confidence: "low",
+      clarificationNeeded: true,
+      clarificationQuestion: "Which approved operations topic would you like to review?",
+    });
+  }
+  const semanticMessage = semanticIntent ? [
+    semanticIntent.topic,
+    semanticIntent.proposition,
+    ...(semanticIntent.entities || []),
+    semanticIntent.requestedDetail,
+  ].filter(Boolean).join(" ") : "";
+  const contextual = semanticMessage || contextualMessage(message, conversationHistory);
   const text = normalized(contextual);
   const matchedEntries = retrieveRaviKnowledge(contextual);
   const matchedIds = matchedEntries.map(({ id }) => id);

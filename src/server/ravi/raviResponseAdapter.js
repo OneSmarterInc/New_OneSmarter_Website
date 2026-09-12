@@ -4,6 +4,9 @@ import {
   createMiraRateLimitStore,
 } from "../mira/miraRateLimitStore.js";
 import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
+import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
+import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
+import { raviApprovedKnowledge } from "../../data/agentKnowledge/raviApprovedKnowledge.js";
 import {
   chargeSuccessfulAgentWork,
   readAgentDepletionContext,
@@ -21,6 +24,7 @@ export const RAVI_HISTORY_TOTAL_LIMIT = 2000;
 const AGENT = "Ravi Sen";
 const ENDPOINT = "/api/agents/ravi/chat";
 const degradedRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
+const raviIntentTopics = raviApprovedKnowledge.map(({ id, title }) => ({ id, title }));
 
 const parseBody = (body) => typeof body === "string" ? JSON.parse(body) : (body || {});
 const headerValue = (headers, key) => Object.entries(headers || {})
@@ -47,6 +51,19 @@ const errorResult = (status, error, message, requestId = crypto.randomUUID()) =>
   status,
   body: { requestId, agent: AGENT, status, error, message },
 });
+
+const intentAwareScopeFallback = (semanticIntent = {}) => {
+  const domain = String(semanticIntent.domain || "unresolved")
+    .replace(/[^a-z0-9 _-]/gi, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "unresolved";
+  const questionType = String(semanticIntent.questionType || "request")
+    .replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "request";
+  return {
+    answer: `I don't have approved Ravi operations evidence for this ${domain} ${questionType.replaceAll("_", "-")} request. I can help with OneSmarter's approved operational workflow topics.`,
+    matchedEntries: [], sources: [], confidence: "low", clarificationNeeded: true,
+    clarificationQuestion: "Would you like to review an approved operational workflow topic?",
+    claimEvaluation: null,
+  };
+};
 
 export const normalizeRaviConversationHistory = (history) => {
   if (history === undefined || history === null) return { ok: true, history: [] };
@@ -79,20 +96,48 @@ export const runRaviResponseAdapter = async ({
   verbosityBand = "normal",
   config = readRaviRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
+  intentProvider,
 } = {}) => {
-  const localResult = runRaviLocalEngine({ message, conversationHistory });
-  if (config.mode !== "staging_llm" || localResult.clarificationNeeded) {
+  if (config.mode !== "staging_llm") {
+    const localResult = runRaviLocalEngine({ message, conversationHistory, verbosityBand });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
   }
   if (config.provider !== "openai" || !config.providerConfigComplete) {
+    const localResult = runRaviLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
+
+  const semanticResolution = await resolveAgentIntent({
+    agentIdentity: "Ravi Sen", message, conversationHistory, allowedDomains: ["operations"],
+    inputGuard: async () => ({
+      ok: message.length <= RAVI_MESSAGE_LIMIT && !containsRaviSensitiveData(message),
+      error: containsRaviSensitiveData(message) ? "sensitive_input" : "message_too_long",
+    }),
+    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
+      ...request,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. Classify a request under the allowed operations domain when its meaning concerns one of those approved operations topic labels, even when the visitor uses different vocabulary.`,
+      input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: raviIntentTopics } },
+    }, { config })),
+  });
+  if (!semanticResolution.ok) {
+    const localResult = runRaviLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent };
+  }
+
+  const semanticIntent = semanticResolution.intent;
+  const retrievedResult = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded
+    ? runRaviLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent })
+    : intentAwareScopeFallback(semanticIntent);
+  const localResult = retrievedResult.clarificationNeeded
+    ? intentAwareScopeFallback(semanticIntent)
+    : retrievedResult;
 
   const promptPayload = buildRaviPromptPayload({
     message,
     matchedEntries: localResult.matchedEntries,
     conversationHistory,
     verbosityBand,
+    semanticIntent,
   });
   const providerResult = await providerAdapter({
     message,
@@ -101,6 +146,7 @@ export const runRaviResponseAdapter = async ({
       persona: "Professional Operations Agent",
       memoryTheme: "Bounded request-carried context only",
       empathyState: "Practical and precise",
+      semanticIntent,
     },
     retrievalResult: { matchedEntries: localResult.matchedEntries },
     riskFlags: [],
@@ -113,6 +159,7 @@ export const runRaviResponseAdapter = async ({
       mode: "local_deterministic",
       fallbackUsed: true,
       fallbackReason: providerResult.error || "provider_error",
+      semanticIntent,
     };
   }
   const validation = validateRaviModelOutput(providerResult.modelOutput, {
@@ -125,6 +172,7 @@ export const runRaviResponseAdapter = async ({
       mode: "local_deterministic",
       fallbackUsed: true,
       fallbackReason: `output_validation_failed:${validation.violations.join(",")}`,
+      semanticIntent,
     };
   }
   return {
@@ -138,6 +186,7 @@ export const runRaviResponseAdapter = async ({
     clarificationQuestion: validation.correctedOutput.groundingStatus === "insufficient_context"
       ? validation.correctedOutput.suggestedFollowUps[0] || "Which approved operations topic would you like to review?"
       : "",
+    semanticIntent,
   };
 };
 

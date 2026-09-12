@@ -99,9 +99,28 @@ const liveConfig = readRaviRuntimeConfig({
 assert.equal(liveConfig.providerConfigComplete, true);
 assert.equal(Object.keys(liveConfig).includes("apiKey"), false);
 
+const operationsIntent = (message, overrides = {}) => ({
+  domain: "operations",
+  topic: message,
+  entities: ["OneSmarter", "Ravi Sen"],
+  proposition: message,
+  polarity: "positive",
+  negationScope: [],
+  questionType: "how",
+  speechAct: "explanation_request",
+  requestedDetail: message,
+  followUpReferences: [],
+  confidence: 0.96,
+  clarificationNeeded: false,
+  mentionedNames: [],
+  ...overrides,
+});
+const intentProviderFor = (message, overrides) => async () => ({ intent: operationsIntent(message, overrides) });
+
 const providerFailure = await runRaviResponseAdapter({
   message: "Explain claims workflow modernization.",
   config: liveConfig,
+  intentProvider: intentProviderFor("Explain claims workflow modernization."),
   providerAdapter: async () => ({ error: "provider_timeout", modelOutput: null }),
 });
 assert.equal(providerFailure.fallbackUsed, true);
@@ -111,6 +130,7 @@ assert.doesNotMatch(providerFailure.answer, /provider_timeout|stack|internal/i);
 const malformed = await runRaviResponseAdapter({
   message: "Explain secure ticketing.",
   config: liveConfig,
+  intentProvider: intentProviderFor("Explain secure ticketing."),
   providerAdapter: async () => ({ error: "", modelOutput: { answer: "" } }),
 });
 assert.equal(malformed.fallbackUsed, true);
@@ -119,6 +139,7 @@ assert.match(malformed.fallbackReason, /output_validation_failed/);
 const unsafeAction = await runRaviResponseAdapter({
   message: "Explain secure ticketing.",
   config: liveConfig,
+  intentProvider: intentProviderFor("Explain secure ticketing."),
   providerAdapter: async () => ({
     error: "",
     modelOutput: {
@@ -137,6 +158,7 @@ assert.match(unsafeAction.fallbackReason, /live_system_action_claim/);
 const cafeLeak = await runRaviResponseAdapter({
   message: "Explain secure ticketing.",
   config: liveConfig,
+  intentProvider: intentProviderFor("Explain secure ticketing."),
   providerAdapter: async () => ({
     error: "",
     modelOutput: {
@@ -156,10 +178,19 @@ let unrelatedProviderCalls = 0;
 const unrelated = await runRaviResponseAdapter({
   message: "asdf banana random weather",
   config: liveConfig,
+  intentProvider: intentProviderFor("asdf banana random weather", {
+    domain: "weather",
+    topic: "unrelated weather text",
+    entities: [],
+    proposition: "The visitor supplied unrelated weather text",
+    questionType: "unknown",
+    speechAct: "unknown",
+    requestedDetail: "",
+  }),
   providerAdapter: async () => { unrelatedProviderCalls += 1; return {}; },
 });
 assert.equal(unrelated.clarificationNeeded, true);
-assert.equal(unrelatedProviderCalls, 0);
+assert.equal(unrelatedProviderCalls, 1);
 
 const tracker = {
   reads: 0,

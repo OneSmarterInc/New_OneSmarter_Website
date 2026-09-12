@@ -52,6 +52,25 @@ const history = runRaviLocalEngine({
 });
 assert.ok(history.sources.some(({ id }) => id === "claims-processing-services"));
 
+const semanticFollowUp = runRaviLocalEngine({
+  message: "What about that?",
+  conversationHistory: [{ role: "user", content: "Explain claims workflow modernization." }],
+  semanticIntent: {
+    topic: "routing and escalation design",
+    proposition: "OneSmarter supports escalation design",
+    entities: ["escalation design"],
+    requestedDetail: "approved escalation design capabilities",
+    clarificationNeeded: false,
+  },
+});
+assert.ok(semanticFollowUp.matchedEntries.some(({ id }) => id === "secure-ticketing-case-management"));
+
+const ambiguousSemantic = runRaviLocalEngine({
+  message: "Can it do that?",
+  semanticIntent: { clarificationNeeded: true },
+});
+assert.equal(ambiguousSemantic.clarificationNeeded, true);
+
 assert.deepEqual(
   retrieveRaviKnowledge("secure ticketing workflow tracking").map(({ id }) => id),
   ["secure-ticketing-case-management"],
