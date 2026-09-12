@@ -53,9 +53,12 @@ const intentFallback = (semanticIntent, evaluation, matched) => {
     return evaluation.approvedAlternative;
   }
   if (evaluation.status === SELENE_CLAIM_STATUSES.ANSWER_WITH_QUALIFICATION) {
-    if (semanticIntent.questionType === "negative_confirmation") return `Correct. ${evaluation.reason} ${evaluation.approvedAlternative}`;
+    if (semanticIntent.questionType === "negative_confirmation") return `Yes, that's correct. ${evaluation.reason} ${evaluation.approvedAlternative}`;
     if (semanticIntent.questionType === "why") return `${evaluation.reason} ${evaluation.approvedAlternative}`;
     return evaluation.approvedAlternative;
+  }
+  if (semanticIntent.questionType === "negative_confirmation") {
+    return `Yes, that's correct. ${matched[0]?.approvedSummary || evaluation.approvedAlternative}`;
   }
   if (semanticIntent.polarity === "negative") {
     const boundaries = matched.flatMap((entry) => entry.unsupportedExtensions || []);
@@ -79,7 +82,15 @@ export const runSeleneLocalEngine = ({ message = "", semanticIntent = null, verb
     ? [message, semanticIntent.proposition, semanticIntent.requestedDetail, ...(semanticIntent.entities || [])].filter(Boolean).join(" ")
     : message;
   const evaluated = evaluateSeleneClaim(evaluationText);
-  const evaluation = semanticIntent && matched.length && evaluated.ruleId === "outside-approved-selene-slice"
+  const semanticLiveAction = semanticIntent?.domain === "live_system_action" && matched.length;
+  const evaluation = semanticLiveAction
+    ? {
+        status: SELENE_CLAIM_STATUSES.HANDOFF_UNSUPPORTED,
+        reason: "Selene's approved professional-role evidence does not establish live access to or action in visitor or customer systems.",
+        ruleId: "semantic-live-system-action-boundary",
+        approvedAlternative: "The relevant professional agent may explain its approved role, but no agent has accessed, changed, or acted in a visitor or customer system.",
+      }
+    : semanticIntent && matched.length && evaluated.ruleId === "outside-approved-selene-slice"
     ? { status: SELENE_CLAIM_STATUSES.ANSWER, reason: "Validated semantic topic matched approved Selene evidence.", ruleId: "approved-semantic-topic", approvedAlternative: matched[0].approvedSummary }
     : evaluated;
 

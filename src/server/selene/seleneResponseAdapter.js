@@ -35,15 +35,31 @@ const errorResult = (status, error, message, requestId = crypto.randomUUID()) =>
   body: { requestId, agent: AGENT, status, error, message },
 });
 
+const intentSummary = (semanticIntent = {}) => String(
+  semanticIntent.requestedDetail || semanticIntent.proposition || semanticIntent.topic || "your request",
+).replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 180) || "your request";
+
 const intentAwareScopeFallback = (semanticIntent = {}) => {
   const domain = String(semanticIntent.domain || "unresolved")
     .replace(/[^a-z0-9 _-]/gi, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "unresolved";
-  const questionType = String(semanticIntent.questionType || "request")
-    .replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "request";
+  const isAcknowledgement = domain === "conversational_acknowledgement"
+    && semanticIntent.confidence >= 0.7;
+  const mentionedName = Array.isArray(semanticIntent.mentionedNames)
+    ? String(semanticIntent.mentionedNames[0] || "").replace(/[<>]/g, "").trim().slice(0, 100)
+    : "";
+  const unresolvedIdentity = mentionedName && semanticIntent.requestedDetail && semanticIntent.clarificationNeeded;
+  const needsClarification = !isAcknowledgement && (semanticIntent.clarificationNeeded || semanticIntent.confidence < 0.55);
+  const answer = isAcknowledgement
+    ? "Understood. What would you like to explore about OneSmarter's agent architecture?"
+    : unresolvedIdentity
+      ? `Selene's approved information does not establish who ${mentionedName} is. Could you clarify how that person relates to the OneSmarter agent-architecture question you want to review?`
+    : needsClarification
+      ? "I need a little more context to understand what you want to review. I can help with OneSmarter's agent roles, knowledge boundaries, claim validation, Café separation, and current orchestration model."
+      : `I understand the request concerns ${intentSummary(semanticIntent)}, but I don't have approved Selene evidence to answer it. I can explain OneSmarter's agent architecture, or you can contact care@onesmarter.com for an appropriate human follow-up.`;
   return {
-    answer: `I don't have approved Selene architecture evidence for this ${domain} ${questionType.replaceAll("_", "-")} request. I can explain OneSmarter's focused-agent architecture, professional roles, knowledge boundaries, claim validation, Café separation, and current orchestration.`,
-    matchedEntries: [], sources: [], confidence: "low", clarificationNeeded: true,
-    clarificationQuestion: "Which approved OneSmarter agent-architecture topic would you like to review?",
+    answer,
+    matchedEntries: [], sources: [], confidence: isAcknowledgement ? "high" : "low", clarificationNeeded: !isAcknowledgement,
+    clarificationQuestion: needsClarification ? "Could you clarify what you would like Selene to review?" : "Would you like an explanation of OneSmarter's agent architecture?",
     claimEvaluation: null,
   };
 };
@@ -87,14 +103,14 @@ export const runSeleneResponseAdapter = async ({
     agentIdentity: "Selene Hart",
     message,
     conversationHistory,
-    allowedDomains: ["agent_architecture", "ai_agent_architecture", "agent_orchestration", "identity", "agent_identity", "agent_roles", "professional_agents"],
+    allowedDomains: ["agent_architecture", "ai_agent_architecture", "agent_orchestration", "identity", "agent_identity", "agent_roles", "professional_agents", "live_system_action", "conversational_acknowledgement"],
     inputGuard: async () => ({
       ok: message.length <= SELENE_MESSAGE_LIMIT && !containsSeleneSensitiveData(message),
       error: containsSeleneSensitiveData(message) ? "sensitive_input" : "message_too_long",
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. Classify semantic equivalents under an allowed domain even when vocabulary differs. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. Use domain live_system_action with Professional Agent Role Separation when the proposition asks whether a professional agent can access or act in a visitor or customer system. Classify semantic equivalents under an allowed domain even when vocabulary differs. A high-confidence conversational acknowledgement may use domain conversational_acknowledgement and topic acknowledgement; it does not need clarification. Meaningless input or a bare ambiguous entity needs clarification. Preserve the logical proposition exactly: a negative confirmation asks whether its negative proposition is correct, while an ordinary yes/no question asks whether its positive proposition is true. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: seleneIntentTopics } },
     }, { config })),
   });
@@ -102,11 +118,21 @@ export const runSeleneResponseAdapter = async ({
     const localResult = runSeleneLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent };
   }
-  const semanticIntent = semanticResolution.intent;
-  const retrieved = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded
+  const resolvedIntent = semanticResolution.intent;
+  const hasApprovedSemanticTopic = seleneIntentTopics.some(({ title }) => title === resolvedIntent.topic);
+  const semanticIntent = resolvedIntent.clarificationNeeded
+    && resolvedIntent.confidence >= 0.55 && hasApprovedSemanticTopic
+    ? { ...resolvedIntent, clarificationNeeded: false }
+    : resolvedIntent;
+  const retrieved = semanticIntent.domain === "conversational_acknowledgement"
+    ? intentAwareScopeFallback(semanticIntent)
+    : semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded
     ? runSeleneLocalEngine({ message, verbosityBand, semanticIntent })
     : intentAwareScopeFallback(semanticIntent);
-  const localResult = retrieved.clarificationNeeded ? intentAwareScopeFallback(semanticIntent) : retrieved;
+  const localResult = retrieved;
+  if (semanticIntent.domain === "conversational_acknowledgement" && !localResult.clarificationNeeded) {
+    return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "", semanticIntent };
+  }
   const providerResult = await providerAdapter({
     message,
     conversationId,
@@ -178,7 +204,6 @@ export const handleSeleneChatRequest = async ({ method = "GET", body, headers = 
     requestId, timestamp: now.toISOString(), agent: AGENT, role: "AI Agent Architecture Strategist", conversationId,
     answer: adapted.answer, sources: adapted.sources, confidence: adapted.confidence,
     clarification: { needed: adapted.clarificationNeeded, question: adapted.clarificationQuestion || null },
-    fallback: { used: adapted.fallbackUsed }, mode: adapted.mode,
     safety: { approvedKnowledgeOnly: true, historyUsedAsEvidence: false, persistentConversationMemory: false, autonomousDelegation: false, customerSystemAccess: false, cafeMaterialUsed: false },
     privacyReminder: "Do not submit PHI, personal data, credentials, confidential architecture, or customer-specific information.",
   } };

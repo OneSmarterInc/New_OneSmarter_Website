@@ -21,6 +21,9 @@ assert.match(valid.body.answer, /professional role|not currently implemented/i);
 assert.equal(valid.body.safety.persistentConversationMemory, false);
 assert.equal(valid.body.safety.cafeMaterialUsed, false);
 assert.equal(valid.body.safety.autonomousDelegation, false);
+assert.equal(Object.hasOwn(valid.body, "mode"), false);
+assert.equal(Object.hasOwn(valid.body, "fallback"), false);
+assert.doesNotMatch(JSON.stringify(valid.body), /deterministic response|fallback reason|provider details/i);
 
 assert.equal((await handleSeleneChatRequest({ method: "GET" })).status, 405);
 assert.equal((await post("{")).status, 400);

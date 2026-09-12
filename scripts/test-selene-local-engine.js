@@ -31,6 +31,7 @@ const negative = runSeleneLocalEngine({ semanticIntent: intent(
   { proposition: "Agents do not collaborate autonomously", polarity: "negative", questionType: "negative_confirmation" },
 ) });
 assert.match(negative.answer, /not currently implemented|does not establish/i);
+assert.match(negative.answer, /^(?:Yes|Correct)/i);
 
 const uncertain = runSeleneLocalEngine({ semanticIntent: { clarificationNeeded: true } });
 assert.equal(uncertain.clarificationNeeded, true);

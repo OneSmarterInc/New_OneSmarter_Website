@@ -68,6 +68,80 @@ const ambiguous = await run("What about the other one?", makeIntent({ clarificat
 assert.equal(ambiguous.result.clarificationNeeded, true);
 assert.equal(ambiguous.answerCalls, 1);
 
+const acknowledgement = await run("Thanks, that helps.", makeIntent({
+  domain: "conversational_acknowledgement", topic: "acknowledgement", entities: [],
+  proposition: "The visitor acknowledges the explanation", questionType: "unknown",
+  speechAct: "unknown", requestedDetail: "", confidence: 0.93,
+}));
+assert.equal(acknowledgement.result.clarificationNeeded, false);
+assert.equal(acknowledgement.answerCalls, 0);
+assert.match(acknowledgement.result.answer, /approved Selene architecture evidence|understood|welcome|glad/i);
+assert.doesNotMatch(acknowledgement.result.answer, /focused-agent architecture.*professional roles.*knowledge boundaries/is);
+
+const gibberish = await run("vrmpt zzzz qqq", makeIntent({
+  domain: "unresolved", topic: "unknown", entities: [], proposition: "",
+  questionType: "unknown", speechAct: "unknown", requestedDetail: "",
+  confidence: 0.12, clarificationNeeded: true,
+}));
+assert.equal(gibberish.result.clarificationNeeded, true);
+assert.match(gibberish.result.answer, /context|clarif|understand|approved Selene architecture evidence/i);
+
+const ambiguousName = await run("Sahil", makeIntent({
+  domain: "person_information", topic: "Sahil", entities: ["Sahil"], proposition: "",
+  questionType: "clarification", speechAct: "clarification_request", requestedDetail: "",
+  confidence: 0.38, clarificationNeeded: true, mentionedNames: ["Sahil"],
+}));
+assert.equal(ambiguousName.result.clarificationNeeded, true);
+assert.doesNotMatch(ambiguousName.result.answer, /Sahil (?:is|can|works|designs)/i);
+
+const liveActionFollowUp = await run("Why not?", makeIntent({
+  domain: "live_system_action", topic: "Professional Agent Role Separation", entities: ["Ravi Sen", "ticket queue"],
+  proposition: "Ravi cannot access the visitor's ticket queue", polarity: "negative",
+  questionType: "why", speechAct: "explanation_request", requestedDetail: "why Ravi cannot access the ticket queue",
+  followUpReferences: ["Ravi Sen", "ticket queue"], mentionedNames: ["Ravi"],
+}), [
+  { role: "user", content: "Can Ravi access our ticket queue?" },
+  { role: "assistant", content: "Ravi cannot access customer systems." },
+]);
+assert.equal(liveActionFollowUp.result.chargeEligible, false);
+assert.match(liveActionFollowUp.result.answer, /does not establish live access|no agent has accessed/i);
+assert.doesNotMatch(liveActionFollowUp.result.answer, /perform another professional agent's task/i);
+
+const positivePolarity = await run("Does depletion make an agent less accurate?", makeIntent({
+  topic: "Operational State and Factual Accuracy", proposition: "Depletion makes an agent less accurate",
+  questionType: "positive_yes_no", requestedDetail: "effect of depletion on accuracy",
+}));
+const negativePolarity = await run("Does depletion not make an agent less accurate?", makeIntent({
+  topic: "Operational State and Factual Accuracy", proposition: "Depletion does not make an agent less accurate",
+  polarity: "negative", questionType: "negative_confirmation", speechAct: "confirmation_request",
+  requestedDetail: "confirm accuracy is preserved", negationScope: [{ marker: "not", scope: "make an agent less accurate" }],
+}));
+assert.equal(positivePolarity.prompt.user.includes('"questionType":"positive_yes_no"'), true);
+assert.equal(negativePolarity.prompt.user.includes('"questionType":"negative_confirmation"'), true);
+assert.equal(negativePolarity.prompt.system.includes("negative-confirmation proposition"), true);
+
+for (const [message, topic, detail, entities] of [
+  ["What does Selene do?", "Selene Hart Professional Role", "Selene's responsibilities", ["Selene Hart"]],
+  ["Who analyzes public websites?", "Professional Agent Role Separation", "agent responsible for public-page analysis", ["Theo Mercer"]],
+  ["Compare Elena and Ravi.", "Professional Agent Role Separation", "differences between Elena and Ravi", ["Elena Cross", "Ravi Sen"]],
+]) {
+  const checked = await run(message, makeIntent({
+    topic, entities, requestedDetail: detail,
+    questionType: message.startsWith("Compare") ? "comparison" : "status",
+  }));
+  assert.equal(checked.result.matchedEntries.length, 1);
+  assert.equal(checked.prompt.user.includes(detail), true);
+}
+
+const conservativeRoleIntent = await run("What is Elena responsible for?", makeIntent({
+  domain: "agent_roles", topic: "Professional Agent Role Separation", entities: ["Elena Cross"],
+  proposition: "Elena's professional responsibility", questionType: "clarification",
+  speechAct: "explanation_request", requestedDetail: "Elena's responsibilities",
+  confidence: 0.58, clarificationNeeded: true, mentionedNames: ["Elena"],
+}));
+assert.equal(conservativeRoleIntent.result.clarificationNeeded, false);
+assert.equal(conservativeRoleIntent.result.matchedEntries[0].id, "professional-agent-role-separation");
+
 const customerStrategy = await run("Which agents should my company deploy?", makeIntent({
   topic: "OneSmarter Focused-Agent Architecture", questionType: "recommendation_request",
   speechAct: "recommendation_request", proposition: "Recommend agents for the visitor's company",
@@ -124,6 +198,20 @@ if (process.env.SELENE_REAL_PROVIDER_TEST === "1") {
     { message: "Create the data-and-agent blueprint for our organization." },
     { message: "Given that one supervisor already controls every agent, name that supervisor." },
     { message: "How does separating interpretation from evidence affect the accountability of a response?" },
+    { message: "I follow you now, thank you." },
+    { message: "plmzz qqqv nnn" },
+    { message: "Sahil" },
+    { message: "Does reduced response energy make the specialists factually unreliable?" },
+    { message: "Reduced response energy does not alter factual accuracy, correct?" },
+    { message: "Why doesn't a quieter response mode relax the safety boundaries?" },
+    { message: "What is Elena responsible for?" },
+    { message: "How do Theo and Ravi differ?" },
+    { message: "Who is Gaurav?" },
+    { message: "Can Sahil design an agent system for a company?" },
+    { message: "Why not?", conversationHistory: [
+      { role: "user", content: "Can Ravi enter our ticket queue?" },
+      { role: "assistant", content: "Ravi cannot access customer systems." },
+    ] },
   ];
   for (const { message, conversationHistory = [] } of questions) {
     const result = await runSeleneResponseAdapter({ message, conversationHistory, config: liveConfig });
