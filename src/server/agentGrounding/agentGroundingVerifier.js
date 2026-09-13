@@ -2,9 +2,9 @@ const STOP_WORDS = new Set([
   "a", "an", "and", "approved", "are", "as", "at", "be", "been", "being", "by", "can", "could",
   "do", "does", "for", "from", "has", "have", "in", "is", "it", "its", "may", "of",
   "on", "or", "our", "status", "that", "the", "their", "these", "this", "to", "was", "we",
-  "were", "will", "with", "would", "you", "your",
+  "were", "will", "with", "would", "you", "your", "actually", "before",
 ]);
-const BOUNDARY_LANGUAGE = /\b(?:not|no approved|cannot|can't|does not|doesn't|do not|don't|is not|isn't|unable|unknown|instead|rather than|cannot confirm|cannot verify)\b/i;
+const BOUNDARY_LANGUAGE = /\b(?:not|no approved|cannot|can't|does not|doesn't|do not|don't|is not|isn't|unable|unknown|instead|rather than|without guaranteeing|cannot confirm|cannot verify)\b/i;
 const CONVERSATIONAL = /^(?:yes|no|correct|thanks?|please|i can help|i can explain|would you like|what would you like)\b/i;
 const HANDOFF_GUIDANCE = /\b(?:contact|email|reach out to)\b.{0,100}\bcare@onesmarter\.com\b/i;
 const GENERIC_FRAMING = /\b(?:address|serve|support) different (?:operational |business )?(?:needs|purposes|use cases)\b/i;
@@ -56,7 +56,7 @@ const substantiveTokens = (value) => normalize(value).split(" ")
 const namedEntities = (sentence) => {
   const words = [...String(sentence).matchAll(/\b(?:[A-Z]{2,}(?:\/[A-Z]+)?|[A-Za-z]*[a-z][A-Z][A-Za-z]*|[A-Z][a-z]{2,}|\d[\d.-]{2,})\b/g)]
     .map((match) => normalize(match[0]));
-  return [...new Set(words.filter((word) => !SAFE_ENTITIES.has(word)))];
+  return [...new Set(words.filter((word) => !SAFE_ENTITIES.has(word) && !STOP_WORDS.has(word)))];
 };
 
 const factualSentences = (answer) => String(answer).split(/(?<=[.!?])\s+|\n+/)
@@ -92,7 +92,7 @@ export const verifyAgentAnswerGrounding = ({ answer = "", approvedEntries = [] }
     if (tokens.length < 2) continue;
     const matched = tokens.filter((token) => evidenceTokens.has(token)).length;
     const coverage = matched / tokens.length;
-    const contradictsBoundary = coverage < 0.95 && negativeTokenSets.some((negativeTokens) => {
+    const contradictsBoundary = coverage < 0.5 && negativeTokenSets.some((negativeTokens) => {
       const overlap = tokens.filter((token) => negativeTokens.includes(token)).length;
       return overlap >= 3 && overlap / Math.min(tokens.length, negativeTokens.length) >= 0.5;
     });

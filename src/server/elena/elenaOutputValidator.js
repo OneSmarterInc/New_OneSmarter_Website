@@ -18,7 +18,11 @@ const isObject = (value) => value && typeof value === "object" && !Array.isArray
 const clean = (value = "") => String(value).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 const safeCorrection = (answer) => /\b(?:not|does not|do not|cannot|instead|rather than)\b/i.test(answer);
 
-export const validateElenaModelOutput = (output, { matchedEntries = [], fallbackResult } = {}) => {
+export const validateElenaModelOutput = (output, {
+  matchedEntries = [],
+  fallbackResult,
+  claimEvaluation = null,
+} = {}) => {
   const violations = [];
   if (!isObject(output)) violations.push("invalid_shape");
   if (typeof output?.answer !== "string" || !output.answer.trim()) violations.push("invalid_answer");
@@ -47,13 +51,40 @@ export const validateElenaModelOutput = (output, { matchedEntries = [], fallback
     violations.push("insufficient_context_requires_handoff");
   }
   if (output?.groundingStatus === "grounded") {
-    const grounding = verifyAgentAnswerGrounding({ answer, approvedEntries: matchedEntries });
+    const policyStatements = [
+      claimEvaluation?.approvedAlternative,
+      claimEvaluation?.requiredQualification,
+    ].filter(Boolean).flatMap((statement) => statement.split(";"))
+      .flatMap((statement) => statement.split(", but "))
+      .map((statement) => statement.trim())
+      .filter(Boolean);
+    const policyEvidence = claimEvaluation && (
+      claimEvaluation.approvedAlternative || claimEvaluation.requiredQualification
+    ) ? [{
+      id: `elena-policy-${claimEvaluation.matchedRuleId || "boundary"}`,
+      title: "Approved Elena claim-boundary policy",
+      approvedSummary: claimEvaluation.reason,
+      sourceFacts: policyStatements,
+      allowedClaims: policyStatements,
+      requiredQualifications: [claimEvaluation.requiredQualification].filter(Boolean),
+      disallowedClaims: [],
+      unsupportedExtensions: [],
+    }] : [];
+    const grounding = verifyAgentAnswerGrounding({
+      answer,
+      approvedEntries: [...matchedEntries, ...policyEvidence],
+    });
     if (!grounding.grounded) violations.push(...grounding.violations);
   }
 
-  const claimEvaluation = answer ? evaluateElenaClaim(answer) : null;
+  const outputClaimEvaluation = answer ? evaluateElenaClaim(answer) : null;
+  const unresolvedOutputParaphrase =
+    outputClaimEvaluation?.matchedRuleId === "not_in_elena_approved_knowledge" &&
+    claimEvaluation &&
+    claimEvaluation.status !== ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED;
   if (
-    claimEvaluation?.status === ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED &&
+    outputClaimEvaluation?.status === ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED &&
+    !unresolvedOutputParaphrase &&
     !safeCorrection(answer) &&
     matchedEntries.length
   ) {
@@ -65,13 +96,13 @@ export const validateElenaModelOutput = (output, { matchedEntries = [], fallback
       valid: false,
       violations: [...new Set(violations)],
       fallbackResult,
-      claimEvaluation,
+      claimEvaluation: outputClaimEvaluation,
     };
   }
   return {
     valid: true,
     violations: [],
-    claimEvaluation,
+    claimEvaluation: outputClaimEvaluation,
     correctedOutput: {
       answer,
       handoffNeeded: output.handoffNeeded,

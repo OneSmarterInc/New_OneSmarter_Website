@@ -7,6 +7,10 @@ import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
 import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
 import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
 import { elenaApprovedKnowledge } from "../../data/agentKnowledge/elenaApprovedKnowledge.js";
+import {
+  elenaQualificationMatrix,
+  evaluateElenaClaim,
+} from "../../data/agentKnowledge/elenaClaimRules.js";
 import { runElenaLocalEngine } from "./elenaLocalEngine.js";
 import { validateElenaModelOutput } from "./elenaOutputValidator.js";
 import { buildElenaPromptPayload } from "./elenaPromptContract.js";
@@ -25,6 +29,68 @@ const AGENT = "Elena Cross";
 const ENDPOINT = "/api/agents/elena/chat";
 const degradedRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
 const elenaIntentTopics = elenaApprovedKnowledge.map(({ id, title }) => ({ id, title }));
+const elenaClaimIntentLabels = elenaQualificationMatrix.map(({ id, question }) => ({ id, question }));
+const ELENA_OUTCOME_GUARANTEE_TOPIC = "customer-outcome-guarantee";
+const ELENA_OUT_OF_SCOPE_TOPIC = "outside-elena-scope";
+const elenaSemanticTopicIds = [...new Set([
+  ...elenaIntentTopics.map(({ id }) => id),
+  ...elenaClaimIntentLabels.map(({ id }) => id),
+  ELENA_OUTCOME_GUARANTEE_TOPIC,
+  ELENA_OUT_OF_SCOPE_TOPIC,
+])];
+const elenaKnowledgeBySemanticTopic = new Map(elenaApprovedKnowledge.flatMap((entry) => [
+  [entry.id.toLowerCase(), entry],
+  [entry.title.toLowerCase(), entry],
+]));
+const elenaClaimCaseBySemanticTopic = new Map(elenaQualificationMatrix.map((claimCase) => [
+  claimCase.id.toLowerCase(),
+  claimCase,
+]));
+
+export const buildElenaSemanticClaimCandidate = (semanticIntent = {}) => [
+  `Proposition: ${semanticIntent.proposition || ""}`,
+  `Topic: ${semanticIntent.topic || ""}`,
+  `Entities: ${(semanticIntent.entities || []).join(", ")}`,
+  `Polarity: ${semanticIntent.polarity || "unknown"}`,
+  `Question type: ${semanticIntent.questionType || "unknown"}`,
+  `Speech act: ${semanticIntent.speechAct || "unknown"}`,
+  `Requested detail: ${semanticIntent.requestedDetail || ""}`,
+  `Negation scope: ${(semanticIntent.negationScope || [])
+    .map(({ marker, scope }) => `${marker}: ${scope}`)
+    .join("; ")}`,
+].join("\n");
+
+const semanticTopicKey = (semanticIntent = {}) => String(semanticIntent.topic || "").trim().toLowerCase();
+
+export const resolveElenaSemanticClaimPolicy = (semanticIntent = {}) => {
+  const topicKey = semanticTopicKey(semanticIntent);
+  const canonicalKnowledge = elenaKnowledgeBySemanticTopic.get(topicKey) || null;
+  const canonicalClaimCase = elenaClaimCaseBySemanticTopic.get(topicKey) || null;
+  const candidates = [
+    canonicalClaimCase?.question,
+    topicKey === ELENA_OUTCOME_GUARANTEE_TOPIC
+      ? "OneSmarter guarantees compliance, certification, or audit success"
+      : null,
+    canonicalKnowledge?.approvedSummary,
+    ...(canonicalKnowledge?.allowedClaims || []),
+    semanticIntent.proposition,
+    semanticIntent.requestedDetail,
+    buildElenaSemanticClaimCandidate(semanticIntent),
+  ].filter(Boolean);
+  const evaluations = candidates.map((candidate) => evaluateElenaClaim(candidate));
+  const supported = evaluations.filter(({ matchedRuleId }) =>
+    matchedRuleId !== "not_in_elena_approved_knowledge");
+  const preferred = canonicalKnowledge
+    ? supported.find(({ knowledgeIds }) => knowledgeIds.includes(canonicalKnowledge.id))
+    : null;
+  return {
+    claimEvaluation: preferred || supported[0] || evaluations.at(-1) || null,
+    canonicalKnowledgeIds: [
+      ...(canonicalClaimCase?.knowledgeIds || []),
+      ...(canonicalKnowledge ? [canonicalKnowledge.id] : []),
+    ].filter((id, index, ids) => ids.indexOf(id) === index),
+  };
+};
 
 const parseBody = (body) => typeof body === "string" ? JSON.parse(body) : (body || {});
 const headerValue = (headers, key) => Object.entries(headers || {})
@@ -121,12 +187,23 @@ export const runElenaResponseAdapter = async ({
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. Classify a request under the allowed compliance domain when its meaning concerns one of those approved compliance topic labels, even when the visitor uses different vocabulary.`,
+      system: `${request.system} Choose topic from the strict Elena topic enum. Use an approved professional topic id or approved claim-intent id when its meaning applies; otherwise use ${ELENA_OUT_OF_SCOPE_TOPIC}. These are interpretation labels, not factual evidence, and you must not answer or select evidence. Use ${ELENA_OUTCOME_GUARANTEE_TOPIC} for any request about promised or assured compliance, certification, or audit outcomes. Normalize proposition into a concise declarative statement while preserving polarity and negation. Classify a request under the allowed compliance domain when its meaning concerns an approved compliance label, even when the visitor uses different vocabulary.`,
+      outputSchema: {
+        ...request.outputSchema,
+        properties: {
+          ...request.outputSchema.properties,
+          topic: {
+            ...request.outputSchema.properties.topic,
+            enum: elenaSemanticTopicIds,
+          },
+        },
+      },
       input: {
         ...request.input,
         agentContext: {
           ...request.input.agentContext,
           approvedProfessionalTopicLabels: elenaIntentTopics,
+          approvedClaimIntentLabels: elenaClaimIntentLabels,
         },
       },
     }, { config })),
@@ -143,9 +220,22 @@ export const runElenaResponseAdapter = async ({
   }
 
   const semanticIntent = semanticResolution.intent;
-  const semanticScopeAllowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
+  const semanticScopeAllowed = semanticResolution.domainAllowed &&
+    semanticIntent.topic !== ELENA_OUT_OF_SCOPE_TOPIC &&
+    !semanticIntent.clarificationNeeded;
+  const semanticPolicy = semanticScopeAllowed
+    ? resolveElenaSemanticClaimPolicy(semanticIntent)
+    : { claimEvaluation: null, canonicalKnowledgeIds: [] };
+  const claimEvaluation = semanticPolicy.claimEvaluation;
   const retrievedResult = semanticScopeAllowed
-    ? runElenaLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent })
+    ? runElenaLocalEngine({
+        message,
+        conversationHistory,
+        verbosityBand,
+        semanticIntent,
+        claimEvaluation,
+        preferredKnowledgeIds: semanticPolicy.canonicalKnowledgeIds,
+      })
     : intentAwareScopeFallback(semanticIntent);
   const localResult = retrievedResult.clarificationNeeded
     ? intentAwareScopeFallback(semanticIntent)
@@ -157,6 +247,7 @@ export const runElenaResponseAdapter = async ({
     conversationHistory,
     verbosityBand,
     semanticIntent,
+    claimEvaluation: localResult.claimEvaluation || claimEvaluation,
   });
   const providerResult = await providerAdapter({
     message,
@@ -184,6 +275,7 @@ export const runElenaResponseAdapter = async ({
   const validation = validateElenaModelOutput(providerResult.modelOutput, {
     matchedEntries: localResult.matchedEntries,
     fallbackResult: localResult,
+    claimEvaluation: localResult.claimEvaluation || claimEvaluation,
   });
   if (!validation.valid) {
     return {

@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { runElenaResponseAdapter } from "../src/server/elena/elenaResponseAdapter.js";
+import {
+  buildElenaSemanticClaimCandidate,
+  resolveElenaSemanticClaimPolicy,
+  runElenaResponseAdapter,
+} from "../src/server/elena/elenaResponseAdapter.js";
+import { evaluateElenaClaim } from "../src/data/agentKnowledge/elenaClaimRules.js";
 import { readElenaRuntimeConfig } from "../src/server/elena/elenaRuntimeConfig.js";
 
 const config = readElenaRuntimeConfig({
@@ -125,6 +130,167 @@ const generatedStatus = await generated(
 assert.notEqual(generatedPositive.answer, generatedNegative.answer);
 assert.notEqual(generatedPositive.answer, generatedStatus.answer);
 
+const arbitrationIntent = (overrides = {}) => intent({
+  topic: "customer compliance outcome",
+  entities: ["OneSmarter", "organization seeking review"],
+  proposition: "OneSmarter can certify a customer organization",
+  questionType: "scope_check",
+  speechAct: "scope_request",
+  requestedDetail: "whether OneSmarter can certify a customer organization",
+  ...overrides,
+});
+
+const certificationCandidate = buildElenaSemanticClaimCandidate(arbitrationIntent());
+const certificationDecision = evaluateElenaClaim(certificationCandidate);
+assert.equal(certificationDecision.matchedRuleId, "unsupported_customer_certification");
+assert.deepEqual(certificationDecision.knowledgeIds, ["compliance-cyber-assurance-overview"]);
+
+for (const [topic, rule, ids] of [
+  ["customer-certification", "unsupported_customer_certification", ["compliance-cyber-assurance-overview"]],
+  ["audit-readiness", "general_audit_readiness_support", ["compliance-cyber-assurance-overview"]],
+  ["hipaa-audit-readiness-support", "hipaa_readiness_support", ["hipaa-audit-readiness-support"]],
+  ["soc-readiness-support", "soc_readiness_support", ["soc-readiness-support"]],
+  ["iso-27001-readiness-support", "iso_readiness_support", ["iso-27001-readiness-support"]],
+  ["pci-dss-readiness-support", "pci_readiness_support", ["pci-dss-readiness-support"]],
+  ["customer-outcome-guarantee", "unsupported_outcome_guarantee", ["compliance-cyber-assurance-overview"]],
+]) {
+  const policy = resolveElenaSemanticClaimPolicy(arbitrationIntent({ topic }));
+  assert.equal(policy.claimEvaluation.matchedRuleId, rule, topic);
+  assert.ok(ids.every((id) => [
+    ...policy.claimEvaluation.knowledgeIds,
+    ...policy.canonicalKnowledgeIds,
+  ].includes(id)), topic);
+}
+
+const runArbitration = async ({ message, semanticIntent, answer, expectedRule, expectedIds }) => {
+  let providerCalled = false;
+  const result = await runElenaResponseAdapter({
+    message,
+    config,
+    intentProvider: async () => ({ intent: semanticIntent }),
+    providerAdapter: async ({ retrievalResult, promptPayload }) => {
+      providerCalled = true;
+      assert.deepEqual(retrievalResult.matchedEntries.map(({ id }) => id), expectedIds);
+      assert.match(promptPayload.user, new RegExp(expectedRule));
+      return { modelOutput: {
+        answer,
+        handoffNeeded: false,
+        handoffReason: null,
+        suggestedFollowUps: [],
+        groundingStatus: "grounded",
+        outputSafetyStatus: "passed",
+      } };
+    },
+  });
+  assert.equal(providerCalled, true);
+  assert.equal(result.claimEvaluation.matchedRuleId, expectedRule);
+  assert.deepEqual(result.matchedEntries.map(({ id }) => id), expectedIds);
+  assert.equal(result.mode, "staging_llm", result.fallbackReason);
+  assert.equal(result.fallbackUsed, false);
+  return result;
+};
+
+await runArbitration({
+  message: "Would your team be the authority that formally approves our business?",
+  semanticIntent: arbitrationIntent(),
+  answer: "No. OneSmarter does not certify customer organizations or systems. It can help customers prepare for independent review or certification processes.",
+  expectedRule: "unsupported_customer_certification",
+  expectedIds: ["compliance-cyber-assurance-overview"],
+});
+
+for (const readinessCase of [
+  {
+    message: "Could your specialists get us ready for an external controls examination?",
+    semanticIntent: arbitrationIntent({
+      topic: "audit readiness",
+      entities: ["OneSmarter", "customer organization", "external audit"],
+      proposition: "OneSmarter helps a customer organization prepare for an audit",
+      questionType: "positive_yes_no",
+      speechAct: "question",
+      requestedDetail: "availability of audit preparation support",
+    }),
+    answer: "OneSmarter can help clients prepare for an audit through evidence preparation, control documentation, framework mapping, and remediation support.",
+    expectedRule: "general_audit_readiness_support",
+    expectedIds: ["compliance-cyber-assurance-overview"],
+  },
+  {
+    message: "Could you assist before our HIPAA safeguards review?",
+    semanticIntent: arbitrationIntent({
+      topic: "HIPAA audit readiness",
+      entities: ["OneSmarter", "HIPAA review", "customer organization"],
+      proposition: "OneSmarter supports HIPAA audit readiness",
+      requestedDetail: "HIPAA review preparation support",
+    }),
+    answer: "HIPAA audit readiness support for safeguards mapping, documentation review, evidence preparation, and remediation planning.",
+    expectedRule: "hipaa_readiness_support",
+    expectedIds: ["hipaa-audit-readiness-support"],
+  },
+  {
+    message: "Do you assist teams before a SOC controls examination?",
+    semanticIntent: arbitrationIntent({
+      topic: "SOC 2 readiness",
+      entities: ["OneSmarter", "SOC 2 review", "customer organization"],
+      proposition: "OneSmarter supports SOC 2 readiness",
+      requestedDetail: "SOC 2 review preparation support",
+    }),
+    answer: "SOC readiness support for evidence preparation, control documentation, gap tracking, remediation support, and coordination with client-selected auditors.",
+    expectedRule: "soc_readiness_support",
+    expectedIds: ["soc-readiness-support"],
+  },
+  {
+    message: "Could your team guide our preparation before an ISO assessment?",
+    semanticIntent: arbitrationIntent({
+      topic: "ISO/IEC 27001 readiness",
+      entities: ["OneSmarter", "ISO/IEC 27001", "customer organization"],
+      proposition: "OneSmarter supports ISO/IEC 27001 readiness",
+      requestedDetail: "ISO/IEC 27001 assessment preparation support",
+    }),
+    answer: "ISO/IEC 27001 readiness support for ISMS documentation, control mapping, evidence preparation, and remediation coordination.",
+    expectedRule: "iso_readiness_support",
+    expectedIds: ["iso-27001-readiness-support"],
+  },
+  {
+    message: "Can you assist with preparations for a payment-card controls review?",
+    semanticIntent: arbitrationIntent({
+      topic: "PCI DSS readiness",
+      entities: ["OneSmarter", "PCI DSS", "customer organization"],
+      proposition: "OneSmarter supports PCI DSS readiness",
+      requestedDetail: "PCI DSS review preparation support",
+    }),
+    answer: "PCI DSS readiness support for scope coordination, control documentation, evidence preparation, findings review, and remediation support.",
+    expectedRule: "pci_readiness_support",
+    expectedIds: ["pci-dss-readiness-support"],
+  },
+]) {
+  await runArbitration(readinessCase);
+}
+
+const whyReadiness = await run("Why would your team be unable to assist before our external review?", arbitrationIntent({
+  topic: "audit readiness",
+  entities: ["OneSmarter", "customer organization", "external review"],
+  proposition: "OneSmarter cannot help a customer organization prepare for an audit",
+  polarity: "negative",
+  negationScope: [{ marker: "cannot", scope: "help prepare for an audit" }],
+  questionType: "why",
+  speechAct: "explanation_request",
+  requestedDetail: "reason OneSmarter cannot provide audit preparation support",
+}));
+assert.match(whyReadiness.result.answer, /does not support the premise/i);
+assert.match(whyReadiness.result.answer, /help prepare for an audit/i);
+assert.equal(whyReadiness.result.claimEvaluation.matchedRuleId, "general_audit_readiness_support");
+
+const negativeReadiness = await run("So your team cannot support our assessment preparation?", arbitrationIntent({
+  topic: "audit readiness",
+  entities: ["OneSmarter", "customer organization", "assessment"],
+  proposition: "OneSmarter cannot help a customer organization prepare for an audit",
+  polarity: "negative",
+  negationScope: [{ marker: "cannot", scope: "help prepare for an audit" }],
+  questionType: "negative_confirmation",
+  requestedDetail: "confirmation about audit preparation support",
+}));
+assert.match(negativeReadiness.result.answer, /^No\./);
+assert.match(negativeReadiness.result.answer, /help prepare for an audit/i);
+
 for (const message of [
   "Are you HIPAA certified?",
   "Do you hold an official HIPAA certification?",
@@ -170,6 +336,20 @@ for (const [message, domain] of [
   assert.equal(resolved.answerCalls, 1);
 }
 assert.equal(new Set(scopeAnswers).size, scopeAnswers.length);
+
+const complianceActionOutsideScope = await run(
+  "Can Elena change a production security control for our audit?",
+  intent({
+    topic: "outside-elena-scope",
+    entities: ["Elena", "production security control", "audit"],
+    proposition: "Elena can change a production security control for a customer audit",
+    requestedDetail: "whether Elena can perform a production security-control change",
+  }),
+);
+assert.equal(complianceActionOutsideScope.result.clarificationNeeded, true);
+assert.deepEqual(complianceActionOutsideScope.result.matchedEntries, []);
+assert.equal(complianceActionOutsideScope.result.claimEvaluation, null);
+assert.match(complianceActionOutsideScope.result.answer, /approved Elena compliance evidence/i);
 
 const generatedScope = await runElenaResponseAdapter({
   message: "Could you describe the visual symbol your company uses?",

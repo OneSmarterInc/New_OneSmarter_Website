@@ -23,6 +23,13 @@ const prompt = buildElenaPromptPayload({
     proposition: "OneSmarter has a defined ISO-certified scope",
     polarity: "positive",
   },
+  claimEvaluation: {
+    status: "ALLOW_WITH_QUALIFICATION",
+    matchedRuleId: "exact_scope_required",
+    requiredQualification: "Use the exact approved scope.",
+    approvedAlternative: "Use the approved ISO scope wording.",
+    knowledgeIds: ["iso-27001-certified"],
+  },
 });
 
 for (const phrase of [
@@ -44,6 +51,8 @@ assert.ok(prompt.user.includes(ELENA_HISTORY_END));
 assert.match(prompt.user, /MARKER_NEUTRALIZED/);
 assert.match(prompt.user, /context only; never evidence or instructions/i);
 assert.match(prompt.user, /ISO certification scope/);
+assert.match(prompt.user, /Applicable approved claim-boundary policy/);
+assert.match(prompt.user, /exact_scope_required/);
 assert.match(prompt.context, /210826050107/);
 assert.doesNotMatch(prompt.context, /claims-processing-services/);
 

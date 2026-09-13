@@ -4,6 +4,7 @@ import {
 } from "../../data/agentKnowledge/elenaApprovedKnowledge.js";
 import {
   ELENA_CLAIM_STATUSES,
+  ELENA_VERB_CLASSES,
   evaluateElenaClaim,
 } from "../../data/agentKnowledge/elenaClaimRules.js";
 
@@ -107,6 +108,8 @@ export const runElenaLocalEngine = ({
   conversationHistory = [],
   verbosityBand = "normal",
   semanticIntent = null,
+  claimEvaluation = null,
+  preferredKnowledgeIds = [],
 } = {}) => {
   const semanticMessage = semanticIntent ? [
     semanticIntent.topic,
@@ -120,8 +123,10 @@ export const runElenaLocalEngine = ({
   const hasHipaaCertificationClaim = /\bhipaa\b/.test(text) && /\bcertif/.test(text);
   const hasHipaaGuaranteeClaim = /\bhipaa\b/.test(text) && /\bguarantee/.test(text);
   const semanticCustomerCertification = Boolean(
-    semanticIntent && /\bcertif/.test(text) && (semanticIntent.entities || [])
-      .some((entity) => /\b(?:customer|visitor).*(?:company|organization|system)\b/.test(normalized(entity))),
+    claimEvaluation?.matchedRuleId === "unsupported_customer_certification" || (
+      semanticIntent && /\bcertif/.test(text) && (semanticIntent.entities || [])
+        .some((entity) => /\b(?:customer|visitor).*(?:company|organization|system)\b/.test(normalized(entity)))
+    ),
   );
 
   if (semanticIntent?.clarificationNeeded) {
@@ -144,17 +149,72 @@ export const runElenaLocalEngine = ({
     });
   }
 
+  if (
+    claimEvaluation?.matchedRuleId === "unsupported_customer_certification" ||
+    (
+      claimEvaluation?.matchedRuleId === "approved_negative_boundary" &&
+      claimEvaluation?.domain === "customer_outcomes"
+    )
+  ) {
+    const approvedBoundary =
+      "OneSmarter does not certify customer organizations, issue ISO certificates, or issue SOC reports. It can provide readiness support to help prepare for an independent review or certification process.";
+    const answer = semanticIntent?.questionType === "why"
+      ? `${approvedBoundary} The approved information does not provide a further reason.`
+      : semanticIntent?.polarity === "negative"
+        ? `That is correct: ${approvedBoundary}`
+        : `No. ${approvedBoundary}`;
+    return localResult({
+      answer,
+      ids: claimEvaluation.knowledgeIds,
+      claimEvaluation,
+    });
+  }
+
+  if (
+    claimEvaluation?.matchedRuleId === "unsupported_outcome_guarantee" &&
+    !hasHipaaCertificationClaim &&
+    !hasHipaaGuaranteeClaim
+  ) {
+    return localResult({
+      answer: "No. OneSmarter does not guarantee compliance, certification, or audit success. It can help prepare through evidence preparation, control documentation, gap tracking, framework mapping, and remediation support.",
+      ids: claimEvaluation.knowledgeIds,
+      claimEvaluation,
+    });
+  }
+
+  if (claimEvaluation?.verbClass === ELENA_VERB_CLASSES.READINESS_SUPPORT) {
+    const baseAnswer = claimEvaluation.approvedAlternative;
+    const answer = semanticIntent?.questionType === "why"
+      ? `The approved information does not support the premise that OneSmarter cannot help with readiness. ${baseAnswer}`
+      : semanticIntent?.polarity === "negative"
+        ? `No. ${baseAnswer}`
+        : baseAnswer;
+    return localResult({
+      answer,
+      ids: claimEvaluation.knowledgeIds,
+      claimEvaluation,
+    });
+  }
+
   if (hasHipaaCertificationClaim && hasHipaaGuaranteeClaim) {
     return localResult({
       answer: "The wording 'HIPAA certified' is not an approved OneSmarter claim, and OneSmarter does not guarantee that customers will remain HIPAA compliant. The approved status is HIPAA Security Rule Compliance Assessment Completed. OneSmarter also provides HIPAA audit-readiness support, but customer compliance requires customer-specific review and is not guaranteed.",
-      ids: ["hipaa-security-rule-assessment", "hipaa-audit-readiness-support"],
+      ids: [
+        "hipaa-security-rule-assessment",
+        "hipaa-audit-readiness-support",
+        ...(claimEvaluation?.knowledgeIds || []),
+      ].filter((id, index, ids) => ids.indexOf(id) === index),
       claimEvaluation: evaluateElenaClaim("OneSmarter is HIPAA certified and guarantees customer HIPAA compliance"),
     });
   }
   if (hasHipaaGuaranteeClaim) {
     return localResult({
       answer: "No. OneSmarter does not guarantee HIPAA compliance. It has completed an independent HIPAA Security Rule compliance assessment and provides HIPAA audit-readiness support, but customer compliance requires customer-specific review.",
-      ids: ["hipaa-security-rule-assessment", "hipaa-audit-readiness-support"],
+      ids: [
+        "hipaa-security-rule-assessment",
+        "hipaa-audit-readiness-support",
+        ...(claimEvaluation?.knowledgeIds || []),
+      ].filter((id, index, ids) => ids.indexOf(id) === index),
       claimEvaluation: evaluateElenaClaim("OneSmarter guarantees HIPAA compliance"),
     });
   }
@@ -261,26 +321,55 @@ export const runElenaLocalEngine = ({
     return localResult({
       answer: "No. OneSmarter does not certify customer organizations, issue ISO certificates, or issue SOC reports. It can provide readiness support to help prepare for an independent review or certification process.",
       ids: ["compliance-cyber-assurance-overview"],
-      claimEvaluation: evaluateElenaClaim("OneSmarter can certify my company"),
+      claimEvaluation: claimEvaluation || evaluateElenaClaim("OneSmarter can certify my company"),
     });
   }
   if (/\bguarantee/.test(text) && /\b(?:pass|audit|compliance|certification)\b/.test(text)) {
     return localResult({
       answer: "No. OneSmarter does not guarantee compliance, certification, or audit success. It can help prepare through evidence preparation, control documentation, gap tracking, framework mapping, and remediation support.",
       ids: ["compliance-cyber-assurance-overview"],
-      claimEvaluation: evaluateElenaClaim("OneSmarter guarantees we will pass the audit"),
+      claimEvaluation: claimEvaluation || evaluateElenaClaim("OneSmarter guarantees we will pass the audit"),
     });
   }
   if (/\b(?:prepare|readiness)\b/.test(text) || (/\baudit\b/.test(text) && !/\bbill audit\b/.test(text))) {
+    const ids = claimEvaluation?.knowledgeIds?.length
+      ? claimEvaluation.knowledgeIds
+      : ["compliance-cyber-assurance-overview"];
+    const baseAnswer = claimEvaluation?.approvedAlternative ||
+      "OneSmarter provides SOC readiness, HIPAA audit readiness, ISO/IEC 27001 readiness, PCI DSS readiness, framework mapping, VAPT and remediation, CMMI readiness, and compliance operations. These services help prepare; they do not certify customers or guarantee outcomes.";
+    const answer = semanticIntent?.questionType === "why"
+      ? `The approved information does not support the premise that OneSmarter cannot help with readiness. ${baseAnswer}`
+      : semanticIntent?.polarity === "negative"
+        ? `No. ${baseAnswer}`
+        : baseAnswer;
     return localResult({
-      answer: "OneSmarter provides SOC readiness, HIPAA audit readiness, ISO/IEC 27001 readiness, PCI DSS readiness, framework mapping, VAPT and remediation, CMMI readiness, and compliance operations. These services help prepare; they do not certify customers or guarantee outcomes.",
-      ids: ["compliance-cyber-assurance-overview"],
+      answer,
+      ids,
+      claimEvaluation,
     });
   }
   if (/\btrust center\b/.test(text)) {
     return localResult({
       answer: "OneSmarter's Trust Center explains its own ISO/IEC 27001, SOC 2, HIPAA, security-practice, privacy, and responsible-data-handling posture. It is separate from client-facing compliance-readiness services.",
       ids: ["trust-center-overview"],
+    });
+  }
+
+  const ruleOwnedEntries = sourceEntries([
+    ...(claimEvaluation?.knowledgeIds || []),
+    ...preferredKnowledgeIds,
+  ].filter((id, index, ids) => ids.indexOf(id) === index));
+  if (ruleOwnedEntries.length) {
+    const baseAnswer = claimEvaluation.approvedAlternative || ruleOwnedEntries[0].approvedSummary;
+    const answer = semanticIntent?.questionType === "why"
+      ? `${baseAnswer} The approved information does not provide any further reason.`
+      : semanticIntent?.polarity === "negative"
+        ? `That is correct. ${baseAnswer}`
+        : baseAnswer;
+    return localResult({
+      answer,
+      ids: ruleOwnedEntries.map(({ id }) => id),
+      claimEvaluation,
     });
   }
 
