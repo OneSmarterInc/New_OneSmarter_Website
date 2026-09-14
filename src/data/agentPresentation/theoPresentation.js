@@ -3,6 +3,18 @@ export const THEO_CONTENT_LIMIT = 20000;
 export const THEO_HISTORY_LIMIT = 6;
 export const THEO_HISTORY_TOTAL_LIMIT = 2000;
 
+export const THEO_SUGGESTED_QUESTIONS = Object.freeze([
+  "What does this page tell an AI system about the business?",
+  "Is it clear who this offering is for?",
+  "What important buyer information is missing?",
+  "Are the claims supported by the supplied content?",
+  "What should we improve for AI readability?",
+  "Does the page clearly explain the product or service?",
+  "What evidence is present or missing?",
+  "Is the next step obvious for a buyer?",
+  "What supplied metadata or structured information should be reviewed?",
+]);
+
 const normalizeTheoVisibleText = (value = "") => String(value)
   .replace(/(?:&#(?:x(?:09|0a|0d|20|a0)|(?:9|10|13|32|160));|&nbsp;)/gi, " ");
 

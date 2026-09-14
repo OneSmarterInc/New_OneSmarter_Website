@@ -4,6 +4,9 @@ import {
   createMiraRateLimitStore,
 } from "../mira/miraRateLimitStore.js";
 import { runOpenAiMiraAdapter } from "../mira/openAiAdapter.js";
+import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
+import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
+import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmarterPublicKb.js";
 import { readTheoRuntimeConfig } from "./theoRuntimeConfig.js";
 import { runTheoLocalAnalysis, formatTheoVisitorAnswer, normalizeTheoAnalysisForVisitor } from "./theoLocalEngine.js";
 import { buildTheoPromptPayload } from "./theoPromptContract.js";
@@ -29,6 +32,77 @@ export const containsTheoPrivatePatientData = (value = "") => {
   const content = String(value);
   return PHI_SHAPED_FIELDS.test(content) || PATIENT_CONTEXT_WITH_NAME.test(content);
 };
+
+export const THEO_SEMANTIC_TOPICS = Object.freeze([
+  "theo-professional-role",
+  "professional-agent-role-directory",
+  "supplied-content-buyer-understanding",
+  "supplied-content-clarity",
+  "supplied-content-evidence",
+  "supplied-content-missing-information",
+  "supplied-content-next-step",
+  "supplied-content-metadata",
+  "supplied-content-ai-readability",
+  "supplied-content-comparison",
+  "outside-theo-scope",
+]);
+
+const THEO_ANALYSIS_TOPICS = new Set(THEO_SEMANTIC_TOPICS.filter((topic) =>
+  topic.startsWith("supplied-content-")));
+const THEO_ROLE_TOPICS = new Set(["theo-professional-role", "professional-agent-role-directory"]);
+const professionalAgentSource = onesmarterPublicKnowledgeBase.find(({ id }) => id === "ai-agentic-services");
+export const THEO_APPROVED_ROLE_FACTS = Object.freeze((professionalAgentSource?.sourceFacts || [])
+  .filter((fact) => /^(?:Mira Vale|Theo Mercer|Elena Cross|Ravi Sen|Selene Hart)\b/.test(fact)));
+
+const analysisResult = ({ overallAssessment, clarificationNeeded = false, clarificationQuestion = null,
+  evidenceStatus = "insufficient", analysisFocus = "scope" }) => ({
+  overallAssessment,
+  strengths: [],
+  findings: [],
+  recommendations: [],
+  clarificationNeeded,
+  clarificationQuestion,
+  evidenceStatus,
+  analysisFocus,
+});
+
+const roleAnalysis = (semanticIntent) => {
+  const facts = semanticIntent.topic === "theo-professional-role"
+    ? THEO_APPROVED_ROLE_FACTS.filter((fact) => fact.startsWith("Theo Mercer"))
+    : THEO_APPROVED_ROLE_FACTS;
+  return {
+    ...analysisResult({
+      overallAssessment: facts.join(" "),
+      evidenceStatus: "approved_professional_role",
+      analysisFocus: semanticIntent.topic,
+    }),
+    strengths: facts,
+  };
+};
+
+const scopeAnalysis = (semanticIntent) => analysisResult({
+  overallAssessment: "That request is outside Theo's supplied-content analysis role.",
+  clarificationNeeded: true,
+  clarificationQuestion: "Provide public website or page content and ask about its clarity, buyer understanding, claims and evidence, supplied metadata, AI readability, or improvements.",
+  evidenceStatus: "outside_scope",
+  analysisFocus: semanticIntent?.topic || "outside-theo-scope",
+});
+
+const missingContentAnalysis = (semanticIntent) => analysisResult({
+  overallAssessment: "Theo needs the public website or page content before he can make a supported analysis.",
+  clarificationNeeded: true,
+  clarificationQuestion: "Please paste the public page text, headings, calls to action, and any metadata you want Theo to analyze.",
+  evidenceStatus: "insufficient",
+  analysisFocus: semanticIntent?.topic || "supplied-content-analysis",
+});
+
+const ambiguousIntentAnalysis = (semanticIntent) => analysisResult({
+  overallAssessment: "Theo needs a little more detail to understand which part of the supplied content you want reviewed.",
+  clarificationNeeded: true,
+  clarificationQuestion: "Which claim, section, comparison, or earlier observation should Theo analyze?",
+  evidenceStatus: "insufficient",
+  analysisFocus: semanticIntent?.topic || "clarification",
+});
 
 const parseBody = (body) => typeof body === "string" ? JSON.parse(body) : (body || {});
 const headerValue = (headers, key) => Object.entries(headers || {})
@@ -74,16 +148,95 @@ export const runTheoResponseAdapter = async ({
   verbosityBand = "normal",
   config = readTheoRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
+  intentProvider,
 } = {}) => {
   const localAnalysis = runTheoLocalAnalysis({ message, websiteContent });
-  if (config.mode !== "staging_llm" || localAnalysis.clarificationNeeded) {
+  if (config.mode !== "staging_llm") {
     return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: false, fallbackReason: "" };
   }
   if (config.provider !== "openai" || !config.providerConfigComplete) {
     return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
 
-  const promptPayload = buildTheoPromptPayload({ message, websiteContent, conversationHistory, verbosityBand });
+  let providerIntent = null;
+  const semanticResolution = await resolveAgentIntent({
+    agentIdentity: AGENT,
+    message,
+    conversationHistory,
+    allowedDomains: ["supplied_content_analysis", "agent_role_information"],
+    inputGuard: async () => ({
+      ok: message.length <= THEO_MESSAGE_LIMIT && websiteContent.length <= THEO_CONTENT_LIMIT &&
+        !containsTheoPrivatePatientData(`${message}\n${websiteContent}`),
+      error: containsTheoPrivatePatientData(`${message}\n${websiteContent}`)
+        ? "private_patient_content"
+        : message.length > THEO_MESSAGE_LIMIT ? "message_too_long" : "website_content_too_long",
+    }),
+    provider: async (request) => {
+      const theoRequest = {
+        ...request,
+        system: `${request.system} The suppliedContentContext field is separate current-request context: when available is true, it is the object being analyzed and references to the page/content may resolve to it rather than conversation history. Choose topic from the strict Theo topic enum. Use a supplied-content topic only when the visitor asks to examine content they provided. Use a role topic only for Theo's professional role or the approved professional-agent directory. Otherwise use outside-theo-scope. Interpret the request without deciding what the supplied page proves.`,
+        outputSchema: {
+          ...request.outputSchema,
+          properties: {
+            ...request.outputSchema.properties,
+            topic: { ...request.outputSchema.properties.topic, enum: [...THEO_SEMANTIC_TOPICS] },
+          },
+        },
+        input: {
+          ...request.input,
+          suppliedContentContext: {
+            available: Boolean(websiteContent.trim()),
+            evidenceType: "visitor_supplied_public_page",
+            objectOfAnalysis: Boolean(websiteContent.trim()),
+          },
+          agentContext: {
+            ...request.input.agentContext,
+            supportedTopicLabels: THEO_SEMANTIC_TOPICS,
+          },
+        },
+      };
+      const result = intentProvider
+        ? await intentProvider(theoRequest)
+        : await runOpenAiAgentIntentProvider(theoRequest, { config });
+      providerIntent = result?.intent || null;
+      return result;
+    },
+  });
+  if (!semanticResolution.ok) {
+    return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: semanticResolution.error };
+  }
+
+  const semanticIntent = websiteContent.trim() &&
+    THEO_ANALYSIS_TOPICS.has(semanticResolution.intent.topic) &&
+    providerIntent
+    ? {
+        ...semanticResolution.intent,
+        confidence: providerIntent.confidence,
+        clarificationNeeded: providerIntent.clarificationNeeded,
+      }
+    : semanticResolution.intent;
+  if (!semanticResolution.domainAllowed || semanticIntent.topic === "outside-theo-scope") {
+    return { analysis: scopeAnalysis(semanticIntent), mode: "local_analysis", fallbackUsed: false, fallbackReason: "", semanticIntent };
+  }
+  if (semanticIntent.clarificationNeeded) {
+    return { analysis: ambiguousIntentAnalysis(semanticIntent), mode: "local_analysis", fallbackUsed: false, fallbackReason: "", semanticIntent };
+  }
+  const isRoleRequest = THEO_ROLE_TOPICS.has(semanticIntent.topic);
+  if (!isRoleRequest && (!THEO_ANALYSIS_TOPICS.has(semanticIntent.topic) || !websiteContent.trim())) {
+    return { analysis: missingContentAnalysis(semanticIntent), mode: "local_analysis", fallbackUsed: false, fallbackReason: "", semanticIntent };
+  }
+  const semanticLocalAnalysis = isRoleRequest
+    ? roleAnalysis(semanticIntent)
+    : runTheoLocalAnalysis({ message, websiteContent, semanticIntent });
+  const approvedRoleFacts = isRoleRequest ? THEO_APPROVED_ROLE_FACTS : [];
+  const promptPayload = buildTheoPromptPayload({
+    message,
+    websiteContent,
+    conversationHistory,
+    verbosityBand,
+    semanticIntent,
+    approvedRoleFacts,
+  });
   const providerResult = await providerAdapter({
     message,
     conversationId,
@@ -92,19 +245,24 @@ export const runTheoResponseAdapter = async ({
     riskFlags: [], promptPayload, config,
   });
   if (providerResult.error || !providerResult.modelOutput) {
-    return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: providerResult.error || "provider_error" };
+    return { analysis: semanticLocalAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: providerResult.error || "provider_error", semanticIntent };
   }
   let parsedAnalysis;
   try {
     parsedAnalysis = JSON.parse(providerResult.modelOutput.answer);
   } catch {
-    return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: "malformed_theo_analysis_json" };
+    return { analysis: semanticLocalAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: "malformed_theo_analysis_json", semanticIntent };
   }
-  const validation = validateTheoModelOutput(parsedAnalysis, { websiteContent, fallbackAnalysis: localAnalysis });
+  const validation = validateTheoModelOutput(parsedAnalysis, {
+    websiteContent,
+    approvedRoleFacts,
+    fallbackAnalysis: semanticLocalAnalysis,
+    evidenceStatus: isRoleRequest ? "approved_professional_role" : "supplied_content_only",
+  });
   if (!validation.valid) {
-    return { analysis: localAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}` };
+    return { analysis: semanticLocalAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}`, semanticIntent };
   }
-  return { analysis: validation.correctedOutput, mode: "staging_llm", fallbackUsed: false, fallbackReason: "" };
+  return { analysis: validation.correctedOutput, mode: "staging_llm", fallbackUsed: false, fallbackReason: "", semanticIntent };
 };
 
 export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}, rateLimitStore, agentStateStore = sharedAgentStateStore, isRequestAborted = () => false, now = new Date(), responseAdapter = runTheoResponseAdapter } = {}) => {
@@ -124,9 +282,8 @@ export const handleTheoChatRequest = async ({ method = "GET", body, headers = {}
   const websiteContent = typeof parsed.websiteContent === "string" ? parsed.websiteContent.trim() : "";
   if (!message) return errorResult(400, "missing_message", "message is required and must not be empty.", requestId);
   if (message.length > THEO_MESSAGE_LIMIT) return errorResult(413, "message_too_long", `message must be ${THEO_MESSAGE_LIMIT} characters or fewer.`, requestId);
-  if (!websiteContent) return errorResult(400, "missing_website_content", "websiteContent is required and must not be empty.", requestId);
   if (websiteContent.length > THEO_CONTENT_LIMIT) return errorResult(413, "website_content_too_long", "The supplied page content is too large to analyze. Reduce it to the relevant public page text and try again.", requestId);
-  if (containsTheoPrivatePatientData(websiteContent)) return errorResult(400, "private_patient_content", THEO_PRIVATE_CONTENT_MESSAGE, requestId);
+  if (containsTheoPrivatePatientData(`${message}\n${websiteContent}`)) return errorResult(400, "private_patient_content", THEO_PRIVATE_CONTENT_MESSAGE, requestId);
   const history = normalizeTheoConversationHistory(parsed.conversationHistory);
   if (!history.ok) return errorResult(history.error.includes("too_long") ? 413 : 400, history.error, history.message, requestId);
 

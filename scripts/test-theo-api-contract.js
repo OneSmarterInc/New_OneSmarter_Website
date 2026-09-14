@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { handleTheoChatRequest, runTheoResponseAdapter, THEO_CONTENT_LIMIT, THEO_HISTORY_LIMIT } from "../src/server/theo/theoResponseAdapter.js";
+import { handleTheoChatRequest, runTheoResponseAdapter, THEO_CONTENT_LIMIT, THEO_HISTORY_LIMIT, THEO_MESSAGE_LIMIT } from "../src/server/theo/theoResponseAdapter.js";
+import { readTheoRuntimeConfig } from "../src/server/theo/theoRuntimeConfig.js";
+
+assert.equal(readTheoRuntimeConfig({ MIRA_LLM_TIMEOUT_MS: "8000" }).timeoutMs, 15000);
+assert.equal(readTheoRuntimeConfig({ THEO_LLM_TIMEOUT_MS: "9000" }).timeoutMs, 9000);
+assert.equal(readTheoRuntimeConfig({ MIRA_LLM_MAX_TOKENS: "600" }).maxTokens, 1200);
+assert.equal(readTheoRuntimeConfig({ THEO_LLM_MAX_TOKENS: "900" }).maxTokens, 900);
 
 const content = `# Analytics Service
 Our service helps teams explain page purpose and organize information with clear headings.
@@ -29,6 +35,10 @@ assert.equal(oversized.status, 413);
 assert.equal(oversized.body.error, "website_content_too_long");
 assert.match(oversized.body.message, /too large.*reduce/i);
 assert.equal(analysisInvocations, 1, "Oversized content must be rejected before analysis/provider invocation");
+const oversizedMessage = await post({ message: "Q".repeat(THEO_MESSAGE_LIMIT + 1), websiteContent: content }, { responseAdapter: countingAdapter });
+assert.equal(oversizedMessage.status, 413);
+assert.equal(oversizedMessage.body.error, "message_too_long");
+assert.equal(analysisInvocations, 1, "Oversized questions must be rejected before semantic or answer generation");
 
 const privatePatientContent = `Patient record\nName: Jane Doe\nDOB: 03/14/1981\nClaim Number: CLM-12345678`;
 const privatePatient = await post({ message: "Analyze", websiteContent: privatePatientContent }, { responseAdapter: countingAdapter });
@@ -37,6 +47,11 @@ assert.equal(privatePatient.body.error, "private_patient_content");
 assert.match(privatePatient.body.message, /private or patient-related information/i);
 assert.doesNotMatch(JSON.stringify(privatePatient.body), /Jane Doe|03\/14\/1981|CLM-12345678/);
 assert.equal(analysisInvocations, 1, "PHI-shaped content must be rejected before analysis/provider invocation");
+const privatePatientQuestion = await post({ message: "Review MRN: MRN-123456", websiteContent: content }, { responseAdapter: countingAdapter });
+assert.equal(privatePatientQuestion.status, 400);
+assert.equal(privatePatientQuestion.body.error, "private_patient_content");
+assert.doesNotMatch(JSON.stringify(privatePatientQuestion.body), /MRN-123456/);
+assert.equal(analysisInvocations, 1, "PHI-shaped questions must be rejected before semantic or answer generation");
 
 const directInjection = await post({
   message: "Analyze this supplied page for AI readability and buyer clarity.",
@@ -64,7 +79,10 @@ assert.equal(markerEscape.body.analysis.clarificationNeeded, false);
 assert.doesNotMatch(JSON.stringify(markerEscape.body), /<<<SUPPLIED_CONTENT_(?:START|END)>>>|ignore previous instructions|OneSmarter is ISO 27001 certified|&#x20;/i);
 
 assert.equal((await post({ websiteContent: content })).status, 400);
-assert.equal((await post({ message: "Analyze", websiteContent: "" })).status, 400);
+const noContent = await post({ message: "Analyze", websiteContent: "" });
+assert.equal(noContent.status, 200);
+assert.equal(noContent.body.analysis.clarificationNeeded, true);
+assert.match(noContent.body.analysis.clarificationQuestion, /supply|paste/i);
 assert.equal((await post("{" )).body.error, "invalid_json");
 const insufficient = await post({ message: "Analyze", websiteContent: "Too little content." });
 assert.equal(insufficient.body.analysis.clarificationNeeded, true);
@@ -79,13 +97,20 @@ assert.equal((await post({ message: "Analyze", websiteContent: content }, { rate
 assert.equal((await post({ message: "Analyze", websiteContent: content }, { rateLimitStore: rateStore })).status, 429);
 
 const liveConfig = { mode: "staging_llm", provider: "openai", providerConfigComplete: true, model: "test", apiKeyConfigured: true, apiKey: "test", timeoutMs: 100, maxTokens: 300, temperature: 0.2 };
-const providerSuccess = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, providerAdapter: async () => ({ error: "", modelOutput: { answer: JSON.stringify(valid.body.analysis) } }) });
+const semanticIntent = {
+  domain: "supplied_content_analysis", topic: "supplied-content-clarity", entities: ["supplied page"],
+  proposition: "The supplied page is clear", polarity: "positive", negationScope: [],
+  questionType: "status", speechAct: "question", requestedDetail: "page clarity",
+  followUpReferences: [], confidence: 0.98, clarificationNeeded: false, mentionedNames: [],
+};
+const intentProvider = async () => ({ intent: semanticIntent });
+const providerSuccess = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "", modelOutput: { answer: JSON.stringify(valid.body.analysis) } }) });
 assert.equal(providerSuccess.mode, "staging_llm");
 assert.equal(providerSuccess.fallbackUsed, false);
-const failedProvider = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, providerAdapter: async () => ({ error: "provider_timeout", modelOutput: null }) });
+const failedProvider = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "provider_timeout", modelOutput: null }) });
 assert.equal(failedProvider.fallbackUsed, true);
 assert.equal(failedProvider.fallbackReason, "provider_timeout");
-const malformedProvider = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, providerAdapter: async () => ({ error: "", modelOutput: { answer: "not-json" } }) });
+const malformedProvider = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "", modelOutput: { answer: "not-json" } }) });
 assert.equal(malformedProvider.fallbackUsed, true);
 assert.equal(malformedProvider.fallbackReason, "malformed_theo_analysis_json");
 

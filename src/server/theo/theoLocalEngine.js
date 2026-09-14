@@ -47,6 +47,20 @@ const REQUEST_FOCUS_RULES = [
 export const classifyTheoAnalysisFocus = (message = "") =>
   REQUEST_FOCUS_RULES.find(([, pattern]) => pattern.test(message))?.[0] || "general_analysis";
 
+const SEMANTIC_ANALYSIS_FOCUS = Object.freeze({
+  "supplied-content-buyer-understanding": "buyer_understanding",
+  "supplied-content-clarity": "ambiguous_language",
+  "supplied-content-evidence": "evidence_review",
+  "supplied-content-missing-information": "missing_buyer_information",
+  "supplied-content-next-step": "buyer_understanding",
+  "supplied-content-metadata": "ai_readability",
+  "supplied-content-ai-readability": "ai_readability",
+  "supplied-content-comparison": "comparison",
+});
+
+export const resolveTheoAnalysisFocus = ({ message = "", semanticIntent = null } = {}) =>
+  SEMANTIC_ANALYSIS_FOCUS[semanticIntent?.topic] || classifyTheoAnalysisFocus(message);
+
 const requestedUnsupportedFacts = (message = "") => {
   const facts = [];
   if (/\b(?:iso|certif)/i.test(message)) facts.push("ISO certification");
@@ -85,10 +99,10 @@ const unsupportedFactAnalysis = (facts, content) => {
   };
 };
 
-export const runTheoLocalAnalysis = ({ message = "", websiteContent = "" } = {}) => {
+export const runTheoLocalAnalysis = ({ message = "", websiteContent = "", semanticIntent = null } = {}) => {
   const content = normalizeTheoText(removeTheoInstructionShapedLines(websiteContent)).trim();
-  const focus = classifyTheoAnalysisFocus(message);
-  const requestedFacts = requestedUnsupportedFacts(message);
+  const focus = resolveTheoAnalysisFocus({ message, semanticIntent });
+  const requestedFacts = semanticIntent ? [] : requestedUnsupportedFacts(message);
   if (content && requestedFacts.length) {
     const unsupported = unsupportedFactAnalysis(requestedFacts, content);
     if (unsupported) return unsupported;
@@ -180,6 +194,10 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "" } = {})
 
   if (focus === "ai_buyer_clarity") {
     addAiReadability(); addBuyerDetails(); addVagueLanguage();
+  } else if (focus === "evidence_review") {
+    addOfferingCheck(); addBuyerDetails(); addVagueLanguage();
+  } else if (focus === "comparison") {
+    addOfferingCheck(); addBuyerDetails(); addAiReadability();
   } else if (focus === "buyer_understanding" || focus === "missing_buyer_information") {
     addOfferingCheck(); addBuyerDetails(); addVagueLanguage();
   } else if (focus === "ambiguous_language" || focus === "generic_marketing") {
@@ -199,7 +217,11 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "" } = {})
         ? vagueTerms.length ? "The service description relies on vague promotional language that prevents a precise understanding of the offering." : "The supplied service language is reasonably specific, with no common promotional superlatives detected."
         : focus === "ai_readability"
           ? findings.some(({ priority }) => priority === "high") ? "AI search systems may struggle to identify one or more core entities or relationships in the supplied page content." : "The supplied content exposes the core company, service, and audience relationships reasonably clearly for AI interpretation."
-          : findings.some(({ priority }) => priority === "high") ? "The supplied page content has material clarity gaps." : "The supplied page content is reasonably interpretable, with focused opportunities to improve decision usefulness.",
+          : focus === "comparison"
+            ? "The supplied content can be compared only on the attributes it explicitly provides; omitted attributes cannot be inferred."
+            : focus === "evidence_review"
+              ? "The supplied content supports only the observations and page claims identified from its text; it does not independently verify those claims."
+              : findings.some(({ priority }) => priority === "high") ? "The supplied page content has material clarity gaps." : "The supplied page content is reasonably interpretable, with focused opportunities to improve decision usefulness.",
     strengths, findings, recommendations, clarificationNeeded: false,
     clarificationQuestion: null, evidenceStatus: "supplied_content_only", analysisFocus: focus,
   };

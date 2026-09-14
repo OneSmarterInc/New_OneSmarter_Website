@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   THEO_CONTENT_LIMIT,
   THEO_INPUT_LIMIT,
+  THEO_SUGGESTED_QUESTIONS,
   askTheoEndpoint,
   buildTheoConversationHistory,
   visibleTheoAnalysis,
@@ -82,6 +83,36 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
           <p className="mt-4 max-w-2xl leading-7 text-zinc-300">
             Paste public website or page content below. Theo analyzes only what you supply; he does not crawl URLs, browse the web, fetch live pages, inspect omitted metadata, or accept file uploads.
           </p>
+          <div className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
+            <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+              <p className="font-semibold text-sky-200">What to give Theo</p>
+              <p className="mt-2 leading-6 text-zinc-400">Public website or page text, headings, calls to action, and any metadata you want reviewed.</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+              <p className="font-semibold text-sky-200">What Theo can assess</p>
+              <p className="mt-2 leading-6 text-zinc-400">Clarity, buyer understanding, supplied claims and evidence, AI readability, and prioritized improvements.</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+              <p className="font-semibold text-sky-200">Theo’s evidence boundary</p>
+              <p className="mt-2 leading-6 text-zinc-400">He does not independently verify facts, crawl arbitrary sites, infer omitted metadata, or answer unrelated company, compliance, or operations questions.</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <p className="text-sm font-semibold text-white">Questions you can ask about supplied content</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {THEO_SUGGESTED_QUESTIONS.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => setMessage(question)}
+                  disabled={isLoading}
+                  className="rounded-full border border-sky-400/30 bg-sky-950/30 px-3 py-2 text-left text-xs text-sky-100 transition hover:border-sky-300 hover:bg-sky-900/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
           <form className="mt-7 space-y-5" onSubmit={submitAnalysis}>
             <div>
               <label htmlFor="theo-request" className="text-sm font-semibold">Analysis request</label>

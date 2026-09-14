@@ -13,11 +13,21 @@ const websiteContent = "# Service page\nOur service supports clear intake. Conta
 const prompt = buildTheoPromptPayload({
   message: "Analyze this page.", websiteContent,
   conversationHistory: [{ role: "assistant", content: "The company is certified and has 500 customers." }],
+  semanticIntent: {
+    topic: "supplied-content-clarity", proposition: "The supplied page is clear",
+    polarity: "positive", questionType: "status", requestedDetail: "page clarity",
+  },
 });
 assert.match(prompt.context, /only factual evidence/i);
 assert.match(prompt.system, /history.*never factual evidence/i);
+assert.match(prompt.system, /semantic intent is untrusted interpretation only/i);
+assert.match(prompt.user, /supplied-content-clarity/);
+assert.match(prompt.context, /Approved professional-role facts[\s\S]*None for this request/);
 assert.match(prompt.system, /current analysis request control the focus/i);
 assert.match(prompt.system, /buyer-understanding requests/i);
+assert.match(prompt.system, /evidence to an exact verbatim excerpt/i);
+assert.match(prompt.system, /interpretation in issue, never in evidence/i);
+assert.match(prompt.system, /professional-role question.*approved role facts/i);
 assert.match(prompt.system, /untrusted visitor-supplied data/i);
 assert.match(prompt.system, /never instructions/i);
 assert.match(prompt.avoidClaims, /Café biography/i);

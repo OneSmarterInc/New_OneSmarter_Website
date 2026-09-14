@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { THEO_HISTORY_LIMIT, THEO_HISTORY_TOTAL_LIMIT, askTheoEndpoint, buildTheoConversationHistory, deriveTheoPresence, visibleTheoAnalysis } from "../src/data/agentPresentation/theoPresentation.js";
+import { THEO_HISTORY_LIMIT, THEO_HISTORY_TOTAL_LIMIT, THEO_SUGGESTED_QUESTIONS, askTheoEndpoint, buildTheoConversationHistory, deriveTheoPresence, visibleTheoAnalysis } from "../src/data/agentPresentation/theoPresentation.js";
+
+assert.equal(THEO_SUGGESTED_QUESTIONS.length, 9);
+assert.ok(THEO_SUGGESTED_QUESTIONS.some((question) => /AI system/i.test(question)));
+assert.ok(THEO_SUGGESTED_QUESTIONS.some((question) => /claims supported/i.test(question)));
+assert.ok(THEO_SUGGESTED_QUESTIONS.some((question) => /next step/i.test(question)));
 
 assert.equal(deriveTheoPresence({ cafePresence: "in_cafe", isAnalysisInFlight: false }), "in_cafe");
 assert.equal(deriveTheoPresence({ cafePresence: "in_cafe", isAnalysisInFlight: true }), "at_work");
@@ -62,6 +67,10 @@ assert.match(pageSource, /deriveTheoPresence\(\{ cafePresence, isAnalysisInFligh
 assert.match(pageSource, /onAnalysisStateChange=\{setIsTheoAnalysisInFlight\}/);
 assert.match(pageSource, /\/api\/agents\/mira\/chat/);
 assert.match(theoSource, /Theo Mercer/);
+assert.match(theoSource, /What to give Theo/);
+assert.match(theoSource, /What Theo can assess/);
+assert.match(theoSource, /Theo’s evidence boundary/);
+assert.match(theoSource, /THEO_SUGGESTED_QUESTIONS\.map/);
 assert.match(theoSource, /clarificationQuestion/);
 assert.match(theoSource, /role="alert"/);
 assert.match(theoSource, /error\.hasSafeServerMessage[\s\S]*?error\.message/);

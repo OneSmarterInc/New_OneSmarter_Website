@@ -1,4 +1,5 @@
 import { isTheoInstructionShapedContent, normalizeTheoText } from "./theoLocalEngine.js";
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
 
 const PRIORITIES = new Set(["high", "medium", "low"]);
 const INTERNAL_LEAK = /\b(?:system prompt|developer message|internal instructions?|runtime metadata|retrieval result|matched sources?|api key|secret|cafe persona|generation notes)\b/i;
@@ -18,7 +19,12 @@ const validFinding = (item) => item && nonEmpty(item.area) && nonEmpty(item.issu
 const validRecommendation = (item) => item && nonEmpty(item.action) && nonEmpty(item.reason)
   && PRIORITIES.has(item.priority);
 
-export const validateTheoModelOutput = (output, { websiteContent = "", fallbackAnalysis } = {}) => {
+export const validateTheoModelOutput = (output, {
+  websiteContent = "",
+  approvedRoleFacts = [],
+  fallbackAnalysis,
+  evidenceStatus = "supplied_content_only",
+} = {}) => {
   const violations = [];
   if (!output || typeof output !== "object" || Array.isArray(output)) violations.push("invalid_shape");
   if (!nonEmpty(output?.overallAssessment)) violations.push("missing_overall_assessment");
@@ -33,7 +39,7 @@ export const validateTheoModelOutput = (output, { websiteContent = "", fallbackA
   if (INTERNAL_LEAK.test(visitorText)) violations.push("internal_instruction_leak");
   if (UNSUPPORTED_ACTIVITY.test(visitorText)) violations.push("unsupported_external_activity");
 
-  const evidenceText = normalize(websiteContent);
+  const evidenceText = normalize([websiteContent, ...approvedRoleFacts].filter(Boolean).join("\n"));
   const normalizedVisitorText = normalize(visitorText);
   if (GUARDED_FACT_TERMS.some((term) => normalizedVisitorText.includes(term) && !evidenceText.includes(term))) {
     violations.push("unsupported_factual_inference");
@@ -41,6 +47,26 @@ export const validateTheoModelOutput = (output, { websiteContent = "", fallbackA
   if (UNATTRIBUTED_ONESMARTER_CLAIM.test(visitorText) && !SUPPLIED_CONTENT_ATTRIBUTION.test(visitorText)) {
     violations.push("unattributed_supplied_claim");
   }
+  const roleEvidence = approvedRoleFacts.length ? [{
+    id: "professional-agent-role-directory",
+    title: "Approved professional agent roles",
+    approvedSummary: approvedRoleFacts.join(" "),
+    sourceFacts: approvedRoleFacts,
+    allowedClaims: approvedRoleFacts,
+    requiredQualifications: [],
+    disallowedClaims: [],
+    unsupportedExtensions: [],
+  }] : [];
+  const roleNarrative = [
+    output?.overallAssessment,
+    ...(output?.strengths || []),
+    ...(output?.findings || []).flatMap(({ issue, evidence }) => [issue, evidence]),
+    ...(output?.recommendations || []).flatMap(({ action, reason }) => [action, reason]),
+  ].filter(Boolean).join(" ");
+  const roleGrounding = roleEvidence.length
+    ? verifyAgentAnswerGrounding({ answer: roleNarrative, approvedEntries: roleEvidence })
+    : null;
+  if (roleGrounding && !roleGrounding.grounded) violations.push(...roleGrounding.violations);
   for (const item of output?.findings || []) {
     if (isTheoInstructionShapedContent(item.evidence)) {
       violations.push("instruction_shaped_evidence");
@@ -49,7 +75,7 @@ export const validateTheoModelOutput = (output, { websiteContent = "", fallbackA
     const evidence = normalize(item.evidence);
     const absenceObservation = /\b(?:not supplied|no .* supplied|does not (?:state|provide|include)|word|words)\b/i.test(item.evidence);
     const comparableEvidence = evidence.replace(/…$/, "").trim();
-    if (comparableEvidence && !absenceObservation && !evidenceText.includes(comparableEvidence)) {
+    if (comparableEvidence && !absenceObservation && !evidenceText.includes(comparableEvidence) && !roleGrounding?.grounded) {
       violations.push("finding_evidence_not_supplied");
       break;
     }
@@ -77,7 +103,7 @@ export const validateTheoModelOutput = (output, { websiteContent = "", fallbackA
       clarificationQuestion: output.clarificationQuestion === null
         ? null
         : cleanVisitorText(output.clarificationQuestion),
-      evidenceStatus: "supplied_content_only",
+      evidenceStatus,
     },
   };
 };
