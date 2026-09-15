@@ -761,6 +761,7 @@ const AgentNetwork = () => (
 
 const AgentCard = ({ agent }) => {
   const isInCafe = agent.presence === "in_cafe";
+  const isMira = agent.name === "Mira Vale";
   const isTheo = agent.name === "Theo Mercer";
   const isElena = agent.name === "Elena Cross";
   const isRavi = agent.name === "Ravi Sen";
@@ -811,6 +812,11 @@ const AgentCard = ({ agent }) => {
           </span>
         ))}
       </div>
+      {isMira && (
+        <a href="#mira-professional-guide" className="mt-6 inline-flex w-fit rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+          Open Mira
+        </a>
+      )}
       {isTheo && (
         <a href="#theo-professional-analysis" className="mt-6 inline-flex w-fit rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600">
           Open Theo
@@ -1882,7 +1888,7 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <section className="bg-zinc-950 px-4 py-16 sm:px-6 md:px-8 xl:px-10">
+      <section id="mira-professional-guide" className="scroll-mt-24 bg-zinc-950 px-4 py-16 sm:px-6 md:px-8 xl:px-10">
         <div className="qa-container-wide mx-auto min-w-0 max-w-full overflow-x-hidden rounded-xl border border-white/10 bg-[#090909] shadow-sm">
           <div className="min-w-0 max-w-full border-b border-white/10 px-4 py-6 text-white sm:px-5 md:px-8 md:py-8">
             <h2 className="text-2xl font-bold md:text-4xl">

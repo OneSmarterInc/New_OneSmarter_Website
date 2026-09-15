@@ -20,6 +20,13 @@ const aiAgentsPageSource = fs
   .readFileSync("src/components/AiAgentsPage.jsx", "utf8")
   .replace(/\r\n/g, "\n");
 if (
+  !/href="#mira-professional-guide"/.test(aiAgentsPageSource) ||
+  !/>\s*Open Mira\s*</.test(aiAgentsPageSource) ||
+  !/id="mira-professional-guide"/.test(aiAgentsPageSource)
+) {
+  fail("mira-card-navigation: expected Open Mira to target the existing professional conversation panel.");
+}
+if (
   !/threadEndRef\.current\?\.scrollIntoView\(\{[\s\S]*?block: "end"/.test(aiAgentsPageSource) ||
   /answerPanelRef\.current\?\.scrollIntoView\(\{[\s\S]*?block: "start"/.test(aiAgentsPageSource)
 ) {
