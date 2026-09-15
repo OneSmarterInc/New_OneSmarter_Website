@@ -2220,7 +2220,7 @@ export const runMiraResponseAdapter = async ({
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
       responseGuidance: localResult.contextualGeneralKnowledge
-        ? "Give a concise one- or two-sentence general explanation of the interpreted topic. State clearly that it is general information, not OneSmarter-specific information. Do not add current or time-sensitive facts, advice, citations, recommendations, or claims about OneSmarter. Set groundingStatus to insufficient_context and handoffNeeded to true."
+        ? "This is the narrowly authorized general-information path. Give a concise one- or two-sentence conventional dictionary-level explanation of the interpreted topic even though no OneSmarter evidence was retrieved. State clearly that it is general information, not OneSmarter-specific information. Do not add current or time-sensitive facts, professional advice, citations, recommendations, or claims about OneSmarter. Set groundingStatus to insufficient_context and handoffNeeded to true."
         : localResult.premiseCheck?.corrections?.length
         ? "Begin with the supplied grounded premise correction, then answer the useful underlying request. Do not accept the corrected premise elsewhere in the response."
         : localResult.entityFocusHandled

@@ -82,8 +82,24 @@ export const runSeleneLocalEngine = ({ message = "", semanticIntent = null, verb
     ? [message, semanticIntent.proposition, semanticIntent.requestedDetail, ...(semanticIntent.entities || [])].filter(Boolean).join(" ")
     : message;
   const evaluated = evaluateSeleneClaim(evaluationText);
+  const semanticRecommendationBoundary = semanticIntent?.questionType === "recommendation_request"
+    ? {
+        status: SELENE_CLAIM_STATUSES.HANDOFF_UNSUPPORTED,
+        reason: "Individualized agent selection and customer architecture require human discovery and judgment.",
+        ruleId: "semantic-customer-specific-strategy",
+        approvedAlternative: "Selene can explain OneSmarter's approved agent architecture, but cannot choose or design a customer-specific architecture. Contact care@onesmarter.com for a scoped human review.",
+      }
+    : null;
+  const semanticOrchestrationBoundary = ids.includes("current-orchestration-vs-future-collaboration")
+    ? {
+        status: SELENE_CLAIM_STATUSES.ANSWER_WITH_QUALIFICATION,
+        reason: "Autonomous agent-to-agent production delegation is not currently implemented.",
+        ruleId: "approved-current-orchestration-boundary",
+        approvedAlternative: `Autonomous agent-to-agent production delegation or messaging is not currently implemented. ${matched[0].approvedSummary}`,
+      }
+    : null;
   const semanticLiveAction = semanticIntent?.domain === "live_system_action" && matched.length;
-  const evaluation = semanticLiveAction
+  const evaluation = semanticRecommendationBoundary || semanticOrchestrationBoundary || (semanticLiveAction
     ? {
         status: SELENE_CLAIM_STATUSES.HANDOFF_UNSUPPORTED,
         reason: "Selene's approved professional-role evidence does not establish live access to or action in visitor or customer systems.",
@@ -92,7 +108,7 @@ export const runSeleneLocalEngine = ({ message = "", semanticIntent = null, verb
       }
     : semanticIntent && matched.length && evaluated.ruleId === "outside-approved-selene-slice"
     ? { status: SELENE_CLAIM_STATUSES.ANSWER, reason: "Validated semantic topic matched approved Selene evidence.", ruleId: "approved-semantic-topic", approvedAlternative: matched[0].approvedSummary }
-    : evaluated;
+    : evaluated);
 
   if (semanticIntent && matched.length) return result({
     answer: intentFallback(semanticIntent, evaluation, matched),

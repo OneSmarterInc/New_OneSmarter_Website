@@ -18,6 +18,11 @@ const AGENT = "Selene Hart";
 const ENDPOINT = "/api/agents/selene/chat";
 const fallbackRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
 const seleneIntentTopics = seleneApprovedKnowledge.map(({ id, title }) => ({ id, title }));
+const seleneSemanticTopicLabels = [
+  ...seleneIntentTopics.map(({ title }) => title),
+  "acknowledgement",
+  "outside-selene-scope",
+];
 const SENSITIVE = /\b(?:patient\s+name|date\s+of\s+birth|dob|claim\s+number|member\s+id|medical\s+record\s+number|mrn)\s*:\s*\S+|\b(?:aadhaar|aadhar)(?:\s+(?:number|no\.?))?\s*(?::|is)?\s*\d[\d\s-]{7,}|\b(?:api key|password|secret|access token|private key)\s*:\s*\S+/i;
 const UPLOAD_FIELDS = new Set(["file", "files", "upload", "uploads", "attachment", "attachments"]);
 
@@ -110,8 +115,15 @@ export const runSeleneResponseAdapter = async ({
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. Use domain live_system_action with Professional Agent Role Separation when the proposition asks whether a professional agent can access or act in a visitor or customer system. Classify semantic equivalents under an allowed domain even when vocabulary differs. A high-confidence conversational acknowledgement may use domain conversational_acknowledgement and topic acknowledgement; it does not need clarification. Meaningless input or a bare ambiguous entity needs clarification. Preserve the logical proposition exactly: a negative confirmation asks whether its negative proposition is correct, while an ordinary yes/no question asks whether its positive proposition is true. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. A plural or collective reference that clearly denotes the OneSmarter professional-agent system is not ambiguous merely because individual agent names are omitted; resolve it to the relevant approved architecture or orchestration topic. Still require clarification when the referent cannot be determined from the current proposition and bounded history. Use domain live_system_action with Professional Agent Role Separation when the proposition asks whether a professional agent can access or act in a visitor or customer system. Classify semantic equivalents under an allowed domain even when vocabulary differs. A high-confidence conversational acknowledgement may use domain conversational_acknowledgement and topic acknowledgement; it does not need clarification. Meaningless input or a bare ambiguous entity needs clarification. Preserve the logical proposition exactly: a negative confirmation asks whether its negative proposition is correct, while an ordinary yes/no question asks whether its positive proposition is true. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: seleneIntentTopics } },
+      outputSchema: {
+        ...request.outputSchema,
+        properties: {
+          ...request.outputSchema.properties,
+          topic: { ...request.outputSchema.properties.topic, enum: seleneSemanticTopicLabels },
+        },
+      },
     }, { config })),
   });
   if (!semanticResolution.ok) {
