@@ -115,7 +115,7 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
                   key={question}
                   type="button"
                   onClick={() => submitSuggestedQuestion(question)}
-                  disabled={isLoading || !websiteContent.trim()}
+                  disabled={isLoading}
                   className="min-h-11 max-w-full whitespace-normal break-words rounded-full border border-sky-400/30 bg-sky-950/30 px-3 py-2 text-left text-xs text-sky-100 transition hover:border-sky-300 hover:bg-sky-900/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {question}
