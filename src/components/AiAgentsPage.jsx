@@ -1277,7 +1277,8 @@ const MiraConversationPanel = () => {
 
   const handleQuestionClick = async (example, index) => {
     setSelectedIndex(index);
-    const answerRequest = requestMiraAnswer(example.question, example.id);
+    setCustomQuestion(example.question);
+    const answerRequest = requestMiraAnswer(example.question);
     guideToAnswerPanel();
     await answerRequest;
   };

@@ -13,7 +13,7 @@ const AnalysisList = ({ title, items, renderItem }) => items.length ? (
     <h4 className="text-sm font-semibold uppercase tracking-wide text-sky-300">{title}</h4>
     <ul className="mt-3 space-y-3">
       {items.map((item, index) => (
-        <li key={`${title}-${index}`} className="rounded-md border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-200">
+        <li key={`${title}-${index}`} className="min-w-0 break-words rounded-md border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-200">
           {renderItem(item)}
         </li>
       ))}
@@ -31,14 +31,14 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
   const [isLoading, setIsLoading] = useState(false);
   const analysis = visibleTheoAnalysis(response);
 
-  const submitAnalysis = async (event) => {
-    event.preventDefault();
-    const trimmedMessage = message.trim();
+  const runAnalysis = async (question) => {
+    const trimmedMessage = question.trim();
     const trimmedContent = websiteContent.trim();
     if (!trimmedMessage || !trimmedContent || isLoading) return;
     const history = buildTheoConversationHistory(conversationTurns);
     const userTurn = { role: "user", content: trimmedMessage };
     setConversationTurns((turns) => [...turns, userTurn]);
+    setResponse(null);
     setIsLoading(true);
     onAnalysisStateChange(true);
     setErrorMessage("");
@@ -65,6 +65,16 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
     }
   };
 
+  const submitAnalysis = async (event) => {
+    event.preventDefault();
+    await runAnalysis(message);
+  };
+
+  const submitSuggestedQuestion = async (question) => {
+    setMessage(question);
+    await runAnalysis(question);
+  };
+
   const startNewAnalysis = () => {
     setConversationTurns([]);
     setConversationId("");
@@ -75,9 +85,9 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
   };
 
   return (
-    <section id="theo-professional-analysis" className="scroll-mt-24 bg-slate-950 px-5 py-16 text-white md:px-12">
-      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <div>
+    <section id="theo-professional-analysis" className="min-w-0 max-w-full scroll-mt-24 overflow-x-hidden bg-slate-950 px-5 py-16 text-white md:px-12">
+      <div className="qa-container mx-auto grid min-w-0 gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wide text-sky-300">Professional agent</p>
           <h2 className="mt-3 text-2xl font-bold md:text-4xl">Ask Theo Mercer to analyze supplied page content</h2>
           <p className="mt-4 max-w-2xl leading-7 text-zinc-300">
@@ -104,9 +114,9 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
                 <button
                   key={question}
                   type="button"
-                  onClick={() => setMessage(question)}
-                  disabled={isLoading}
-                  className="rounded-full border border-sky-400/30 bg-sky-950/30 px-3 py-2 text-left text-xs text-sky-100 transition hover:border-sky-300 hover:bg-sky-900/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => submitSuggestedQuestion(question)}
+                  disabled={isLoading || !websiteContent.trim()}
+                  className="min-h-11 max-w-full whitespace-normal break-words rounded-full border border-sky-400/30 bg-sky-950/30 px-3 py-2 text-left text-xs text-sky-100 transition hover:border-sky-300 hover:bg-sky-900/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {question}
                 </button>
@@ -121,7 +131,7 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
                 value={message}
                 maxLength={THEO_INPUT_LIMIT}
                 onChange={(event) => setMessage(event.target.value)}
-                className="mt-2 min-h-24 w-full rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none focus:border-sky-400"
+                className="mt-2 min-h-24 w-full min-w-0 resize-y rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none focus:border-sky-400"
               />
               <p className="mt-1 text-xs text-zinc-500">{message.length}/{THEO_INPUT_LIMIT} characters</p>
             </div>
@@ -132,7 +142,7 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
                 value={websiteContent}
                 onChange={(event) => setWebsiteContent(event.target.value)}
                 placeholder="Paste page headings, body text, calls to action, and any metadata you want Theo to assess."
-                className="mt-2 min-h-64 w-full rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-sky-400"
+                className="mt-2 min-h-52 w-full min-w-0 resize-y rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-sky-400 sm:min-h-64"
               />
               <p className="mt-1 text-xs text-zinc-500">{websiteContent.length}/{THEO_CONTENT_LIMIT} characters</p>
             </div>
@@ -147,7 +157,7 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
           </form>
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5 md:p-7" aria-live="polite">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-white/10 bg-white/[0.04] p-5 md:p-7" aria-live="polite">
           <div className="flex items-center gap-4 border-b border-white/10 pb-5">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-700 text-sm font-bold">TM</div>
             <div><h3 className="font-semibold">Theo Mercer</h3><p className="text-sm text-zinc-400">AI readability and public website analysis</p></div>
@@ -157,7 +167,7 @@ const TheoAnalysisPanel = ({ onAnalysisStateChange = () => {} }) => {
           {errorMessage && <p className="mt-6 rounded-md border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-100" role="alert">{errorMessage}</p>}
           {response && (
             <div className="mt-6">
-              <p className="text-base leading-7 text-zinc-100">{analysis.overallAssessment}</p>
+              <p className="break-words text-base leading-7 text-zinc-100">{analysis.overallAssessment}</p>
               {analysis.clarificationNeeded && analysis.clarificationQuestion && <p className="mt-5 rounded-md border border-sky-500/30 bg-sky-950/30 p-4 text-sm text-sky-100">{analysis.clarificationQuestion}</p>}
               <AnalysisList title="Strengths" items={analysis.strengths} renderItem={(item) => item} />
               <AnalysisList title="Findings" items={analysis.findings} renderItem={(item) => <><span className="font-semibold capitalize text-white">{item.priority}: {item.area}</span><p className="mt-1">{item.issue}</p>{item.evidence && <p className="mt-2 text-xs text-zinc-400">Supplied evidence: {item.evidence}</p>}</>} />

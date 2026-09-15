@@ -84,9 +84,9 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
     if (panel) panel.scrollTop = panel.scrollHeight;
   }, [conversationTurns, errorMessage, isLoading]);
 
-  const submitQuestion = async (event) => {
+  const submitQuestion = async (event, suggestedMessage = "") => {
     event.preventDefault();
-    const trimmedMessage = message.trim();
+    const trimmedMessage = (suggestedMessage || message).trim();
     if (!trimmedMessage || isLoading) return;
     if (trimmedMessage.length > ELENA_INPUT_LIMIT) {
       setErrorMessage(`Your question must be ${ELENA_INPUT_LIMIT} characters or fewer. Please shorten it and try again.`);
@@ -132,9 +132,9 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
   };
 
   return (
-    <section id="elena-professional-compliance" className="scroll-mt-24 bg-zinc-900 px-5 py-16 text-white md:px-12">
-      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <div>
+    <section id="elena-professional-compliance" className="min-w-0 max-w-full scroll-mt-24 overflow-x-hidden bg-zinc-900 px-5 py-16 text-white md:px-12">
+      <div className="qa-container mx-auto grid min-w-0 gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">Professional agent</p>
           <h2 className="mt-3 text-2xl font-bold md:text-4xl">Ask Elena Cross about compliance language</h2>
           <p className="mt-4 max-w-2xl leading-7 text-zinc-300">
@@ -148,9 +148,12 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
               <button
                 key={question}
                 type="button"
-                onClick={() => setMessage(question)}
+                onClick={(event) => {
+                  setMessage(question);
+                  submitQuestion(event, question);
+                }}
                 disabled={isLoading}
-                className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-left text-xs font-semibold text-zinc-200 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:text-zinc-500"
+                className="min-h-11 max-w-full whitespace-normal break-words rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-left text-xs font-semibold text-zinc-200 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:text-zinc-500"
               >
                 {question}
               </button>
@@ -169,7 +172,7 @@ const ElenaConversationPanel = ({ onRequestStateChange = () => {} }) => {
               aria-invalid={isMessageTooLong}
               aria-describedby="elena-question-limit"
               placeholder="Ask Elena about an approved OneSmarter compliance topic."
-              className="mt-2 min-h-28 w-full rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-300"
+              className="mt-2 min-h-28 w-full min-w-0 resize-y rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-300"
             />
             <p id="elena-question-limit" className={`mt-1 text-xs ${isMessageTooLong ? "text-red-300" : "text-zinc-500"}`}>
               {isMessageTooLong

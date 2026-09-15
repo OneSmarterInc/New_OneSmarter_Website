@@ -79,9 +79,9 @@ const RaviConversationPanel = ({ onRequestStateChange = () => {} }) => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [turns, errorMessage, isLoading]);
 
-  const submitQuestion = async (event) => {
+  const submitQuestion = async (event, suggestedMessage = "") => {
     event.preventDefault();
-    const trimmedMessage = message.trim();
+    const trimmedMessage = (suggestedMessage || message).trim();
     if (!trimmedMessage || isLoading) return;
     if (trimmedMessage.length > RAVI_INPUT_LIMIT) {
       setErrorMessage(`Your question must be ${RAVI_INPUT_LIMIT} characters or fewer. Please shorten it and try again.`);
@@ -124,9 +124,9 @@ const RaviConversationPanel = ({ onRequestStateChange = () => {} }) => {
   };
 
   return (
-    <section id="ravi-professional-operations" className="scroll-mt-24 bg-[#111111] px-5 py-16 text-white md:px-12">
-      <div className="qa-container mx-auto grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <div>
+    <section id="ravi-professional-operations" className="min-w-0 max-w-full scroll-mt-24 overflow-x-hidden bg-[#111111] px-5 py-16 text-white md:px-12">
+      <div className="qa-container mx-auto grid min-w-0 gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wide text-red-400">Professional agent</p>
           <h2 className="mt-3 text-2xl font-bold md:text-4xl">Ask Ravi Sen about operational workflows</h2>
           <p className="mt-4 max-w-2xl leading-7 text-zinc-300">
@@ -137,7 +137,7 @@ const RaviConversationPanel = ({ onRequestStateChange = () => {} }) => {
 
           <div className="mt-6 flex flex-wrap gap-2" aria-label="Suggested operational questions">
             {RAVI_SUGGESTED_QUESTIONS.map((question) => (
-              <button key={question} type="button" onClick={() => setMessage(question)} disabled={isLoading} className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-left text-xs font-semibold text-zinc-200 transition hover:border-red-400 disabled:cursor-not-allowed disabled:text-zinc-500">
+              <button key={question} type="button" onClick={(event) => { setMessage(question); submitQuestion(event, question); }} disabled={isLoading} className="min-h-11 max-w-full whitespace-normal break-words rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-left text-xs font-semibold text-zinc-200 transition hover:border-red-400 disabled:cursor-not-allowed disabled:text-zinc-500">
                 {question}
               </button>
             ))}
@@ -152,7 +152,7 @@ const RaviConversationPanel = ({ onRequestStateChange = () => {} }) => {
               aria-invalid={isMessageTooLong}
               aria-describedby="ravi-question-limit"
               placeholder="Ask Ravi about an approved OneSmarter operations topic."
-              className="mt-2 min-h-28 w-full rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-red-400"
+              className="mt-2 min-h-28 w-full min-w-0 resize-y rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-red-400"
             />
             <p id="ravi-question-limit" className={`mt-1 text-xs ${isMessageTooLong ? "text-red-300" : "text-zinc-500"}`}>
               {isMessageTooLong
