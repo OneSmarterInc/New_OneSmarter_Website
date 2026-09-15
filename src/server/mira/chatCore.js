@@ -229,6 +229,9 @@ const disclaimerFor = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
     return "Do not submit PHI, patient information, confidential documents, or private operational details through the public agent.";
   }
+  if (result.contextualGeneralKnowledge) {
+    return "This is a general explanation, not OneSmarter-specific information.";
+  }
   if (result.mode === "staging_llm" && result.fallbackUsed === false) {
     return "This response is grounded in approved public OneSmarter content.";
   }

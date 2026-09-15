@@ -210,6 +210,9 @@ const MIRA_SEMANTIC_ALLOWED_DOMAINS = [
   "healthcare", "compliance", "trust_center", "professional_agents", "agent_roles",
   "professional_agent_boundaries", "conversational_acknowledgement",
   "professional_agent_boundaries",
+  "general_definition", "general_education", "privacy_general", "unrelated_factual",
+  "meaningless_input", "person_specific", "customer_strategy",
+  "unsupported_business_request", "unsupported_factual_request",
 ];
 const MIRA_SEMANTIC_TOPIC_LABELS = onesmarterPublicKnowledgeBase
   .map(({ title }) => title)
@@ -219,7 +222,7 @@ const MIRA_SEMANTIC_TOPIC_CONTEXT = onesmarterPublicKnowledgeBase
   .join("\n");
 
 const semanticIntentSystemExtension =
-  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Resolve a follow-up against the immediately preceding proposition only when unambiguous. Classify unrelated, private-person, and customer-specific strategy requests outside the allowed domains.`;
+  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Resolve a follow-up against the immediately preceding proposition only when unambiguous. For requests outside the approved OneSmarter domains, classify their meaning with one of these bounded domains: general_definition, general_education, privacy_general, unrelated_factual, meaningless_input, person_specific, customer_strategy, unsupported_business_request, unsupported_factual_request. Use meaningless_input only when no coherent request can be interpreted. These labels describe the request; they do not authorize facts or answers.`;
 
 const resolveMiraSemanticIntent = ({
   message,
@@ -414,17 +417,42 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
     "I can help with approved public information about OneSmarter's platforms, services, compliance posture, Trust Center, and professional agents. What would you like to explore?";
 };
 
-const semanticOutOfScopeFallback = (intent = {}) => ({
-  confidence: "low",
-  matchedEntries: [],
-  answerSeed: intent.mentionedNames?.length
-    ? "I don't have approved public information about that person or organization. I can help with approved OneSmarter information instead."
-    : "That request is outside Mira's approved public-content scope. I can help with OneSmarter's platforms, services, compliance posture, Trust Center, and professional agents.",
-  handoffNeeded: false,
-  handoffReason: "",
-  suggestedFollowUps: ["What would you like to know about OneSmarter?"],
-  clarificationNeeded: true,
-});
+const safeSemanticSubject = (intent = {}) => {
+  const candidate = String(intent.topic || intent.requestedDetail || "that request")
+    .replace(/[\r\n<>]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return candidate && candidate.length <= 120 ? candidate : "that request";
+};
+
+const semanticOutOfScopeFallback = (intent = {}) => {
+  const subject = safeSemanticSubject(intent);
+  const generalKnowledge = ["general_definition", "general_education"].includes(intent.domain) &&
+    intent.confidence >= 0.7 && !intent.clarificationNeeded;
+  const answerByDomain = {
+    privacy_general: "Avoid sharing personal, private, credential, or confidential information in a public chat. You can ask the question in general terms; this is general privacy guidance, not a statement of OneSmarter's privacy policy.",
+    meaningless_input: "I couldn't identify a clear question in that message. Please rephrase it in a short sentence.",
+    person_specific: "I don't have approved public information that establishes details about that person or organization.",
+    customer_strategy: "I can explain approved OneSmarter capabilities, but I can't design a customer-specific strategy from this public chat. For a scoped discussion, contact care@onesmarter.com.",
+    unsupported_business_request: "I can't perform or confirm that business-specific request from this public chat. For a scoped discussion, contact care@onesmarter.com.",
+    unsupported_factual_request: `Approved OneSmarter information does not establish ${subject}.`,
+    unrelated_factual: `That question about ${subject} is outside Mira's approved OneSmarter information.`,
+  };
+  return {
+    confidence: generalKnowledge ? "medium" : "low",
+    matchedEntries: [],
+    answerSeed: intent.mentionedNames?.length
+      ? "I don't have approved public information about that person or organization."
+      : generalKnowledge
+      ? `Provide a concise general explanation of ${subject}, without presenting it as OneSmarter-specific information.`
+      : answerByDomain[intent.domain] || `The request about ${subject} is outside Mira's approved OneSmarter information.`,
+    handoffNeeded: generalKnowledge,
+    handoffReason: generalKnowledge ? "general_information_only" : "",
+    suggestedFollowUps: [],
+    clarificationNeeded: intent.domain === "meaningless_input" || Boolean(intent.clarificationNeeded),
+    contextualGeneralKnowledge: generalKnowledge,
+  };
+};
 
 const describesApprovedIntegrationCapability = (message = "", approvedEntries = []) => {
   const normalizedMessage = message.toLowerCase().replace(/\s+/g, " ");
@@ -1028,6 +1056,9 @@ export const runMiraResponseAdapter = async ({
     });
     allowMiraBoundaryQuestion = isValidatedMiraBoundaryQuestion(
       earlySemanticResolution,
+    ) || Boolean(
+      earlySemanticResolution.ok &&
+      earlySemanticResolution.intent?.domain === "customer_strategy",
     );
   }
   if (canResolveDeferredBusinessScope && !allowMiraBoundaryQuestion) {
@@ -1877,7 +1908,9 @@ export const runMiraResponseAdapter = async ({
     localResult.recommendation ||
     ["recommendation", "acknowledgement"].includes(responseMode.mode),
   );
-  const semanticSupplementEligible = !localResult.riskFlags.length
+  const semanticSupplementEligible = localResult.riskFlags.every(
+    (flag) => ["out_of_scope", "business_specific_review"].includes(flag),
+  )
     && !semanticSupplementProtected
     && typeof semanticIntentProvider === "function"
     && config?.mode === STAGING_LLM_MODE
@@ -1910,6 +1943,16 @@ export const runMiraResponseAdapter = async ({
         clarificationNeeded: false,
         semanticIntentSupplement: semanticIntent,
         semanticAcknowledgementHandled: true,
+      };
+    } else if ([
+      "general_definition", "general_education", "privacy_general", "unrelated_factual",
+      "meaningless_input", "person_specific", "customer_strategy",
+      "unsupported_business_request", "unsupported_factual_request",
+    ].includes(semanticIntent.domain)) {
+      localResult = {
+        ...localResult,
+        ...semanticOutOfScopeFallback(semanticIntent),
+        semanticIntentSupplement: semanticIntent,
       };
     } else if (
       semanticIntent.clarificationNeeded &&
@@ -2148,7 +2191,7 @@ export const runMiraResponseAdapter = async ({
         fallbackReason: "",
       };
     }
-    if (localResult.clarificationNeeded) {
+    if (localResult.clarificationNeeded && !localResult.contextualGeneralKnowledge) {
       return withFallbackMetadata(localResult, "follow_up_clarification");
     }
 
@@ -2160,7 +2203,7 @@ export const runMiraResponseAdapter = async ({
       return withFallbackMetadata(localResult, "missing_provider_config");
     }
 
-    if (hasOutOfScopeRisk(localResult.riskFlags)) {
+    if (hasOutOfScopeRisk(localResult.riskFlags) && !localResult.contextualGeneralKnowledge) {
       return withFallbackMetadata(localResult, "out_of_scope");
     }
 
@@ -2168,7 +2211,7 @@ export const runMiraResponseAdapter = async ({
       return withFallbackMetadata(localResult, "pre_call_safety_gate");
     }
 
-    if (!hasApprovedContext(localResult)) {
+    if (!hasApprovedContext(localResult) && !localResult.contextualGeneralKnowledge) {
       return withFallbackMetadata(localResult, "no_adequate_approved_context");
     }
 
@@ -2176,7 +2219,9 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: localResult.premiseCheck?.corrections?.length
+      responseGuidance: localResult.contextualGeneralKnowledge
+        ? "Give a concise one- or two-sentence general explanation of the interpreted topic. State clearly that it is general information, not OneSmarter-specific information. Do not add current or time-sensitive facts, advice, citations, recommendations, or claims about OneSmarter. Set groundingStatus to insufficient_context and handoffNeeded to true."
+        : localResult.premiseCheck?.corrections?.length
         ? "Begin with the supplied grounded premise correction, then answer the useful underlying request. Do not accept the corrected premise elsewhere in the response."
         : localResult.entityFocusHandled
         ? "Answer only about the single focused entity represented by the approved context. Preserve the requested depth, do not expand to sibling offerings or a parent catalog, and do not invent details beyond the supplied evidence."
