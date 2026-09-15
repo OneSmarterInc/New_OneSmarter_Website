@@ -18,7 +18,7 @@ export const runOpenAiAgentIntentProvider = async (request, { config, fetchImpl 
     model: config.model,
     instructions: request.system,
     input: JSON.stringify(request.input),
-    max_output_tokens: Math.max(600, config.maxTokens || 0),
+    max_output_tokens: Math.max(900, config.maxTokens || 0),
     store: false,
     text: { format: { type: "json_schema", name: "agent_semantic_intent", strict: true, schema: request.outputSchema } },
   };

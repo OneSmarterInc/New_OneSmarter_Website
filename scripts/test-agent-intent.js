@@ -368,4 +368,208 @@ assert.equal(missingProvider.intent.clarificationNeeded, true);
 assert.equal(missingProvider.intent.visitorDisplayName, null);
 assert.equal(missingProvider.intent.agentIdentity, "Elena");
 
+
+const atomic = (id, subject, predicate, object, polarity = "positive", epistemicStatus = "asserted", contextStatus) => ({
+  id, subject, predicate, object, polarity, epistemicStatus,
+  ...(contextStatus ? { contextStatus } : {}),
+});
+const compoundIntent = (overrides = {}) => intent({
+  domain: "operations",
+  topic: "report visibility",
+  entities: ["portal", "dashboard"],
+  proposition: "The portal exports reports but the dashboard does not show them",
+  polarity: "mixed",
+  questionType: "comparison",
+  speechAct: "comparison_request",
+  requestedDetail: "the difference between report export and visibility",
+  atomicPropositions: [
+    atomic("p1", "portal", "exports", "reports"),
+    atomic("p2", "dashboard", "shows", "reports", "negative"),
+  ],
+  propositionRelations: [{ id: "r1", type: "contrast", sourcePropositionId: "p1", targetPropositionId: "p2" }],
+  intentFocus: { operation: "compare", propositionIds: ["p1", "p2"], relationIds: ["r1"] },
+  ...overrides,
+});
+
+assert.deepEqual(positiveResult.result.intent.atomicPropositions, []);
+assert.deepEqual(positiveResult.result.intent.propositionRelations, []);
+assert.deepEqual(positiveResult.result.intent.intentFocus, { operation: "clarify", propositionIds: [], relationIds: [] });
+
+const compoundCases = [
+  ["The portal exports reports, but the dashboard does not show them.", compoundIntent()],
+  ["The reviewer can read the document, whereas the assistant cannot edit it.", compoundIntent({
+    topic: "document permissions", entities: ["reviewer", "assistant", "document"],
+    proposition: "The reviewer can read the document whereas the assistant cannot edit it",
+    atomicPropositions: [atomic("p1", "reviewer", "read", "document"), atomic("p2", "assistant", "edit", "document", "negative")],
+  })],
+  ["How does the policy review differ from the content review?", compoundIntent({
+    topic: "review comparison", entities: ["policy review", "content review"],
+    proposition: "Policy review and content review differ", polarity: "unknown",
+    atomicPropositions: [atomic("p1", "policy reviewer", "performs", "policy review", "unknown", "questioned"), atomic("p2", "content analyst", "performs", "content review", "unknown", "questioned")],
+    propositionRelations: [{ id: "r1", type: "comparison", sourcePropositionId: "p1", targetPropositionId: "p2" }],
+  })],
+  ["The service does not approve invoices, but it does organize them for review.", compoundIntent({
+    topic: "invoice workflow", entities: ["service", "invoices"],
+    proposition: "The service does not approve invoices but organizes them for review",
+    atomicPropositions: [atomic("p1", "service", "approve", "invoices", "negative"), atomic("p2", "service", "organize", "invoices for review")],
+  })],
+  ["The operations assistant cannot open our queue; could Priya, our coordinator, open it?", compoundIntent({
+    topic: "queue permissions", entities: ["operations assistant", "Priya", "queue"], mentionedNames: ["Priya"],
+    proposition: "The assistant cannot open the queue and Priya's ability is questioned",
+    atomicPropositions: [atomic("p1", "operations assistant", "open", "customer queue", "negative"), atomic("p2", "Priya", "open", "customer queue", "unknown", "questioned")],
+    propositionRelations: [{ id: "r1", type: "comparison", sourcePropositionId: "p1", targetPropositionId: "p2" }],
+    intentFocus: { operation: "answer_proposition", propositionIds: ["p2"], relationIds: ["r1"] },
+  })],
+  ["If the assistant cannot change production records, does that restrict our administrator too?", compoundIntent({
+    topic: "production permissions", entities: ["assistant", "administrator", "production records"],
+    proposition: "Whether the assistant restriction implies an administrator restriction",
+    atomicPropositions: [atomic("p1", "assistant", "change", "production records", "negative"), atomic("p2", "administrator", "change", "production records", "unknown", "questioned")],
+    propositionRelations: [{ id: "r1", type: "implication_question", sourcePropositionId: "p1", targetPropositionId: "p2" }],
+  })],
+  ["I did not mean the analyst checks certification; I meant the compliance reader checks the wording.", compoundIntent({
+    topic: "role correction", entities: ["analyst", "compliance reader"], questionType: "correction", speechAct: "correction",
+    proposition: "The compliance reader checks wording rather than the analyst checking certification",
+    atomicPropositions: [atomic("p1", "analyst", "checks", "certification", "negative", "corrected"), atomic("p2", "compliance reader", "checks", "wording", "positive", "corrected")],
+    propositionRelations: [{ id: "r1", type: "correction", sourcePropositionId: "p1", targetPropositionId: "p2" }],
+    intentFocus: { operation: "correct", propositionIds: ["p1", "p2"], relationIds: ["r1"] },
+  })],
+];
+for (const [message, output] of compoundCases) {
+  const resolved = await runWith(message, output, { allowedDomains: [output.domain] });
+  assert.equal(resolved.result.ok, true, message);
+  assert.equal(resolved.result.intent.atomicPropositions.length, 2, message);
+  assert.equal(resolved.result.intent.visitorDisplayName, null, message);
+}
+
+const multiEntityFollowUp = compoundIntent({
+  topic: "role responsibilities", entities: ["reviewer", "analyst"], questionType: "follow_up",
+  followUpReferences: ["reviewer from prior turn", "analyst from prior turn"],
+  propositionRelations: [{ id: "r1", type: "reference", sourcePropositionId: "p1", targetPropositionId: "p2" }],
+  intentFocus: { operation: "explain_relationship", propositionIds: ["p1", "p2"], relationIds: ["r1"] },
+});
+const multiFollowUpResult = await runWith("Why can the reviewer do that while the analyst cannot?", multiEntityFollowUp, {
+  allowedDomains: ["operations"], conversationHistory: [{ role: "user", content: "Compare the reviewer and analyst roles." }],
+});
+assert.equal(multiFollowUpResult.result.intent.atomicPropositions.length, 2);
+
+const ambiguousCompound = compoundIntent({ confidence: 0.31, clarificationNeeded: true, questionType: "clarification", speechAct: "clarification_request", intentFocus: { operation: "clarify", propositionIds: [], relationIds: [] } });
+const ambiguousCompoundResult = await runWith("Why can one do it while the other cannot?", ambiguousCompound, { allowedDomains: ["operations"] });
+assert.equal(ambiguousCompoundResult.result.intent.clarificationNeeded, true);
+
+const four = compoundIntent({
+  atomicPropositions: [atomic("p1", "A", "reviews", "one"), atomic("p2", "B", "reviews", "two"), atomic("p3", "C", "reviews", "three"), atomic("p4", "D", "reviews", "four")],
+  propositionRelations: [], intentFocus: { operation: "compare", propositionIds: ["p1", "p2", "p3", "p4"], relationIds: [] },
+});
+assert.equal(validateProviderAgentIntent(four).ok, true);
+assert.equal(validateProviderAgentIntent({ ...four, atomicPropositions: [...four.atomicPropositions, atomic("p5", "E", "reviews", "five")] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), propositionRelations: [...compoundIntent().propositionRelations, { id: "r2", type: "contrast", sourcePropositionId: "missing", targetPropositionId: "p1" }] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), atomicPropositions: [atomic("p1", "A", "does", "one"), atomic("p1", "B", "does", "two")] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), atomicPropositions: [atomic("p1", "A", "does", "one", "positive", "verified")] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), evidence: ["invented fact"] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), atomicPropositions: [{ ...compoundIntent().atomicPropositions[0], evidence: "invented" }, compoundIntent().atomicPropositions[1]] }).ok, false);
+
+const fourRelations = {
+  ...four,
+  propositionRelations: [
+    { id: "r1", type: "contrast", sourcePropositionId: "p1", targetPropositionId: "p2" },
+    { id: "r2", type: "comparison", sourcePropositionId: "p2", targetPropositionId: "p3" },
+    { id: "r3", type: "reference", sourcePropositionId: "p3", targetPropositionId: "p4" },
+    { id: "r4", type: "correction", sourcePropositionId: "p4", targetPropositionId: "p1" },
+  ],
+  intentFocus: { operation: "compare", propositionIds: ["p1", "p2", "p3", "p4"], relationIds: ["r1", "r2", "r3", "r4"] },
+};
+assert.equal(validateProviderAgentIntent(fourRelations).ok, true);
+assert.equal(validateProviderAgentIntent({ ...fourRelations, propositionRelations: [...fourRelations.propositionRelations, { id: "r5", type: "contrast", sourcePropositionId: "p1", targetPropositionId: "p2" }] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), propositionRelations: [{ id: "r1", type: "verified_by", sourcePropositionId: "p1", targetPropositionId: "p2" }] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), propositionRelations: [{ id: "r1", type: "contrast", sourcePropositionId: "p1", targetPropositionId: "p2" }, { id: "r1", type: "comparison", sourcePropositionId: "p2", targetPropositionId: "p1" }] }).ok, false);
+assert.equal(validateProviderAgentIntent({ ...compoundIntent(), atomicPropositions: [atomic("p1", "x".repeat(161), "does", "work"), compoundIntent().atomicPropositions[1]] }).ok, false);
+
+const malformedCompound = await runWith("Compare these two claims.", { ...compoundIntent(), propositionRelations: [{ id: "r1", type: "comparison", sourcePropositionId: "p1", targetPropositionId: "missing" }] }, { allowedDomains: ["operations"] });
+assert.equal(malformedCompound.result.ok, false);
+assert.equal(malformedCompound.result.error, "invalid_provider_intent");
+assert.deepEqual(malformedCompound.result.intent.atomicPropositions, []);
+
+
+const establishedFollowUp = compoundIntent({
+  proposition: "Why the reviewer can approve the draft",
+  questionType: "why", speechAct: "explanation_request", confidence: 0.97,
+  atomicPropositions: [atomic("p1", "reviewer", "can approve", "draft", "positive", "questioned")],
+  propositionRelations: [], intentFocus: { operation: "explain_proposition", propositionIds: ["p1"], relationIds: [] },
+  followUpReferences: ["the established reviewer approval proposition"],
+});
+const establishedFollowUpResult = await runWith("Why can the reviewer approve it?", establishedFollowUp, {
+  allowedDomains: ["operations"], conversationHistory: [{ role: "user", content: "The reviewer can approve the draft." }],
+});
+assert.equal(establishedFollowUpResult.result.intent.clarificationNeeded, false);
+
+const unsupportedFollowUp = compoundIntent({
+  proposition: "Why the reviewer can publish the draft",
+  questionType: "why", speechAct: "explanation_request", confidence: 0.32, clarificationNeeded: true,
+  atomicPropositions: [atomic("p1", "reviewer", "can publish", "draft", "unknown", "ambiguous", "not_established_in_history")],
+  propositionRelations: [], intentFocus: { operation: "clarify", propositionIds: ["p1"], relationIds: [] },
+  followUpReferences: ["an unestablished reviewer publishing proposition"],
+});
+const unsupportedFollowUpResult = await runWith("Why can the reviewer publish it?", unsupportedFollowUp, {
+  allowedDomains: ["operations"], conversationHistory: [{ role: "user", content: "The reviewer can read the draft." }],
+});
+assert.equal(unsupportedFollowUpResult.result.intent.clarificationNeeded, true);
+assert.equal(unsupportedFollowUpResult.result.intent.atomicPropositions[0].epistemicStatus, "ambiguous");
+
+const twoEntityUnknown = compoundIntent({
+  proposition: "Whether the coordinator can approve the draft",
+  confidence: 0.38, clarificationNeeded: true,
+  atomicPropositions: [atomic("p1", "coordinator", "can approve", "draft", "unknown", "ambiguous", "not_established_in_history")],
+  propositionRelations: [], intentFocus: { operation: "clarify", propositionIds: ["p1"], relationIds: [] },
+  followUpReferences: ["coordinator capability not established in history"],
+});
+const twoEntityUnknownResult = await runWith("What can the coordinator approve?", twoEntityUnknown, {
+  allowedDomains: ["operations"], conversationHistory: [{ role: "user", content: "The reviewer can approve the draft, and the coordinator attended." }],
+});
+assert.equal(twoEntityUnknownResult.result.intent.clarificationNeeded, true);
+
+const providerOverResolution = compoundIntent({
+  proposition: "The reviewer can publish the draft", confidence: 0.99, clarificationNeeded: false,
+  questionType: "why", speechAct: "explanation_request",
+  atomicPropositions: [atomic("p1", "reviewer", "can publish", "draft", "positive", "questioned", "not_established_in_history")],
+  propositionRelations: [], intentFocus: { operation: "explain_proposition", propositionIds: ["p1"], relationIds: [] },
+});
+const providerOverResolutionResult = await runWith("Why can the reviewer publish it?", providerOverResolution, {
+  allowedDomains: ["operations"], conversationHistory: [{ role: "user", content: "The reviewer can read the draft." }],
+});
+assert.equal(providerOverResolutionResult.result.intent.confidence, 0.4);
+assert.equal(providerOverResolutionResult.result.intent.clarificationNeeded, true);
+
+const reportedAssertion = compoundIntent({
+  proposition: "Alex says the reviewer approved the document",
+  polarity: "positive", atomicPropositions: [atomic("p1", "reviewer", "approved", "document", "positive", "reported_assertion")],
+  propositionRelations: [], intentFocus: { operation: "answer_proposition", propositionIds: ["p1"], relationIds: [] }, mentionedNames: ["Alex"],
+});
+assert.equal(validateProviderAgentIntent(reportedAssertion).ok, true);
+assert.equal(reportedAssertion.atomicPropositions[0].epistemicStatus, "reported_assertion");
+
+const reportedUnknown = compoundIntent({
+  proposition: "Alex does not know whether the reviewer approved the document",
+  polarity: "unknown", atomicPropositions: [atomic("p1", "reviewer", "approved", "document", "unknown", "reported_unknown")],
+  propositionRelations: [], intentFocus: { operation: "answer_proposition", propositionIds: ["p1"], relationIds: [] }, mentionedNames: ["Alex"],
+});
+assert.equal(validateProviderAgentIntent(reportedUnknown).ok, true);
+
+const twoAttributed = compoundIntent({
+  proposition: "Alex says the reviewer approved X while Priya says the analyst rejected Y",
+  atomicPropositions: [atomic("p1", "reviewer", "approved", "X", "positive", "reported_assertion"), atomic("p2", "analyst", "rejected", "Y", "positive", "reported_assertion")],
+  mentionedNames: ["Alex", "Priya"],
+});
+assert.equal(validateProviderAgentIntent(twoAttributed).ok, true);
+assert.ok(twoAttributed.atomicPropositions.every(({ epistemicStatus }) => epistemicStatus === "reported_assertion"));
+
+const mixedStance = compoundIntent({
+  atomicPropositions: [atomic("p1", "service", "organizes", "records", "positive", "asserted"), atomic("p2", "Alex", "approved", "review", "positive", "reported_assertion"), atomic("p3", "reviewer", "publishes", "draft", "positive", "hypothetical")],
+  propositionRelations: [{ id: "r1", type: "comparison", sourcePropositionId: "p1", targetPropositionId: "p3" }],
+  intentFocus: { operation: "compare", propositionIds: ["p1", "p2", "p3"], relationIds: ["r1"] },
+});
+assert.equal(validateProviderAgentIntent(mixedStance).ok, true);
+assert.deepEqual(mixedStance.atomicPropositions.map(({ epistemicStatus }) => epistemicStatus), ["asserted", "reported_assertion", "hypothetical"]);
+assert.match(buildAgentIntentProviderRequest({ agentIdentity: "Test", message: "Follow up", conversationHistory: [], allowedDomains: ["operations"] }).system, /Never infer a missing capability/i);
+assert.match(buildAgentIntentProviderRequest({ agentIdentity: "Test", message: "Follow up", conversationHistory: [], allowedDomains: ["operations"] }).system, /reported_assertion/i);
+
 console.log("Agent semantic intent tests passed.");

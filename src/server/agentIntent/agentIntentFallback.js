@@ -18,6 +18,9 @@ export const createConservativeIntentFallback = ({ agentIdentity = "" } = {}) =>
   confidence: 0,
   clarificationNeeded: true,
   mentionedNames: [],
+  atomicPropositions: [],
+  propositionRelations: [],
+  intentFocus: { operation: "clarify", propositionIds: [], relationIds: [] },
   agentIdentity,
   visitorDisplayName: null,
   context: {
