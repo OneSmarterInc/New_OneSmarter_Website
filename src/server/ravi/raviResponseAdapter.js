@@ -65,6 +65,13 @@ const intentAwareScopeFallback = (semanticIntent = {}) => {
   };
 };
 
+const unresolvedIntentFallback = () => ({
+  answer: "I couldn't safely resolve the subject and requested operation in that question. Please restate who should do what, and whether you want an explanation, permission check, or workflow recommendation.",
+  matchedEntries: [], sources: [], confidence: "low", clarificationNeeded: true,
+  clarificationQuestion: "Who is the subject, and what action or explanation are you asking about?",
+  claimEvaluation: null,
+});
+
 export const normalizeRaviConversationHistory = (history) => {
   if (history === undefined || history === null) return { ok: true, history: [] };
   if (!Array.isArray(history)) {
@@ -118,12 +125,19 @@ export const runRaviResponseAdapter = async ({
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. When a request is supported, set topic to the exact title of the single best matching supplied label. Use the professional-agent role-directory label for descriptions or comparisons of OneSmarter's professional agents. Classify a request under an allowed domain when its meaning concerns one of those approved labels, even when the visitor uses different vocabulary. Populate followUpReferences only for references that require prior conversation to resolve; direct references to the current agent such as you or your do not require history.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. When a request is supported, set topic to the exact title of the single best matching supplied label. Use the professional-agent role-directory label for descriptions or comparisons of OneSmarter's professional agents. Classify a request under an allowed domain when its meaning concerns one of those approved labels, even when the visitor uses different vocabulary. Populate followUpReferences only for references that require prior conversation to resolve; direct references to the current agent such as you or your do not require history. Put the grammatical subject of the current proposition first in entities. Preserve that subject exactly as interpreted: Ravi Sen for Ravi himself, and the named person or customer role for any third party. Entity ordering is semantic structure, not factual evidence.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: raviIntentTopics } },
-    }, { config })),
+    }, {
+      config: {
+        ...config,
+        apiKey: config.apiKey,
+        maxTokens: Math.max(config.maxTokens, 3_000),
+        timeoutMs: Math.max(config.timeoutMs, 20_000),
+      },
+    })),
   });
   if (!semanticResolution.ok) {
-    const localResult = runRaviLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    const localResult = unresolvedIntentFallback();
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent };
   }
 
@@ -168,6 +182,7 @@ export const runRaviResponseAdapter = async ({
   const validation = validateRaviModelOutput(providerResult.modelOutput, {
     matchedEntries: localResult.matchedEntries,
     fallbackResult: localResult,
+    visitorSuppliedEntities: semanticIntent.entities,
   });
   if (!validation.valid) {
     return {

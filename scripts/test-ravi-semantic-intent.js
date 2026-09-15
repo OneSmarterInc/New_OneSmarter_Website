@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import process from "node:process";
 import { runRaviResponseAdapter } from "../src/server/ravi/raviResponseAdapter.js";
 import { readRaviRuntimeConfig } from "../src/server/ravi/raviRuntimeConfig.js";
+import { validateRaviModelOutput } from "../src/server/ravi/raviOutputValidator.js";
+import { raviApprovedKnowledge } from "../src/data/agentKnowledge/raviApprovedKnowledge.js";
 
 const config = readRaviRuntimeConfig({
   RAVI_LLM_MODE: "staging_llm", RAVI_LLM_PROVIDER: "openai",
@@ -10,11 +12,13 @@ const config = readRaviRuntimeConfig({
 
 const intent = (overrides = {}) => ({
   domain: "operations", topic: "secure ticketing and queue access",
-  entities: ["OneSmarter", "Ravi Sen", "ticket queue"],
+  entities: ["Ravi Sen", "OneSmarter", "ticket queue"],
   proposition: "Ravi can access a customer ticket queue", polarity: "positive",
   negationScope: [], questionType: "positive_yes_no", speechAct: "confirmation_request",
   requestedDetail: "whether Ravi can access a customer ticket queue",
   followUpReferences: [], confidence: 0.97, clarificationNeeded: false, mentionedNames: [],
+  atomicPropositions: [], propositionRelations: [],
+  intentFocus: { operation: "clarify", propositionIds: [], relationIds: [] },
   ...overrides,
 });
 
@@ -64,6 +68,32 @@ const named = await run("Gaurav wants to know whether Ravi can access our queue.
 }));
 assert.deepEqual(named.result.semanticIntent.mentionedNames, ["Gaurav"]);
 assert.equal(named.result.semanticIntent.visitorDisplayName, null);
+
+const thirdParty = await run("Can Nikhil access our ticket queue?", intent({
+  entities: ["Nikhil", "customer ticket queue"], mentionedNames: ["Nikhil"],
+  proposition: "Nikhil can access a customer ticket queue", requestedDetail: "whether Nikhil can access the customer ticket queue",
+  intentFocus: { operation: "answer_proposition", propositionIds: [], relationIds: [] },
+}));
+assert.match(thirdParty.result.answer, /cannot verify whether Nikhil has that permission/i);
+assert.doesNotMatch(thirdParty.result.answer, /platform supports secure intake|Ravi has no live access/i);
+assert.equal(thirdParty.result.semanticIntent.visitorDisplayName, null);
+
+const administrator = await run("Can our administrator access the ticket queue?", intent({
+  entities: ["customer administrator", "ticket queue"], mentionedNames: [],
+  proposition: "The customer administrator can access the ticket queue", requestedDetail: "whether the customer administrator can access the ticket queue",
+  intentFocus: { operation: "answer_proposition", propositionIds: [], relationIds: [] },
+}));
+assert.match(administrator.result.answer, /cannot verify whether customer administrator has that permission/i);
+
+const thirdPartyWhy = await run("Why can't Dana access the ticket queue?", intent({
+  entities: ["Dana", "ticket queue"], mentionedNames: ["Dana"],
+  proposition: "Dana cannot access the customer ticket queue", polarity: "negative",
+  negationScope: [{ marker: "can't", scope: "Dana accessing the customer ticket queue" }],
+  questionType: "why", speechAct: "explanation_request", requestedDetail: "why Dana cannot access the customer ticket queue",
+  intentFocus: { operation: "explain_proposition", propositionIds: [], relationIds: [] },
+}));
+assert.match(thirdPartyWhy.result.answer, /cannot verify why Dana has or lacks that permission/i);
+assert.doesNotMatch(thirdPartyWhy.result.answer, /Ravi has no live access/i);
 
 const selfDescription = await run("Who is Ravi Sen?", intent({
   domain: "identity", topic: "Ravi Sen — Operations Agent", entities: ["Ravi Sen"],
@@ -153,6 +183,79 @@ const misleadingFallback = await run(
 );
 assert.match(misleadingFallback.result.answer, /does not establish|cannot access|live system access|without accessing or changing/i);
 assert.doesNotMatch(misleadingFallback.result.answer, /^Secure Ticketing and Case Management is a platform/i);
+
+const structuredAction = await run(
+  "Please make the requested production change.",
+  intent({
+    entities: ["Ravi Sen", "customer production system"],
+    proposition: "Ravi Sen should perform the requested change in the customer production system",
+    questionType: "unknown", speechAct: "unknown",
+    requestedDetail: "perform the requested production change",
+    atomicPropositions: [{
+      id: "p1", subject: "Ravi Sen", predicate: "should perform",
+      object: "the requested change in the customer production system",
+      polarity: "positive", epistemicStatus: "asserted", contextStatus: "current_turn",
+    }],
+    intentFocus: { operation: "evaluate_request", propositionIds: ["p1"], relationIds: [] },
+  }),
+);
+assert.equal(structuredAction.result.claimEvaluation.ruleId, "no-real-system-actions");
+assert.equal(structuredAction.result.claimEvaluation.status, "REFUSE_UNSUPPORTED");
+
+const advisoryRequest = await run(
+  "Could Ravi advise on a handoff while our staff retain authority?",
+  intent({
+    topic: "routing and escalation design", entities: ["Ravi Sen", "customer staff"],
+    proposition: "Ravi Sen can advise on a handoff while customer staff retain authority",
+    questionType: "recommendation_request", speechAct: "recommendation_request",
+    requestedDetail: "handoff-design advice",
+    atomicPropositions: [{
+      id: "p1", subject: "Ravi Sen", predicate: "can advise on",
+      object: "a handoff while customer staff retain authority",
+      polarity: "positive", epistemicStatus: "questioned", contextStatus: "current_turn",
+    }],
+    intentFocus: { operation: "evaluate_request", propositionIds: ["p1"], relationIds: [] },
+  }),
+);
+assert.equal(advisoryRequest.result.claimEvaluation.status, "ALLOW_WITH_QUALIFICATION");
+
+const invalidRelationship = await runRaviResponseAdapter({
+  message: "Explain the difference between those two statements.", config,
+  intentProvider: async () => ({ intent: intent({
+    atomicPropositions: [{
+      id: "p1", subject: "an agent", predicate: "can access", object: "a queue",
+      polarity: "positive", epistemicStatus: "questioned", contextStatus: "current_turn",
+    }],
+    propositionRelations: [],
+    intentFocus: { operation: "explain_relationship", propositionIds: ["p1"], relationIds: ["r1"] },
+  }) }),
+  providerAdapter: async () => { throw new Error("answer provider must not run"); },
+});
+assert.equal(invalidRelationship.fallbackReason, "invalid_provider_intent");
+assert.match(invalidRelationship.answer, /restate who should do what/i);
+
+const secureTicketingEvidence = raviApprovedKnowledge.filter(({ id }) => id === "secure-ticketing-case-management");
+const suppliedEntityBoundary = validateRaviModelOutput({
+  answer: "I cannot verify whether Priya has permission to use the customer queue.",
+  handoffNeeded: true, handoffReason: "Customer permission records are unavailable.",
+  suggestedFollowUps: [], groundingStatus: "grounded", outputSafetyStatus: "passed",
+}, {
+  matchedEntries: secureTicketingEvidence,
+  visitorSuppliedEntities: ["Priya", "customer queue"],
+});
+assert.equal(suppliedEntityBoundary.valid, true, suppliedEntityBoundary.violations?.join(","));
+
+const inventedEntityClaim = validateRaviModelOutput({
+  answer: "Priya administers the customer queue.",
+  handoffNeeded: false, handoffReason: null, suggestedFollowUps: [],
+  groundingStatus: "grounded", outputSafetyStatus: "passed",
+}, {
+  matchedEntries: secureTicketingEvidence,
+  visitorSuppliedEntities: ["Priya", "customer queue"],
+});
+assert.equal(inventedEntityClaim.valid, false);
+assert.ok(inventedEntityClaim.violations.some((violation) =>
+  ["unsupported_named_entity", "unsupported_factual_assertion"].includes(violation)));
 
 const generatedRole = await runRaviResponseAdapter({
   message: "What does Elena handle?", config,

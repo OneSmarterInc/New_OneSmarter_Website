@@ -96,7 +96,38 @@ const retrieveRaviKnowledgeForIntent = (semanticIntent, limit = 3) => {
   return retrieveRaviKnowledge(semanticText, limit);
 };
 
+const semanticSubject = (semanticIntent = {}) => String(semanticIntent.entities?.[0] || "").trim().slice(0, 100);
+const isRaviSubject = (semanticIntent = {}) => ["ravi", "ravi sen"].includes(normalized(semanticSubject(semanticIntent)));
+
+const isStructuredLiveActionRequest = (semanticIntent = {}) => {
+  if (!isRaviSubject(semanticIntent) || semanticIntent.intentFocus?.operation !== "evaluate_request") return false;
+  const requestsExecution = semanticIntent.questionType === "handoff_request" ||
+    (semanticIntent.questionType === "unknown" && semanticIntent.speechAct === "unknown");
+  if (!requestsExecution) return false;
+  const focusedIds = new Set(semanticIntent.intentFocus?.propositionIds || []);
+  return (semanticIntent.atomicPropositions || []).some((proposition) =>
+    focusedIds.has(proposition.id) && proposition.contextStatus === "current_turn" &&
+    proposition.epistemicStatus === "asserted");
+};
+
+const thirdPartyPermissionFallback = (semanticIntent) => {
+  const subject = semanticSubject(semanticIntent) || "that person or customer user";
+  const requested = String(semanticIntent.requestedDetail || "their requested access or permission").trim().slice(0, 240);
+  if (semanticIntent.questionType === "why") {
+    return `I cannot verify why ${subject} has or lacks that permission. Ravi's approved information does not establish ${requested}; customer-user permissions depend on the customer's own system configuration and authorization.`;
+  }
+  return `I cannot verify whether ${subject} has that permission. Ravi's approved information does not establish ${requested}; customer-user permissions depend on the customer's own system configuration and authorization.`;
+};
+
+const isThirdPartyPermissionQuestion = (semanticIntent = {}) =>
+  !isRaviSubject(semanticIntent) &&
+  ["positive_yes_no", "negative_confirmation", "status", "why"].includes(semanticIntent.questionType) &&
+  ["answer_proposition", "explain_proposition"].includes(semanticIntent.intentFocus?.operation);
+
 const semanticBoundaryFallback = (semanticIntent, claimEvaluation, matchedEntries) => {
+  if (claimEvaluation.ruleId === "no-real-system-actions" && isThirdPartyPermissionQuestion(semanticIntent)) {
+    return thirdPartyPermissionFallback(semanticIntent);
+  }
   if (claimEvaluation.status === RAVI_CLAIM_STATUSES.REFUSE_UNSUPPORTED) {
     if (semanticIntent.questionType === "negative_confirmation") {
       return `Correct. ${claimEvaluation.reason} ${claimEvaluation.approvedAlternative}`;
@@ -166,7 +197,15 @@ export const runRaviLocalEngine = ({ message = "", conversationHistory = [], sem
   }
 
   const evaluatedClaim = evaluateRaviClaim(contextual);
-  const claimEvaluation = semanticIntent && matchedEntries.length
+  const structuredActionEvaluation = semanticIntent && isStructuredLiveActionRequest(semanticIntent)
+    ? evaluateRaviClaim("Ravi cannot perform an action in a real customer production system.")
+    : null;
+  const advisoryEvaluation = semanticIntent?.questionType === "recommendation_request" &&
+    semanticIntent.intentFocus?.operation === "evaluate_request" &&
+    evaluatedClaim.ruleId === "no-real-system-actions"
+    ? evaluateRaviClaim("routing escalation handoff design")
+    : null;
+  const claimEvaluation = structuredActionEvaluation || advisoryEvaluation || (semanticIntent && matchedEntries.length
     && evaluatedClaim.ruleId === "outside-approved-operations-slice"
     ? {
         status: RAVI_CLAIM_STATUSES.ALLOW,
@@ -174,7 +213,7 @@ export const runRaviLocalEngine = ({ message = "", conversationHistory = [], sem
         ruleId: "approved-semantic-topic",
         approvedAlternative: matchedEntries[0].approvedSummary,
       }
-    : evaluatedClaim;
+    : evaluatedClaim);
   if (semanticIntent && matchedEntries.length) {
     return localResult({
       answer: semanticBoundaryFallback(semanticIntent, claimEvaluation, matchedEntries),

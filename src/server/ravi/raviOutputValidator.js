@@ -16,7 +16,10 @@ const isObject = (value) => value && typeof value === "object" && !Array.isArray
 const clean = (value = "") => String(value).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 const safeBoundary = (answer) => /\b(?:not|does not|do not|cannot|can't|instead|confirm|no approved)\b/i.test(answer);
 
-export const validateRaviModelOutput = (output, { matchedEntries = [], fallbackResult } = {}) => {
+export const validateRaviModelOutput = (
+  output,
+  { matchedEntries = [], fallbackResult, visitorSuppliedEntities = [] } = {},
+) => {
   const violations = [];
   if (!isObject(output)) violations.push("invalid_shape");
   if (typeof output?.answer !== "string" || !output.answer.trim()) violations.push("invalid_answer");
@@ -49,7 +52,18 @@ export const validateRaviModelOutput = (output, { matchedEntries = [], fallbackR
   }
   if (output?.groundingStatus === "grounded") {
     const grounding = verifyAgentAnswerGrounding({ answer, approvedEntries: matchedEntries });
-    if (!grounding.grounded) violations.push(...grounding.violations);
+    const normalizedEntities = visitorSuppliedEntities
+      .filter((entity) => typeof entity === "string" && entity.trim())
+      .map((entity) => clean(entity).toLowerCase());
+    const suppliedEntityBoundaryOnly = grounding.unsupportedAssertions.length > 0 &&
+      grounding.unsupportedAssertions.every((assertion) =>
+        safeBoundary(assertion) && normalizedEntities.some((entity) =>
+          entity && clean(assertion).toLowerCase().includes(entity)));
+    if (!grounding.grounded) {
+      violations.push(...grounding.violations.filter((violation) =>
+        !suppliedEntityBoundaryOnly ||
+        !["unsupported_named_entity", "unsupported_factual_assertion"].includes(violation)));
+    }
   }
 
   if (violations.length) {
