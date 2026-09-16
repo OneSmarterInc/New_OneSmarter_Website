@@ -508,7 +508,8 @@ const failedIntent = await runElenaResponseAdapter({
   intentProvider: async () => { throw new Error("offline"); },
   providerAdapter: async () => { answerCalls += 1; return {}; },
 });
-assert.equal(failedIntent.clarificationNeeded, true);
+assert.equal(failedIntent.clarificationNeeded, false);
+assert.match(failedIntent.answer, /does not present.*HIPAA certified/i);
 assert.equal(failedIntent.fallbackReason, "provider_failure");
 assert.equal(answerCalls, 0);
 

@@ -134,6 +134,11 @@ const intentAwareScopeFallback = (semanticIntent = {}) => {
   };
 };
 
+const providerFailureFallback = ({ message, conversationHistory, verbosityBand }) => {
+  const claimEvaluation = evaluateElenaClaim(message);
+  return runElenaLocalEngine({ message, conversationHistory, verbosityBand, claimEvaluation });
+};
+
 export const normalizeElenaConversationHistory = (history) => {
   if (history === undefined || history === null) return { ok: true, history: [] };
   if (!Array.isArray(history)) {
@@ -172,7 +177,7 @@ export const runElenaResponseAdapter = async ({
     return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
   }
   if (config.provider !== "openai" || !config.providerConfigComplete) {
-    const localResult = runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    const localResult = providerFailureFallback({ message, conversationHistory, verbosityBand });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
 
@@ -209,7 +214,7 @@ export const runElenaResponseAdapter = async ({
     }, { config })),
   });
   if (!semanticResolution.ok) {
-    const localResult = runElenaLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    const localResult = providerFailureFallback({ message, conversationHistory, verbosityBand });
     return {
       ...localResult,
       mode: "local_deterministic",
