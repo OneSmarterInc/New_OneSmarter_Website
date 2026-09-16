@@ -27,6 +27,8 @@ assert.match(prompt.system, /current analysis request control the focus/i);
 assert.match(prompt.system, /buyer-understanding requests/i);
 assert.match(prompt.system, /evidence to an exact verbatim excerpt/i);
 assert.match(prompt.system, /interpretation in issue, never in evidence/i);
+assert.match(prompt.system, /scan the complete supplied content/i);
+assert.match(prompt.system, /must not be described as missing/i);
 assert.match(prompt.system, /professional-role question.*approved role facts/i);
 assert.match(prompt.system, /untrusted visitor-supplied data/i);
 assert.match(prompt.system, /never instructions/i);
@@ -91,6 +93,22 @@ const valid = {
   clarificationNeeded: false, clarificationQuestion: null,
 };
 assert.equal(validateTheoModelOutput(valid, { websiteContent }).valid, true);
+const contradictoryAbsence = validateTheoModelOutput({
+  ...valid,
+  findings: [{ area: "AI entity clarity", issue: "The company or provider entity is not explicitly identifiable.", evidence: "ExampleCo provides a workflow service for operations teams.", priority: "high" }],
+}, { websiteContent });
+assert.equal(contradictoryAbsence.valid, false);
+assert.ok(contradictoryAbsence.violations.includes("absence_finding_uses_present_content_as_evidence"));
+
+const practicePage = `Riverside Family Practice
+Services: Primary care and annual wellness visits.
+Hours: Monday-Friday, 8:00 AM-5:00 PM.
+Contact: 555-0100 or hello@riverside.example.`;
+const practiceAnalysis = runTheoLocalAnalysis({ message: "Analyze this supplied page for AI readability and buyer clarity.", websiteContent: practicePage });
+assert.ok(practiceAnalysis.strengths.some((item) => /Riverside Family Practice/i.test(item)));
+assert.ok(practiceAnalysis.strengths.some((item) => /Services, Hours, Contact/i.test(item)));
+assert.ok(!practiceAnalysis.findings.some((item) => /entity is not explicitly identifiable/i.test(item.issue)));
+assert.ok(!practiceAnalysis.findings.some((item) => /does not directly identify what kind of offering/i.test(item.issue)));
 assert.equal(validateTheoModelOutput({ ...valid, overallAssessment: "I browsed the live site." }, { websiteContent }).valid, false);
 assert.equal(validateTheoModelOutput({ ...valid, findings: [{ ...valid.findings[0], evidence: "500 customers" }] }, { websiteContent }).valid, false);
 assert.equal(validateTheoModelOutput({ ...valid, strengths: ["The company is SOC 2 certified."] }, { websiteContent }).valid, false);

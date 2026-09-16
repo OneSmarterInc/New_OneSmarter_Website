@@ -118,6 +118,21 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "", semant
 
   const lines = content.split(/\r?\n/).map((line) => clean(line)).filter(Boolean);
   const wordCount = clean(content).split(" ").filter(Boolean).length;
+  const firstLine = lines[0] || "";
+  const firstLineWords = firstLine.split(/\s+/).filter(Boolean);
+  const firstLineEntity = firstLine
+    && firstLine.length <= 100
+    && firstLineWords.length <= 8
+    && !firstLine.includes(":")
+    ? firstLine
+    : "";
+  const labelledFacts = lines.flatMap((line) => {
+    const separator = line.indexOf(":");
+    if (separator <= 0 || separator >= line.length - 1) return [];
+    const label = line.slice(0, separator).trim();
+    const value = line.slice(separator + 1).trim();
+    return label && value ? [{ label, value, line }] : [];
+  });
   const headingPattern = /^(?:#{1,6}\s+|(?:heading|subheading|title|h[1-6])\s*:\s*\S)/i;
   const headings = lines.filter((line) => headingPattern.test(line));
   const hasMetadata = /\b(?:title|meta description|schema|json-ld|og:title|canonical)\s*[:=]/i.test(content);
@@ -175,10 +190,14 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "", semant
     } else strengths.push("No common unsupported marketing superlatives were found in the supplied text.");
   };
   const addAiReadability = () => {
-    if (companyMatch) strengths.push(`The company or provider is identifiable from supplied wording: ${excerptTheoEvidence(companyMatch[1], 80)}.`);
+    const identifiedEntity = companyMatch?.[1] || firstLineEntity;
+    if (identifiedEntity) strengths.push(`The company or provider is identifiable from supplied wording: ${excerptTheoEvidence(identifiedEntity, 80)}.`);
     else {
       findings.push(finding("AI entity clarity", "The company or provider entity is not explicitly identifiable.", excerptTheoEvidence(lines[0]), "high"));
       recommendations.push(recommendation("high", "Name the company and connect it directly to the offering.", "AI systems need an explicit company-to-service relationship rather than an implied one."));
+    }
+    if (labelledFacts.length) {
+      strengths.push(`The supplied content explicitly labels ${labelledFacts.map(({ label }) => label).join(", ")}.`);
     }
     addOfferingCheck();
     if (!hasAudience) {

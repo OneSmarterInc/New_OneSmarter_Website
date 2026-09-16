@@ -74,6 +74,11 @@ export const validateTheoModelOutput = (output, {
     }
     const evidence = normalize(item.evidence);
     const absenceObservation = /\b(?:not supplied|no .* supplied|does not (?:state|provide|include)|word|words)\b/i.test(item.evidence);
+    const absenceFinding = /\b(?:not supplied|no .* supplied|does not (?:state|provide|include)|not (?:explicitly )?(?:identifiable|identified|provided|included|stated)|missing|omitted)\b/i.test(item.issue);
+    if (absenceFinding && !absenceObservation) {
+      violations.push("absence_finding_uses_present_content_as_evidence");
+      break;
+    }
     const comparableEvidence = evidence.replace(/…$/, "").trim();
     if (comparableEvidence && !absenceObservation && !evidenceText.includes(comparableEvidence) && !roleGrounding?.grounded) {
       violations.push("finding_evidence_not_supplied");
