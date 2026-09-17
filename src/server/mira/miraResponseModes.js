@@ -368,9 +368,9 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
     const certificationQuestion =
       /\b(?:certif(?:ied|ication)|certificate|logo)\b/i.test(message);
     const definitionQuestion = /\bwhat is ISO(?:\/IEC)?\s*27001\b/i.test(message);
-    let answer = isoReadinessEntry.approvedSummary;
-    let faqId = "faq_iso_readiness";
-    let matchedEntries = [isoReadinessEntry];
+    let answer = "";
+    let faqId = "";
+    let matchedEntries = [];
     if (differenceQuestion) {
       answer = "One Smarter Inc.'s ISO/IEC 27001:2022 certification is its own organizational credential for the stated certified scope. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and One Smarter Inc. does not issue ISO certificates.";
       faqId = "faq_iso_readiness_vs_certification";
@@ -378,9 +378,11 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
     } else if (customerCertificationQuestion) {
       answer = "No. One Smarter Inc.'s ISO/IEC 27001:2022 certification does not certify customer systems. ISO/IEC 27001 readiness support helps clients prepare, but certification is not automatic and One Smarter Inc. does not issue ISO certificates.";
       faqId = "faq_iso_customer_certification_boundary";
+      matchedEntries = [isoCertificationEntry, isoReadinessEntry];
     } else if (issuingQuestion) {
       answer = "No. OneSmarter provides ISO/IEC 27001 readiness support for clients; it does not issue ISO certificates.";
       faqId = "faq_iso_certificate_issuer_boundary";
+      matchedEntries = [isoReadinessEntry];
     } else if (guaranteeQuestion) {
       answer = "No. ISO/IEC 27001 certification does not guarantee customer compliance, and One Smarter Inc.'s certification does not certify customer systems.";
       faqId = "faq_iso_compliance_guarantee_boundary";
@@ -396,6 +398,7 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
     } else if (readinessQuestion && !/\b(?:own certification|your certification|OneSmarter certified|are you certified)\b/i.test(message)) {
       answer = "OneSmarter provides ISO/IEC 27001 readiness support for clients through ISMS documentation, control mapping, evidence preparation, and remediation coordination. This service supports preparation; it does not issue certificates or guarantee certification or compliance.";
       faqId = "faq_iso_readiness";
+      matchedEntries = [isoReadinessEntry];
     } else if (certificationQuestion) {
       const logoContext = /\blogo\b/i.test(message)
         ? "A logo alone should not be treated as certification evidence. "
@@ -406,6 +409,9 @@ const resolveCanonicalKnowledgeFaq = (message = "") => {
     } else if (definitionQuestion) {
       answer = "ISO/IEC 27001 is an information-security management system standard. OneSmarter provides readiness support for clients through ISMS documentation, control mapping, evidence preparation, and remediation coordination.";
       faqId = "faq_iso_definition";
+      matchedEntries = [isoReadinessEntry];
+    } else {
+      return null;
     }
     return {
       faqId,

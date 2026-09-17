@@ -108,4 +108,70 @@ const supported = runMiraLocalHarness("What is OneSmarter?");
 assert.equal(supported.matchedEntries.length > 0, true);
 assert.match(supported.answerSeed, /OneSmarter/i);
 
+const runGroundedSemanticCase = async ({ message, intent, expectedIds, expectedBoundary }) => {
+  const result = await runMiraResponseAdapter({
+    message,
+    conversationHistory: [],
+    config,
+    semanticIntentProvider: async () => ({ intent }),
+    openAiAdapter: async () => ({ error: "offline" }),
+  });
+  const ids = result.matchedEntries.map(({ id }) => id);
+  expectedIds.forEach((id) => assert.equal(ids.includes(id), true, `${message}: ${id}`));
+  assert.doesNotMatch(result.answerSeed, /platforms, services, compliance posture/i, message);
+  if (expectedBoundary) assert.match(result.answerSeed, expectedBoundary, message);
+  return result;
+};
+
+await runGroundedSemanticCase({
+  message: "Would these capabilities help a communications provider manage recurring carrier costs?",
+  intent: intentFor("business_services", {
+    topic: "Bill Audit & Bill Pay",
+    entities: ["communications provider", "recurring carrier costs"],
+    proposition: "Bill Audit and Bill Pay may support recurring carrier cost review",
+    questionType: "positive_yes_no",
+    requestedDetail: "applicability to recurring carrier expense review",
+  }),
+  expectedIds: ["bill-audit-bill-pay"],
+});
+
+await runGroundedSemanticCase({
+  message: "How are sensitive clinical records handled in the workflow platform?",
+  intent: intentFor("platforms", {
+    topic: "Secure Ticketing and Case Management",
+    entities: ["sensitive clinical records", "workflow platform"],
+    proposition: "Secure Ticketing supports sensitive clinical-record workflows",
+    questionType: "how",
+    requestedDetail: "approved safeguards for sensitive workflows",
+  }),
+  expectedIds: ["secure-ticketing-case-management"],
+  expectedBoundary: /PHI-sensitive|HIPAA-regulated/i,
+});
+
+await runGroundedSemanticCase({
+  message: "Does the information-security credential extend to the claims service?",
+  intent: intentFor("compliance", {
+    topic: "ISO/IEC 27001 Certified|Claims Processing Services",
+    entities: ["ISO/IEC 27001", "Claims Processing Services"],
+    proposition: "OneSmarter's ISO certification covers Claims Processing Services",
+    questionType: "scope_check",
+    requestedDetail: "relationship between certified scope and claims services",
+  }),
+  expectedIds: ["iso-27001-certified", "claims-processing-services"],
+  expectedBoundary: /does not automatically cover claims processing|certified scope/i,
+});
+
+const providerFailureWithEvidence = await runMiraResponseAdapter({
+  message: "Does OneSmarter offer telecom expense management?",
+  conversationHistory: [],
+  config,
+  semanticIntentProvider: async () => { throw new Error("offline"); },
+  openAiAdapter: async () => ({ error: "offline" }),
+});
+assert.equal(
+  providerFailureWithEvidence.matchedEntries.some(({ id }) => id === "bill-audit-bill-pay"),
+  true,
+);
+assert.doesNotMatch(providerFailureWithEvidence.answerSeed, /outside Mira's approved/i);
+
 console.log("Mira contextual scope tests passed.");

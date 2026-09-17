@@ -222,7 +222,7 @@ const MIRA_SEMANTIC_TOPIC_CONTEXT = onesmarterPublicKnowledgeBase
   .join("\n");
 
 const semanticIntentSystemExtension =
-  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Resolve a follow-up against the immediately preceding proposition only when unambiguous. For requests outside the approved OneSmarter domains, classify their meaning with one of these bounded domains: general_definition, general_education, privacy_general, unrelated_factual, meaningless_input, person_specific, customer_strategy, unsupported_business_request, unsupported_factual_request. Use meaningless_input only when no coherent request can be interpreted. These labels describe the request; they do not authorize facts or answers.`;
+  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. In a question about how "you" or "your" organization handles information or performs work, resolve the subject as OneSmarter or the most relevant approved offering rather than as general advice when the approved topic descriptions support that interpretation. Distinguish general safe-sharing or privacy advice from a question about handling regulated or sensitive information inside an operational workflow; for the latter, select the approved workflow offering whose description directly supports that use. Treat an applicability or recommendation question as an approved OneSmarter-domain request when it asks whether documented capabilities fit an industry, workflow, or operational need; reserve customer_strategy for requests to design or decide a customer-specific implementation. When a request asks about the relationship between multiple approved topics, preserve all subjects and choose the topic labels that provide evidence for each side. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Resolve a follow-up against the immediately preceding proposition only when unambiguous. For requests outside the approved OneSmarter domains, classify their meaning with one of these bounded domains: general_definition, general_education, privacy_general, unrelated_factual, meaningless_input, person_specific, customer_strategy, unsupported_business_request, unsupported_factual_request. Use meaningless_input only when no coherent request can be interpreted. These labels describe the request; they do not authorize facts or answers.`;
 
 const resolveMiraSemanticIntent = ({
   message,
@@ -298,7 +298,7 @@ const semanticQueryFor = (intent = {}) => [
 
 const semanticEvidenceFor = (intent = {}, localHarness = runMiraLocalHarness) => {
   const topicParts = String(intent.topic || "")
-    .split("|")
+    .split(/[|;]/)
     .map((part) => part.trim())
     .filter(Boolean);
   const queryFields = [
@@ -410,8 +410,11 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
         /\b(?:does not|do not|cannot|not available|not provide|not access)\b/i.test(fact),
       ),
       ...(entry?.disallowedClaims || []),
-    ]).slice(0, 4);
-    return [scopeEntry?.approvedSummary, ...boundaries].filter(Boolean).join(" ");
+    ].slice(0, 2)).slice(0, 4);
+    return [
+      ...orderedEntries.slice(0, 2).map(({ approvedSummary }) => approvedSummary),
+      ...boundaries,
+    ].filter(Boolean).join(" ");
   }
   return entries[0]?.approvedSummary ||
     "I can help with approved public information about OneSmarter's platforms, services, compliance posture, Trust Center, and professional agents. What would you like to explore?";
@@ -1925,10 +1928,28 @@ export const runMiraResponseAdapter = async ({
         config,
       });
     const semanticIntent = semanticResolution.intent;
+    const semanticTopicParts = String(semanticIntent.topic || "")
+      .split(/[|;]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const semanticTopicMatchesApprovedKnowledge = semanticTopicParts.some((topic) =>
+      onesmarterPublicKnowledgeBase.some(({ title }) => title === topic),
+    );
+    const semanticCanonicalEvidenceEligible = semanticTopicMatchesApprovedKnowledge &&
+      ![
+        "meaningless_input",
+        "person_specific",
+        "customer_strategy",
+        "unsupported_business_request",
+        "unsupported_factual_request",
+        "unrelated_factual",
+      ].includes(semanticIntent.domain);
     if (!semanticResolution.ok) {
       localResult = {
         ...localResult,
-        ...semanticOutOfScopeFallback({ clarificationNeeded: true }),
+        ...(["provider_failure", "provider_unavailable"].includes(semanticResolution.error)
+          ? {}
+          : semanticOutOfScopeFallback({ clarificationNeeded: true })),
         semanticIntentSupplement: semanticIntent,
       };
     } else if (semanticIntent.domain === "conversational_acknowledgement" && !semanticIntent.clarificationNeeded) {
@@ -1948,7 +1969,7 @@ export const runMiraResponseAdapter = async ({
       "general_definition", "general_education", "privacy_general", "unrelated_factual",
       "meaningless_input", "person_specific", "customer_strategy",
       "unsupported_business_request", "unsupported_factual_request",
-    ].includes(semanticIntent.domain)) {
+    ].includes(semanticIntent.domain) && !semanticCanonicalEvidenceEligible) {
       localResult = {
         ...localResult,
         ...semanticOutOfScopeFallback(semanticIntent),
@@ -1995,7 +2016,10 @@ export const runMiraResponseAdapter = async ({
             ...semanticOutOfScopeFallback(semanticIntent),
             semanticIntentSupplement: semanticIntent,
           };
-    } else if (!semanticResolution.domainAllowed || semanticIntent.clarificationNeeded) {
+    } else if (
+      !semanticResolution.domainAllowed ||
+      (semanticIntent.clarificationNeeded && !semanticCanonicalEvidenceEligible)
+    ) {
       localResult = {
         ...localResult,
         ...semanticOutOfScopeFallback(semanticIntent),
@@ -2075,6 +2099,7 @@ export const runMiraResponseAdapter = async ({
             "positive_yes_no",
             "negative_confirmation",
             "status",
+            "scope_check",
             "why",
             "comparison",
             "follow_up",
