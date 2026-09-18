@@ -24,6 +24,7 @@ const TOPIC_TERMS = {
 
 const ELENA_CLARIFICATION_ANSWER =
   "I can help with HIPAA, SOC 2, ISO/IEC 27001, PCI DSS, compliance readiness, and audit preparation. What would you like to review?";
+const ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC = "compliance-language-review";
 
 const normalized = (value = "") =>
   String(value).toLowerCase().replace(/[‐‑‒–—]/g, "-").replace(/[^a-z0-9/\s-]/g, " ")
@@ -192,6 +193,23 @@ export const runElenaLocalEngine = ({
     return localResult({
       answer,
       ids: claimEvaluation.knowledgeIds,
+      claimEvaluation,
+    });
+  }
+
+  if (
+    semanticIntent?.topic === ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC &&
+    claimEvaluation?.matchedRuleId === "not_in_elena_approved_knowledge"
+  ) {
+    const answer = semanticIntent.questionType === "how"
+      ? "Elena evaluates proposed compliance wording against approved evidence and claim boundaries. If the approved information does not support a claim, Elena does not approve or extend it; customer-specific marketing, badge, or security claims require appropriate human review."
+      : semanticIntent.questionType === "why"
+        ? "The proposed wording is not supported by Elena's approved compliance evidence. The approved information does not provide a further reason, and Elena will not extend the claim beyond that evidence."
+        : "Elena cannot approve that wording from the available approved compliance evidence. Limit the statement to a specifically supported OneSmarter compliance posture or readiness claim, and use appropriate human review for customer-specific marketing, badge, or security wording.";
+    return localResult({
+      answer,
+      ids: [],
+      confidence: "high",
       claimEvaluation,
     });
   }

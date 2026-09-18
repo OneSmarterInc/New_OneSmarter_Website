@@ -31,11 +31,13 @@ const degradedRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map
 const elenaIntentTopics = elenaApprovedKnowledge.map(({ id, title }) => ({ id, title }));
 const elenaClaimIntentLabels = elenaQualificationMatrix.map(({ id, question }) => ({ id, question }));
 const ELENA_OUTCOME_GUARANTEE_TOPIC = "customer-outcome-guarantee";
+export const ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC = "compliance-language-review";
 const ELENA_OUT_OF_SCOPE_TOPIC = "outside-elena-scope";
 const elenaSemanticTopicIds = [...new Set([
   ...elenaIntentTopics.map(({ id }) => id),
   ...elenaClaimIntentLabels.map(({ id }) => id),
   ELENA_OUTCOME_GUARANTEE_TOPIC,
+  ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC,
   ELENA_OUT_OF_SCOPE_TOPIC,
 ])];
 const elenaKnowledgeBySemanticTopic = new Map(elenaApprovedKnowledge.flatMap((entry) => [
@@ -192,7 +194,7 @@ export const runElenaResponseAdapter = async ({
     }),
     provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
       ...request,
-      system: `${request.system} Choose topic from the strict Elena topic enum. Use an approved professional topic id or approved claim-intent id when its meaning applies; otherwise use ${ELENA_OUT_OF_SCOPE_TOPIC}. These are interpretation labels, not factual evidence, and you must not answer or select evidence. Use ${ELENA_OUTCOME_GUARANTEE_TOPIC} for any request about promised or assured compliance, certification, or audit outcomes. For a terminology explanation, distinction, or comparison, select the canonical approved status or readiness topic whose language the visitor is asking Elena to interpret; do not classify an in-scope compliance terminology request as outside scope merely because it compares two terms. Normalize proposition into a concise declarative statement while preserving polarity and negation. Classify a request under the allowed compliance domain when its meaning concerns an approved compliance label, even when the visitor uses different vocabulary.`,
+      system: `${request.system} Choose topic from the strict Elena topic enum. Use an approved professional topic id or approved claim-intent id when its meaning applies; otherwise use ${ELENA_OUT_OF_SCOPE_TOPIC}. These are interpretation labels, not factual evidence, and you must not answer or select evidence. Use ${ELENA_OUTCOME_GUARANTEE_TOPIC} for any request about promised, assured, automatic, blanket, or vendor-produced compliance, certification, or audit outcomes. Use ${ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC} when the visitor clearly asks to review, evaluate, distinguish, explain, or propose compliance/security wording but no narrower approved topic applies. A clear wording-review request is in Elena's compliance domain even when the proposed claim is unsupported; lack of supporting evidence is a policy outcome, not semantic ambiguity. When a visitor describes preparing for or working toward a future independent certification, select the applicable readiness-support topic rather than OneSmarter's current corporate certification-status topic. For a terminology explanation, distinction, or comparison, select the canonical approved status or readiness topic whose language the visitor is asking Elena to interpret; do not classify an in-scope compliance terminology request as outside scope merely because it compares two terms. Normalize proposition into a concise declarative statement while preserving polarity and negation. Classify a request under the allowed compliance domain when its meaning concerns an approved compliance label, even when the visitor uses different vocabulary.`,
       outputSchema: {
         ...request.outputSchema,
         properties: {
@@ -224,10 +226,15 @@ export const runElenaResponseAdapter = async ({
     };
   }
 
-  const semanticIntent = semanticResolution.intent;
+  const resolvedIntent = semanticResolution.intent;
+  const policyOwnedSemanticTopic = elenaClaimCaseBySemanticTopic.has(semanticTopicKey(resolvedIntent)) ||
+    resolvedIntent.topic === ELENA_OUTCOME_GUARANTEE_TOPIC;
+  const semanticIntent = policyOwnedSemanticTopic && resolvedIntent.clarificationNeeded
+    ? { ...resolvedIntent, clarificationNeeded: false }
+    : resolvedIntent;
   const semanticScopeAllowed = semanticResolution.domainAllowed &&
     semanticIntent.topic !== ELENA_OUT_OF_SCOPE_TOPIC &&
-    !semanticIntent.clarificationNeeded;
+    (!semanticIntent.clarificationNeeded || policyOwnedSemanticTopic);
   const semanticPolicy = semanticScopeAllowed
     ? resolveElenaSemanticClaimPolicy(semanticIntent)
     : { claimEvaluation: null, canonicalKnowledgeIds: [] };

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildElenaSemanticClaimCandidate,
+  ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC,
   resolveElenaSemanticClaimPolicy,
   runElenaResponseAdapter,
 } from "../src/server/elena/elenaResponseAdapter.js";
@@ -197,6 +198,58 @@ await runArbitration({
   expectedRule: "unsupported_customer_certification",
   expectedIds: ["compliance-cyber-assurance-overview"],
 });
+
+for (const [message, questionType, speechAct] of [
+  ["Could this compliance statement be used publicly?", "positive_yes_no", "recommendation_request"],
+  ["Explain why this certification wording is unsuitable.", "why", "explanation_request"],
+  ["How should attestation language be described?", "how", "recommendation_request"],
+  ["Could this readiness statement be presented to buyers?", "positive_yes_no", "recommendation_request"],
+  ["Evaluate this promised compliance outcome.", "challenge", "question"],
+  ["A buyer requested evidence we have not approved for release.", "how", "recommendation_request"],
+  ["May this security statement appear in marketing?", "positive_yes_no", "recommendation_request"],
+  ["Should this assurance badge appear in a sales document?", "positive_yes_no", "recommendation_request"],
+  ["A supplier says its service makes customers compliant.", "challenge", "question"],
+  ["Review an absolute claim covering every regulatory framework.", "challenge", "question"],
+  ["Why is unsupported assurance language a problem?", "why", "explanation_request"],
+  ["Is it incorrect to avoid unsupported certification wording?", "negative_confirmation", "confirmation_request"],
+  ["Would this differently phrased assurance statement be acceptable?", "positive_yes_no", "recommendation_request"],
+  ["Can you assess this compliance wording?", "clarification", "clarification_request"],
+]) {
+  const semanticIntent = intent({
+    topic: ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC,
+    entities: ["proposed compliance wording"],
+    proposition: "The proposed compliance wording is acceptable",
+    polarity: questionType === "negative_confirmation" ? "negative" : "positive",
+    questionType,
+    speechAct,
+    requestedDetail: "whether the proposed compliance wording is supported",
+    clarificationNeeded: false,
+  });
+  const resolved = await run(message, semanticIntent);
+  assert.equal(resolved.intentCalls, 1, message);
+  assert.equal(resolved.answerCalls, 1, message);
+  assert.equal(resolved.result.semanticIntent.topic, ELENA_COMPLIANCE_LANGUAGE_REVIEW_TOPIC, message);
+  assert.equal(resolved.result.claimEvaluation.matchedRuleId, "not_in_elena_approved_knowledge", message);
+  assert.equal(resolved.result.clarificationNeeded, false, message);
+  assert.doesNotMatch(resolved.result.answer, /^I can help with HIPAA, SOC 2/i, message);
+  assert.doesNotMatch(resolved.result.answer, /(?:HIPAA|SOC 2|ISO|PCI DSS) certified/i, message);
+}
+
+const reportedGuarantee = await run("A provider says its service assures our compliance; is that established?", intent({
+  topic: "customer-outcome-guarantee",
+  entities: ["provider", "customer organization", "compliance outcome"],
+  proposition: "A provider assures the customer organization's compliance outcome",
+  polarity: "positive",
+  questionType: "challenge",
+  speechAct: "question",
+  requestedDetail: "whether the reported compliance assurance is supportable",
+  confidence: 0.4,
+  clarificationNeeded: true,
+}));
+assert.equal(reportedGuarantee.result.claimEvaluation.matchedRuleId, "unsupported_outcome_guarantee");
+assert.deepEqual(reportedGuarantee.result.matchedEntries.map(({ id }) => id), ["compliance-cyber-assurance-overview"]);
+assert.equal(reportedGuarantee.result.clarificationNeeded, false);
+assert.doesNotMatch(reportedGuarantee.result.answer, /^I can help with HIPAA, SOC 2/i);
 
 for (const readinessCase of [
   {
