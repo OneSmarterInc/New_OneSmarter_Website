@@ -13,6 +13,56 @@ const normalized = (value = "") => String(value).toLowerCase()
   .replace(/\s+/g, " ")
   .trim();
 
+const RETRIEVAL_STOP_WORDS = new Set([
+  "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does",
+  "for", "from", "how", "i", "in", "is", "it", "of", "on", "one", "or",
+  "our", "that", "the", "their", "this", "to", "what", "when", "why",
+  "with", "you", "your",
+]);
+
+const stem = (token) => {
+  if (token.length <= 4) return token;
+  if (token.endsWith("ation") && token.length > 7) return `${token.slice(0, -5)}ate`;
+  if (token.endsWith("al") && token.length > 6) return token.slice(0, -2);
+  if (token.endsWith("ing") && token.length > 6) return token.slice(0, -3);
+  if (token.endsWith("ed") && token.length > 5) return token.slice(0, -2);
+  if (token.endsWith("es") && token.length > 5) return token.slice(0, -2);
+  if (token.endsWith("s") && token.length > 5) return token.slice(0, -1);
+  return token;
+};
+
+const retrievalTokens = (value = "") => [...new Set(
+  normalized(value).replace(/[-/]/g, " ").split(" ")
+    .filter((token) => token.length > 2 && !RETRIEVAL_STOP_WORDS.has(token))
+    .map(stem),
+)];
+
+const entryRetrievalFields = (entry) => ({
+  identity: [entry.id, entry.title],
+  summary: [entry.approvedSummary],
+  detail: [
+    ...(entry.sourceFacts || []),
+    ...(entry.allowedClaims || []),
+    ...(entry.requiredQualifications || []),
+    ...(entry.unsupportedExtensions || []),
+  ],
+});
+
+const entryTokenSets = new Map(seleneApprovedKnowledge.map((entry) => {
+  const fields = entryRetrievalFields(entry);
+  return [entry.id, {
+    identity: new Set(retrievalTokens(fields.identity.join(" "))),
+    summary: new Set(retrievalTokens(fields.summary.join(" "))),
+    detail: new Set(retrievalTokens(fields.detail.join(" "))),
+  }];
+}));
+
+const tokenDocumentFrequency = new Map();
+for (const tokenSets of entryTokenSets.values()) {
+  const tokens = new Set([...tokenSets.identity, ...tokenSets.summary, ...tokenSets.detail]);
+  for (const token of tokens) tokenDocumentFrequency.set(token, (tokenDocumentFrequency.get(token) || 0) + 1);
+}
+
 const compactSource = (entry) => ({
   id: entry.id,
   title: entry.title,
@@ -42,8 +92,33 @@ const result = ({ answer, ids = [], confidence = "high", clarificationNeeded = f
 
 export const retrieveSeleneKnowledge = (message = "", limit = 3) => {
   const topic = normalized(message);
-  return seleneApprovedKnowledge.filter((entry) =>
-    [entry.id, entry.title].some((value) => normalized(value) === topic)).slice(0, limit);
+  const tokens = retrievalTokens(message);
+  if (!topic || !tokens.length || limit <= 0) return [];
+  const exactMatches = seleneApprovedKnowledge.filter((entry) =>
+    [entry.id, entry.title].some((value) => normalized(value) === topic));
+  if (exactMatches.length) return exactMatches.slice(0, limit);
+  return seleneApprovedKnowledge
+    .map((entry, order) => {
+      const fields = entryTokenSets.get(entry.id);
+      let score = 0;
+      let matches = 0;
+      for (const token of tokens) {
+        const frequency = tokenDocumentFrequency.get(token) || seleneApprovedKnowledge.length;
+        const rarity = 1 + Math.log2((seleneApprovedKnowledge.length + 1) / frequency);
+        const fieldWeight = fields.identity.has(token) ? 5
+          : fields.summary.has(token) ? 3
+          : fields.detail.has(token) ? 1.5
+          : 0;
+        if (!fieldWeight) continue;
+        score += fieldWeight * rarity;
+        matches += 1;
+      }
+      return { entry, order, score, matches };
+    })
+    .filter(({ score, matches }) => score >= 6 && matches >= 2)
+    .sort((left, right) => right.score - left.score || left.order - right.order)
+    .slice(0, limit)
+    .map(({ entry }) => entry);
 };
 
 const intentFallback = (semanticIntent, evaluation, matched) => {
@@ -76,7 +151,18 @@ export const runSeleneLocalEngine = ({ message = "", semanticIntent = null, verb
     confidence: "low",
     clarificationNeeded: true,
   });
-  const matched = semanticIntent ? retrieveSeleneKnowledge(semanticIntent.topic) : [];
+  const exactSemanticTopic = semanticIntent
+    ? seleneApprovedKnowledge.find((entry) => [entry.id, entry.title]
+        .some((value) => normalized(value) === normalized(semanticIntent.topic)))
+    : null;
+  const matched = exactSemanticTopic ? [exactSemanticTopic] : semanticIntent
+    ? retrieveSeleneKnowledge([
+        semanticIntent.topic,
+        semanticIntent.proposition,
+        semanticIntent.requestedDetail,
+        ...(semanticIntent.entities || []),
+      ].filter(Boolean).join(" "))
+    : [];
   const ids = matched.map(({ id }) => id);
   const evaluationText = semanticIntent
     ? [message, semanticIntent.proposition, semanticIntent.requestedDetail, ...(semanticIntent.entities || [])].filter(Boolean).join(" ")
