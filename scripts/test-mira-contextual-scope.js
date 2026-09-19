@@ -93,8 +93,13 @@ await runCase({
 
 await runCase({
   message: "Does OneSmarter support an unlisted proprietary connector?",
-  intent: intentFor("unsupported_factual_request", { topic: "an unlisted proprietary connector", entities: ["OneSmarter"] }),
-  expected: /does not establish|approved OneSmarter/i,
+  intent: intentFor("unsupported_factual_request", {
+    topic: "OneSmarter Overview",
+    entities: ["OneSmarter"],
+    proposition: "OneSmarter supports an unlisted proprietary connector",
+    requestedDetail: "whether an unlisted proprietary connector is supported",
+  }),
+  expected: /whether an unlisted proprietary connector is supported/i,
 });
 
 const acknowledgement = await runCase({
@@ -173,5 +178,125 @@ assert.equal(
   true,
 );
 assert.doesNotMatch(providerFailureWithEvidence.answerSeed, /outside Mira's approved/i);
+
+const businessConversationCases = [
+  {
+    category: "healthcare applicability",
+    message: "Could a neighborhood medical practice use anything you offer?",
+    intent: intentFor("healthcare", {
+      topic: "Claims Processing Services",
+      entities: ["medical practice", "OneSmarter"],
+      proposition: "OneSmarter capabilities may apply to a medical practice",
+      questionType: "recommendation_request",
+      speechAct: "recommendation_request",
+      requestedDetail: "approved healthcare applicability",
+    }),
+    expectedId: "claims-processing-services",
+  },
+  {
+    category: "existing-system modernization",
+    message: "Could your team modernize software that another vendor originally delivered?",
+    intent: intentFor("technology_solutions", {
+      topic: "Technology Solutions Overview",
+      entities: ["existing software", "Technology Solutions"],
+      proposition: "Technology Solutions may support modernization of existing software",
+      questionType: "positive_yes_no",
+      requestedDetail: "approved modernization capability and customer-specific boundary",
+    }),
+    expectedId: "technology-solutions-overview",
+  },
+  {
+    category: "ticketing differentiation",
+    message: "What value could your case-management offering add if our team already uses a help desk?",
+    intent: intentFor("platforms", {
+      topic: "Secure Ticketing and Case Management",
+      entities: ["existing help desk", "Secure Ticketing and Case Management"],
+      proposition: "Secure Ticketing and Case Management may add approved workflow capabilities alongside an existing help desk",
+      questionType: "why",
+      requestedDetail: "approved differentiators without claiming an undocumented migration or integration",
+    }),
+    expectedId: "secure-ticketing-case-management",
+  },
+];
+
+for (const testCase of businessConversationCases) {
+  const result = await runMiraResponseAdapter({
+    message: testCase.message,
+    conversationHistory: [],
+    config,
+    semanticIntentProvider: async () => ({ intent: testCase.intent }),
+    openAiAdapter: async () => ({ error: "offline" }),
+  });
+  assert.equal(
+    result.matchedEntries.some(({ id }) => id === testCase.expectedId),
+    true,
+    `${testCase.category}: exact approved evidence`,
+  );
+  assert.equal(result.semanticIntentSupplement?.topic, testCase.intent.topic, testCase.category);
+  assert.doesNotMatch(result.answerSeed, /I can help with platforms, services, compliance posture/i, testCase.category);
+}
+
+let discoveryGenerationCalls = 0;
+const discovery = await runMiraResponseAdapter({
+  message: "Which useful areas have I not explored with you yet?",
+  conversationHistory: [],
+  config,
+  semanticIntentProvider: async () => ({
+    intent: intentFor("onesmarter", {
+      topic: "Mira Vale Professional Role",
+      entities: ["Mira Vale", "OneSmarter"],
+      proposition: "Mira can suggest approved areas for further discovery",
+      questionType: "recommendation_request",
+      speechAct: "recommendation_request",
+      requestedDetail: "useful approved topics to explore",
+    }),
+  }),
+  openAiAdapter: async () => {
+    discoveryGenerationCalls += 1;
+    return {
+      modelOutput: {
+        answer: "You could explore OneSmarter's approved platforms, technology and business services, professional agents, compliance posture, or Trust Center information.",
+        handoffNeeded: false,
+        handoffReason: null,
+        suggestedFollowUps: [],
+        groundingStatus: "grounded",
+        outputSafetyStatus: "passed",
+      },
+    };
+  },
+});
+assert.equal(discoveryGenerationCalls, 1);
+assert.equal(discovery.semanticIntentSupplement?.questionType, "recommendation_request");
+assert.doesNotMatch(discovery.answerSeed, /^Sure\.?$/i);
+
+let semanticRetryCalls = 0;
+const retriedNegativeQuestion = await runMiraResponseAdapter({
+  message: "Is it inaccurate to say you have no healthcare operations support?",
+  conversationHistory: [],
+  config,
+  semanticIntentProvider: async () => {
+    semanticRetryCalls += 1;
+    if (semanticRetryCalls === 1) return {};
+    return {
+      intent: intentFor("healthcare", {
+        topic: "Claims Processing Services",
+        entities: ["OneSmarter", "health-plan operations"],
+        proposition: "OneSmarter services never support health-plan operations",
+        polarity: "negative",
+        negationScope: [{ marker: "never", scope: "support health-plan operations" }],
+        questionType: "negative_confirmation",
+        speechAct: "confirmation_request",
+        requestedDetail: "whether approved services support health-plan operations",
+      }),
+    };
+  },
+  openAiAdapter: async () => ({ error: "offline" }),
+});
+assert.equal(semanticRetryCalls, 2);
+assert.equal(retriedNegativeQuestion.semanticIntentSupplement?.polarity, "negative");
+assert.equal(
+  retriedNegativeQuestion.matchedEntries.some(({ id }) => id === "claims-processing-services"),
+  true,
+);
 
 console.log("Mira contextual scope tests passed.");

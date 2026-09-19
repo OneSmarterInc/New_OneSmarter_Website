@@ -222,7 +222,7 @@ const MIRA_SEMANTIC_TOPIC_CONTEXT = onesmarterPublicKnowledgeBase
   .join("\n");
 
 const semanticIntentSystemExtension =
-  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. In a question about how "you" or "your" organization handles information or performs work, resolve the subject as OneSmarter or the most relevant approved offering rather than as general advice when the approved topic descriptions support that interpretation. Distinguish general safe-sharing or privacy advice from a question about handling regulated or sensitive information inside an operational workflow; for the latter, select the approved workflow offering whose description directly supports that use. Treat an applicability or recommendation question as an approved OneSmarter-domain request when it asks whether documented capabilities fit an industry, workflow, or operational need; reserve customer_strategy for requests to design or decide a customer-specific implementation. When a request asks about the relationship between multiple approved topics, preserve all subjects and choose the topic labels that provide evidence for each side. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Resolve a follow-up against the immediately preceding proposition only when unambiguous. For requests outside the approved OneSmarter domains, classify their meaning with one of these bounded domains: general_definition, general_education, privacy_general, unrelated_factual, meaningless_input, person_specific, customer_strategy, unsupported_business_request, unsupported_factual_request. Use meaningless_input only when no coherent request can be interpreted. These labels describe the request; they do not authorize facts or answers.`;
+  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. In a question about how "you" or "your" organization handles information or performs work, resolve the subject as OneSmarter or the most relevant approved offering rather than as general advice when the approved topic descriptions support that interpretation. Distinguish general safe-sharing or privacy advice from a question about handling regulated or sensitive information inside an operational workflow; for the latter, select the approved workflow offering whose description directly supports that use. Treat an applicability or recommendation question as an approved OneSmarter-domain request when it asks whether documented capabilities fit an industry, workflow, or operational need; reserve customer_strategy for requests to design or decide a customer-specific implementation. An open request for useful questions, topics, or discovery guidance is a recommendation request about Mira's approved scope, not a conversational acknowledgement. When a request asks about the relationship between multiple approved topics, preserve all subjects and choose the topic labels that provide evidence for each side. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Interpret negative and double-negative questions as coherent propositions when their meaning is clear; do not turn them into comparison or clarification merely because negation is present. If a coherent request asks for a fact that the approved topic context does not establish, retain the request's proposition and requested detail and classify it as unsupported_factual_request instead of returning a blank or unknown intent. Resolve a follow-up against the immediately preceding proposition only when unambiguous. For requests outside the approved OneSmarter domains, classify their meaning with one of these bounded domains: general_definition, general_education, privacy_general, unrelated_factual, meaningless_input, person_specific, customer_strategy, unsupported_business_request, unsupported_factual_request. Use meaningless_input only when no coherent request can be interpreted. These labels describe the request; they do not authorize facts or answers.`;
 
 const resolveMiraSemanticIntent = ({
   message,
@@ -344,12 +344,19 @@ const semanticEvidenceFor = (intent = {}, localHarness = runMiraLocalHarness) =>
     )
     .slice(0, 5)
     .map(({ entry }) => entry);
+  const topicAnchors = topicParts
+    .map((topic) => localHarness(topic).matchedEntries?.[0])
+    .filter(Boolean);
   const comparisonAnchors = intent.questionType === "comparison"
     ? topicParts
         .map((topic) => localHarness(topic).matchedEntries?.[0])
         .filter(Boolean)
     : [];
-  const prioritizedEntries = [...comparisonAnchors, ...matchedEntries]
+  const prioritizedEntries = [
+    ...comparisonAnchors,
+    ...matchedEntries.slice(0, topicAnchors.length ? 4 : 5),
+    ...topicAnchors,
+  ]
     .filter(
       (entry, index, entries) =>
         entries.findIndex((candidate) => candidate.id === entry.id) === index,
@@ -421,7 +428,9 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
 };
 
 const safeSemanticSubject = (intent = {}) => {
-  const candidate = String(intent.topic || intent.requestedDetail || "that request")
+  const candidate = String(
+    intent.requestedDetail || intent.proposition || intent.topic || "that request",
+  )
     .replace(/[\r\n<>]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -1909,7 +1918,7 @@ export const runMiraResponseAdapter = async ({
     isTrustPostureFaq ||
     localResult.comparison?.status === "complete" ||
     localResult.recommendation ||
-    ["recommendation", "acknowledgement"].includes(responseMode.mode),
+    responseMode.mode === "acknowledgement",
   );
   const semanticSupplementEligible = localResult.riskFlags.every(
     (flag) => ["out_of_scope", "business_specific_review"].includes(flag),
@@ -1920,13 +1929,28 @@ export const runMiraResponseAdapter = async ({
     && config?.provider === "openai"
     && config.providerConfigComplete;
   if (semanticSupplementEligible) {
-    const semanticResolution = earlySemanticResolution ||
+    let semanticResolution = earlySemanticResolution ||
       await resolveMiraSemanticIntent({
         message: classificationMessage,
         conversationHistory,
         semanticIntentProvider,
         config,
       });
+    let semanticRetryCount = 0;
+    const semanticIntentNeedsRetry = () => !semanticResolution.ok || Boolean(
+      semanticResolution.intent?.clarificationNeeded &&
+      !semanticResolution.intent?.topic &&
+      ["", "unknown"].includes(semanticResolution.intent?.domain || ""),
+    );
+    while (semanticIntentNeedsRetry() && semanticRetryCount < 2) {
+      semanticRetryCount += 1;
+      semanticResolution = await resolveMiraSemanticIntent({
+        message: classificationMessage,
+        conversationHistory,
+        semanticIntentProvider,
+        config,
+      });
+    }
     const semanticIntent = semanticResolution.intent;
     const semanticTopicParts = String(semanticIntent.topic || "")
       .split(/[|;]/)
