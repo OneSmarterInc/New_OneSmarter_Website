@@ -246,10 +246,12 @@ export const seleneApprovedKnowledge = [
   }),
   entry({
     id: "operational-state-vs-factual-accuracy",
-    title: "Operational State and Factual Accuracy",
+    title: "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy",
     approvedSummary:
-      "Operational state may change optional response detail or verbosity, but it must never change facts, safety, qualifications, refusals, handoffs, or useful correctness.",
+      "Operational state may change optional response detail or verbosity through agent depletion: an agent may appear tired and respond more concisely as its energy changes, but this must never change facts, safety, qualifications, refusals, handoffs, or useful correctness. Approved Café participation may restore energy without changing factual boundaries.",
     sourceFacts: [
+      "Depletion and energy describe response manner and optional detail, not factual capability or accuracy.",
+      "Approved Café participation can restore energy while remaining separate from professional factual evidence.",
       "Concise mode removes optional elaboration only.",
       "Required facts, safety statements, qualifications, refusals, and handoffs must remain intact.",
       "Detailed energy values, state identifiers, storage backends, diagnostics, credentials, and configuration are internal and not public answer material.",

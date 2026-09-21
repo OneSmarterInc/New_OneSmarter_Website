@@ -1824,7 +1824,7 @@ const AiAgentsPage = () => {
             <p className="mt-6 max-w-3xl text-base leading-8 text-zinc-300 md:text-lg">
               OneSmarter is building a digital team of AI agents that can
               explain, review, analyze, and collaborate around real business
-              workflows. Mira is the first guide concept for explaining the
+              workflows. Mira is the live guide for explaining the
               public OneSmarter site in plain language.
             </p>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-200">
@@ -1854,7 +1854,7 @@ const AiAgentsPage = () => {
               Meet Mira Vale, the OneSmarter Guide
             </h2>
             <p className="mt-4 leading-7 text-gray-700">
-              Mira is the first visitor-facing agent concept. She answers
+              Mira is the live visitor-facing guide. She answers
               questions about OneSmarter from approved public website content,
               helping visitors understand platforms, technology services,
               business services, compliance readiness, and the Trust Center.

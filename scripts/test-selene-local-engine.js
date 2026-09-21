@@ -18,7 +18,7 @@ for (const [topic, pattern] of [
   ["Professional and Café Separation", /separate from professional evidence/i],
   ["Café Review and Publication Gate", /published.*reviewer attribution/i],
   ["Current Orchestration and Future Collaboration Boundary", /not currently implemented/i],
-  ["Operational State and Factual Accuracy", /never (?:change )?facts|without changing factual accuracy/i],
+  ["Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", /never (?:change )?facts|without changing factual accuracy/i],
 ]) {
   const value = runSeleneLocalEngine({ semanticIntent: intent(topic) });
   assert.match(value.answer, pattern, topic);
@@ -49,6 +49,10 @@ const retrievalCases = [
   ["different professional agent responsibilities", "professional-agent-role-separation"],
   ["operational state and factual accuracy", "operational-state-vs-factual-accuracy"],
   ["depletion response accuracy", "operational-state-vs-factual-accuracy"],
+  ["Why does one of your agents get tired?", "operational-state-vs-factual-accuracy"],
+  ["Does a tired agent give wrong answers?", "operational-state-vs-factual-accuracy"],
+  ["How does Café time refresh an agent's energy?", "operational-state-vs-factual-accuracy"],
+  ["Can an agent stay accurate while sounding more concise?", "operational-state-vs-factual-accuracy"],
 ];
 for (const [query, expectedId] of retrievalCases) {
   const matches = retrieveSeleneKnowledge(query);
@@ -68,9 +72,11 @@ for (const [message, topic, expectedId] of [
   ["Why use separate agents instead of one?", "OneSmarter Focused-Agent Architecture", "agent-architecture-overview"],
   ["Why not use one general chatbot?", "OneSmarter Focused-Agent Architecture", "agent-architecture-overview"],
   ["Why have different professional agents?", "Professional Agent Role Separation", "professional-agent-role-separation"],
-  ["Why does an agent get tired?", "Operational State and Factual Accuracy", "operational-state-vs-factual-accuracy"],
-  ["Does depletion reduce accuracy?", "Operational State and Factual Accuracy", "operational-state-vs-factual-accuracy"],
-  ["What happens during depletion?", "Operational State and Factual Accuracy", "operational-state-vs-factual-accuracy"],
+  ["Why does one of your agents get tired?", "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", "operational-state-vs-factual-accuracy"],
+  ["What is depletion?", "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", "operational-state-vs-factual-accuracy"],
+  ["Does a tired agent give wrong answers?", "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", "operational-state-vs-factual-accuracy"],
+  ["Does depletion reduce accuracy?", "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", "operational-state-vs-factual-accuracy"],
+  ["What happens during depletion?", "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", "operational-state-vs-factual-accuracy"],
 ]) {
   const value = runSeleneLocalEngine({ message, semanticIntent: intent(topic, {
     proposition: message,
