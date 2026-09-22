@@ -1,7 +1,10 @@
 export const OPENAI_STAGING_MODE = "staging_llm";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_TEMPERATURE_ONLY_MODELS = [/^gpt-5(?:$|-|\.)/i];
-const REASONING_EFFORT_MODELS = [];
+const REASONING_EFFORT_MODELS = [/^gpt-5(?:$|-|\.)/i];
+// Live Responses API diagnostic on 2026-08-26: gpt-5.6-luna rejected `minimal`
+// and reported support for none, low, medium, high, xhigh, and max.
+const MINIMAL_REASONING_UNSUPPORTED_MODELS = [/^gpt-5\.6-luna(?:$|-|\.)/i];
 
 const miraStructuredOutputSchema = {
   type: "object",
@@ -171,6 +174,18 @@ export const supportsCustomTemperature = (model = "") =>
 export const supportsReasoningEffort = (model = "") =>
   REASONING_EFFORT_MODELS.some((pattern) => pattern.test(model));
 
+export const reasoningEffortForModel = (model = "", effort = "minimal") => {
+  if (!supportsReasoningEffort(model)) return "";
+  const resolvedEffort = typeof effort === "string" && effort.trim()
+    ? effort.trim().toLowerCase()
+    : "minimal";
+  if (
+    resolvedEffort === "minimal" &&
+    MINIMAL_REASONING_UNSUPPORTED_MODELS.some((pattern) => pattern.test(model))
+  ) return "";
+  return resolvedEffort;
+};
+
 export const buildOpenAiResponsesRequest = ({ promptPayload, config }) => {
   const body = {
     model: config.model,
@@ -192,9 +207,10 @@ export const buildOpenAiResponsesRequest = ({ promptPayload, config }) => {
     body.temperature = config.temperature;
   }
 
-  if (supportsReasoningEffort(config.model)) {
+  const reasoningEffort = reasoningEffortForModel(config.model, config.reasoningEffort);
+  if (reasoningEffort) {
     body.reasoning = {
-      effort: config.reasoningEffort || "minimal",
+      effort: reasoningEffort,
     };
   }
 

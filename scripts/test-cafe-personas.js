@@ -110,11 +110,11 @@ const agentEntries = Object.fromEntries(
   ),
 );
 const expectedStatuses = {
-  "Mira Vale": "First guide concept",
-  "Theo Mercer": "Future scan concept",
-  "Elena Cross": "Future review concept",
-  "Ravi Sen": "Future workflow concept",
-  "Selene Hart": "Future strategy concept",
+  "Mira Vale": "Live public-content guide",
+  "Theo Mercer": "Live supplied-content analysis",
+  "Elena Cross": "Live compliance reader",
+  "Ravi Sen": "Live operations agent",
+  "Selene Hart": "Live architecture strategist",
 };
 if (Object.keys(agentEntries).length !== 5) {
   fail(`expected exactly 5 workplace agents, found ${Object.keys(agentEntries).length}.`);

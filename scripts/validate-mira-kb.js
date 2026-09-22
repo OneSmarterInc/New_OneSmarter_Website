@@ -293,6 +293,33 @@ const validateCanonicalSiteKnowledge = () => {
   ) {
     fail("ISO/IEC 27001 readiness must remain distinct from OneSmarter certification wording.");
   }
+
+  const isoTrustPage = siteDirectory.find(
+    (page) => page.route === "/trust-center/iso-27001",
+  );
+  const isoTrustText = [
+    isoTrustPage?.metaDescription,
+    isoTrustPage?.shortSummary,
+    ...(isoTrustPage?.keyOfferings || []),
+    ...(isoTrustPage?.complianceNotes || []),
+  ].join(" ");
+  for (const requiredFact of [
+    "One Smarter Inc.",
+    "ISO/IEC 27001:2022",
+    "210826050107",
+    "ARS Assessment Private Limited",
+    "UAF accredited",
+    "21 August 2026",
+    "20 August 2029",
+    "arscert.com",
+    "iafcertsearch.org",
+    "AWS cloud services development, HR and people management solutions development, and governance activities in the One Smarter application",
+    "does not automatically cover claims processing, healthcare services, all platforms, all customer systems, or every service",
+  ]) {
+    if (!isoTrustText.includes(requiredFact)) {
+      fail(`ISO Trust Center source content must include: ${requiredFact}`);
+    }
+  }
 };
 const validateDocs = () => {
   const docsPath = path.join(repoRoot, "docs", "v2-mira-knowledge-base.md");

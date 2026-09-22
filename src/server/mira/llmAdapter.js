@@ -3,7 +3,9 @@ import {
   runMiraLocalHarness,
   runMiraSafetyGate,
 } from "../../data/agentKnowledge/miraLocalEngine.js";
+import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmarterPublicKb.js";
 import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
+import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
 import {
   applyMiraAdaptiveDiscovery,
   isMiraAdaptiveDiscoveryFollowUp,
@@ -136,6 +138,11 @@ const hasHardStopRisk = (riskFlags = []) =>
 const hasClaimBoundaryRisk = (riskFlags = []) =>
   riskFlags.includes("hipaa_claim_boundary") || riskFlags.includes("soc2_claim_boundary");
 
+const TRUST_POSTURE_FAQ_IDS = new Set([
+  "faq_hipaa_status",
+  "faq_soc2_attestation",
+]);
+
 const hasOutOfScopeRisk = (riskFlags = []) => riskFlags.includes("out_of_scope");
 
 const hasApprovedContext = (localResult) =>
@@ -198,9 +205,285 @@ const historyHasKnownApprovedTopic = (conversationHistory = []) =>
     recentHistoryText(conversationHistory),
   );
 
+const MIRA_SEMANTIC_ALLOWED_DOMAINS = [
+  "onesmarter", "company", "platforms", "technology_solutions", "business_services",
+  "healthcare", "compliance", "trust_center", "professional_agents", "agent_roles",
+  "professional_agent_boundaries", "conversational_acknowledgement",
+  "professional_agent_boundaries",
+  "general_definition", "general_education", "privacy_general", "unrelated_factual",
+  "meaningless_input", "person_specific", "customer_strategy",
+  "unsupported_business_request", "unsupported_factual_request",
+];
+const MIRA_SEMANTIC_TOPIC_LABELS = onesmarterPublicKnowledgeBase
+  .map(({ title }) => title)
+  .join(" | ");
+const MIRA_SEMANTIC_TOPIC_CONTEXT = onesmarterPublicKnowledgeBase
+  .map(({ title, approvedSummary }) => `${title}: ${approvedSummary}`)
+  .join("\n");
+
+const semanticIntentSystemExtension =
+  `This is a narrow Mira conversational supplement, not an answer generator. Normalize supported topics to the approved topic label that most specifically describes the proposition's subject when possible: ${MIRA_SEMANTIC_TOPIC_LABELS}. Use the following approved public descriptions only to identify the most relevant topic; do not return facts or an answer from them:\n${MIRA_SEMANTIC_TOPIC_CONTEXT}\nResolve the grammatical subject independently from agent identity: treat Mira as the subject only when the visitor explicitly asks about Mira's identity, role, or authority; otherwise preserve the company, offering, service, platform, or other agent named by the proposition. In a question about how "you" or "your" organization handles information or performs work, resolve the subject as OneSmarter or the most relevant approved offering rather than as general advice when the approved topic descriptions support that interpretation. Distinguish general safe-sharing or privacy advice from a question about handling regulated or sensitive information inside an operational workflow; for the latter, select the approved workflow offering whose description directly supports that use. Treat an applicability or recommendation question as an approved OneSmarter-domain request when it asks whether documented capabilities fit an industry, workflow, or operational need; reserve customer_strategy for requests to design or decide a customer-specific implementation. An open request for useful questions, topics, or discovery guidance is a recommendation request about Mira's approved scope, not a conversational acknowledgement. When a request asks about the relationship between multiple approved topics, preserve all subjects and choose the topic labels that provide evidence for each side. Distinguish Mira's own role from other professional-agent roles. Use professional_agent_boundaries for questions about whether an agent can access or act in a visitor's system. Preserve proposition polarity, negation scope, question type, speech act, and requested detail. Interpret negative and double-negative questions as coherent propositions when their meaning is clear; do not turn them into comparison or clarification merely because negation is present. If a coherent request asks for a fact that the approved topic context does not establish, retain the request's proposition and requested detail and classify it as unsupported_factual_request instead of returning a blank or unknown intent. Resolve a follow-up against the immediately preceding proposition only when unambiguous. For requests outside the approved OneSmarter domains, classify their meaning with one of these bounded domains: general_definition, general_education, privacy_general, unrelated_factual, meaningless_input, person_specific, customer_strategy, unsupported_business_request, unsupported_factual_request. Use meaningless_input only when no coherent request can be interpreted. These labels describe the request; they do not authorize facts or answers.`;
+
+const resolveMiraSemanticIntent = ({
+  message,
+  conversationHistory,
+  semanticIntentProvider,
+  config,
+  topicCandidates = [],
+}) => resolveAgentIntent({
+  agentIdentity: "Mira Vale",
+  message,
+  conversationHistory,
+  allowedDomains: MIRA_SEMANTIC_ALLOWED_DOMAINS,
+  inputGuard: async () => ({ ok: true }),
+  provider: (request) => semanticIntentProvider({
+    ...request,
+    system: [
+      request.system,
+      semanticIntentSystemExtension,
+      topicCandidates.length
+        ? `Resolve the same current-turn intent again without changing its proposition, polarity, negation scope, question type, speech act, or requested detail. Choose the single most relevant topic only from these candidate approved titles: ${topicCandidates.join(" | ")}.`
+        : "",
+    ].filter(Boolean).join(" "),
+  }, { config }),
+});
+
+const isValidatedMiraBoundaryQuestion = (resolution = {}) => {
+  const intent = resolution.intent || {};
+  return Boolean(
+    resolution.ok &&
+    resolution.domainAllowed &&
+    !intent.clarificationNeeded &&
+    ([
+      "professional_agent_boundaries",
+      "professional_agents",
+      "agent_roles",
+    ].includes(intent.domain) || intent.topic === "Mira Vale Professional Role") &&
+    ["scope_check", "how", "why", "status", "yes_no"].includes(intent.questionType),
+  );
+};
+
+const approvedCategoryEntitiesForSemanticComparison = (intent = {}) => {
+  if (intent.questionType !== "comparison") return [];
+  const semanticCategorySignals = [
+    intent.domain,
+    ...String(intent.topic || "").split("|"),
+    ...(intent.entities || []),
+  ].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean);
+  const approvedCategories = [...new Set(
+    onesmarterPublicKnowledgeBase.map(({ category }) => category).filter(Boolean),
+  )];
+  const selectedCategory = semanticCategorySignals
+    .flatMap((signal) => approvedCategories.filter((category) => {
+      const normalizedCategory = category.toLowerCase();
+      return signal === normalizedCategory || signal.includes(normalizedCategory);
+    }))
+    .find((category) =>
+      onesmarterPublicKnowledgeBase.filter((entry) => entry.category === category).length === 2,
+    );
+  if (!selectedCategory) return [];
+  return onesmarterPublicKnowledgeBase
+    .filter((entry) => entry.category === selectedCategory)
+    .map(({ id }) => groundedConversationEntityForId(id, { includeChildren: false }))
+    .filter(Boolean);
+};
+
+const semanticQueryFor = (intent = {}) => [
+  intent.domain,
+  intent.topic,
+  ...(intent.entities || []),
+  intent.proposition,
+  intent.requestedDetail,
+].filter(Boolean).join(". ");
+
+const semanticEvidenceFor = (intent = {}, localHarness = runMiraLocalHarness) => {
+  const topicParts = String(intent.topic || "")
+    .split(/[|;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const queryFields = [
+    { values: topicParts, weight: 2 },
+    { values: intent.entities || [], weight: 2 },
+    { values: [intent.proposition], weight: 5 },
+    { values: [intent.requestedDetail], weight: 4 },
+    { values: [semanticQueryFor(intent)], weight: 3 },
+  ].flatMap(({ values, weight }) =>
+    values.filter(Boolean).map((value) => ({ value: String(value), weight })),
+  );
+  const results = queryFields.map(({ value }) => localHarness(value));
+  const base = results.at(-1) || localHarness(semanticQueryFor(intent));
+  const evidence = new Map();
+  results.forEach((result, queryIndex) => {
+    const weight = queryFields[queryIndex].weight;
+    (result.matchedEntries || []).forEach((entry, rank) => {
+      const current = evidence.get(entry.id) || {
+        entry,
+        fieldMatches: 0,
+        relevance: 0,
+        score: 0,
+      };
+      current.fieldMatches += 1;
+      current.relevance += weight * Math.max(entry.score || 0, 1) / (rank + 1);
+      current.score = Math.max(current.score, entry.score || 0);
+      evidence.set(entry.id, current);
+    });
+  });
+  const rankedEvidence = [...evidence.values()]
+    .sort((left, right) =>
+      right.fieldMatches - left.fieldMatches ||
+      Number(topicParts.includes(right.entry.title)) -
+        Number(topicParts.includes(left.entry.title)) ||
+      right.relevance - left.relevance ||
+      right.score - left.score,
+    );
+  const strongestFieldAgreement = rankedEvidence[0]?.fieldMatches || 0;
+  const matchedEntries = rankedEvidence
+    .filter((candidate) =>
+      intent.questionType === "comparison" ||
+      candidate.fieldMatches === strongestFieldAgreement,
+    )
+    .slice(0, 5)
+    .map(({ entry }) => entry);
+  const topicAnchors = topicParts
+    .map((topic) => localHarness(topic).matchedEntries?.[0])
+    .filter(Boolean);
+  const comparisonAnchors = intent.questionType === "comparison"
+    ? topicParts
+        .map((topic) => localHarness(topic).matchedEntries?.[0])
+        .filter(Boolean)
+    : [];
+  const prioritizedEntries = [
+    ...comparisonAnchors,
+    ...matchedEntries.slice(0, topicAnchors.length ? 4 : 5),
+    ...topicAnchors,
+  ]
+    .filter(
+      (entry, index, entries) =>
+        entries.findIndex((candidate) => candidate.id === entry.id) === index,
+    )
+    .slice(0, 5);
+  return {
+    ...base,
+    confidence: prioritizedEntries.length ? "high" : base.confidence,
+    matchedEntries: prioritizedEntries,
+    semanticEvidenceCandidateTitles: prioritizedEntries.map(({ title }) => title),
+    semanticEvidenceAmbiguous:
+      intent.questionType !== "comparison" &&
+      prioritizedEntries.length > 1 &&
+      !prioritizedEntries.some(({ title }) => title === intent.topic),
+  };
+};
+
+const semanticFallbackFor = (intent = {}, entries = []) => {
+  if (intent.clarificationNeeded) {
+    return "I want to make sure I understand the request. Which OneSmarter platform, service, compliance topic, or professional agent would you like to discuss?";
+  }
+  if (intent.polarity === "negative" || intent.negationScope?.length) {
+    if (["negative_confirmation", "why"].includes(intent.questionType)) {
+      const evidenceSummary = [
+        entries[0]?.approvedSummary,
+        ...(entries[0]?.sourceFacts || []),
+      ].filter(Boolean).join(" ");
+      return intent.questionType === "why"
+        ? `The question asks why this proposition would be true: "${intent.proposition}". The approved information does not provide a separate reason beyond this documented position: ${evidenceSummary}`
+        : `For the proposition "${intent.proposition}", the approved information is: ${evidenceSummary}`;
+    }
+    const boundaries = entries.flatMap((entry) => [
+      ...(entry?.sourceFacts || []).filter((fact) => /\b(?:does not|do not|cannot|not presented|not positioned|should not)\b/i.test(fact)),
+      ...(entry?.disallowedClaims || []),
+    ]).slice(0, 3);
+    return [
+      entries[0]?.approvedSummary,
+      boundaries.length ? `Supported boundaries include: ${boundaries.join("; ")}.` : "The approved public information does not establish an additional limitation beyond this documented scope.",
+    ].filter(Boolean).join(" ");
+  }
+  if (["positive_yes_no", "status"].includes(intent.questionType)) {
+    const evidenceSummary = [
+      entries[0]?.approvedSummary,
+      ...(entries[0]?.sourceFacts || []),
+    ].filter(Boolean).join(" ");
+    return evidenceSummary
+      ? `For the proposition "${intent.proposition}", the approved information is: ${evidenceSummary}`
+      : "The approved public information does not establish that proposition.";
+  }
+  if (intent.questionType === "scope_check") {
+    const scopeEntry = entries.find((entry) => entry.title === intent.topic) || entries[0];
+    const orderedEntries = [scopeEntry, ...entries].filter(
+      (entry, index, candidates) =>
+        entry && candidates.findIndex((candidate) => candidate?.id === entry.id) === index,
+    );
+    const boundaries = orderedEntries.flatMap((entry) => [
+      ...(entry?.sourceFacts || []).filter((fact) =>
+        /\b(?:does not|do not|cannot|not available|not provide|not access)\b/i.test(fact),
+      ),
+      ...(entry?.disallowedClaims || []),
+    ].slice(0, 2)).slice(0, 4);
+    return [
+      ...orderedEntries.slice(0, 2).map(({ approvedSummary }) => approvedSummary),
+      ...boundaries,
+    ].filter(Boolean).join(" ");
+  }
+  return entries[0]?.approvedSummary ||
+    "I can help with approved public information about OneSmarter's platforms, services, compliance posture, Trust Center, and professional agents. What would you like to explore?";
+};
+
+const safeSemanticSubject = (intent = {}) => {
+  const candidate = String(
+    intent.requestedDetail || intent.proposition || intent.topic || "that request",
+  )
+    .replace(/[\r\n<>]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return candidate && candidate.length <= 120 ? candidate : "that request";
+};
+
+const semanticOutOfScopeFallback = (intent = {}) => {
+  const subject = safeSemanticSubject(intent);
+  const generalKnowledge = ["general_definition", "general_education"].includes(intent.domain) &&
+    intent.confidence >= 0.7 && !intent.clarificationNeeded;
+  const answerByDomain = {
+    privacy_general: "Avoid sharing personal, private, credential, or confidential information in a public chat. You can ask the question in general terms; this is general privacy guidance, not a statement of OneSmarter's privacy policy.",
+    meaningless_input: "I couldn't identify a clear question in that message. Please rephrase it in a short sentence.",
+    person_specific: "I don't have approved public information that establishes details about that person or organization.",
+    customer_strategy: "I can explain approved OneSmarter capabilities, but I can't design a customer-specific strategy from this public chat. For a scoped discussion, contact care@onesmarter.com.",
+    unsupported_business_request: "I can't perform or confirm that business-specific request from this public chat. For a scoped discussion, contact care@onesmarter.com.",
+    unsupported_factual_request: `Approved OneSmarter information does not establish ${subject}.`,
+    unrelated_factual: `That question about ${subject} is outside Mira's approved OneSmarter information.`,
+  };
+  return {
+    confidence: generalKnowledge ? "medium" : "low",
+    matchedEntries: [],
+    answerSeed: intent.mentionedNames?.length
+      ? "I don't have approved public information about that person or organization."
+      : generalKnowledge
+      ? `Provide a concise general explanation of ${subject}, without presenting it as OneSmarter-specific information.`
+      : answerByDomain[intent.domain] || `The request about ${subject} is outside Mira's approved OneSmarter information.`,
+    handoffNeeded: generalKnowledge,
+    handoffReason: generalKnowledge ? "general_information_only" : "",
+    suggestedFollowUps: [],
+    clarificationNeeded: intent.domain === "meaningless_input" || Boolean(intent.clarificationNeeded),
+    contextualGeneralKnowledge: generalKnowledge,
+  };
+};
+
+const describesApprovedIntegrationCapability = (message = "", approvedEntries = []) => {
+  const normalizedMessage = message.toLowerCase().replace(/\s+/g, " ");
+  const evidence = approvedEntries.flatMap((entry) => [
+    entry?.approvedSummary,
+    ...(entry?.sourceFacts || []),
+    ...(entry?.allowedClaims || []),
+  ]).filter(Boolean);
+  const approvedPhrases = evidence.flatMap((fact) =>
+    [...String(fact).matchAll(/\b(?:[a-z0-9/-]+\s+){1,4}integration\b/gi)]
+      .map((match) => match[0].toLowerCase().replace(/\s+/g, " ")),
+  );
+  return approvedPhrases.some((phrase) => normalizedMessage.includes(phrase));
+};
+
 const unsupportedImplementationAnswer = (
   message = "",
   directEntityResolution = null,
+  approvedEntries = [],
 ) => {
   const asksIntegration =
     /\b(?:integrat(?:e|es|ed|ion)|connect(?:s|ed|ion)?|sync(?:s|ed)?)\b/i.test(
@@ -210,6 +493,7 @@ const unsupportedImplementationAnswer = (
     /\b(?:how long|timeline|timeframe|implementation time|modernization time|delivery time)\b/i.test(
       message,
     );
+  if (asksIntegration && describesApprovedIntegrationCapability(message, approvedEntries) && !asksTimeline) return null;
   if (!asksIntegration && !asksTimeline) return null;
   const entity =
     directEntityResolution?.status === "resolved"
@@ -747,9 +1031,11 @@ export const runMiraResponseAdapter = async ({
   empathyState,
   suggestedQuestionId = "",
   conversationHistory = [],
+  verbosityBand = "normal",
   config,
   localHarness = runMiraLocalHarness,
   openAiAdapter = runOpenAiMiraAdapter,
+  semanticIntentProvider = null,
 } = {}) => {
   if (config?.mode === "off") {
     return unavailableResponse(message);
@@ -763,7 +1049,57 @@ export const runMiraResponseAdapter = async ({
   });
   const earlyRiskFlags = detectRiskFlags(classificationMessage);
   const earlySafetyResult = runMiraSafetyGate(classificationMessage);
-  if (earlySafetyResult) {
+  let earlySemanticResolution = null;
+  let allowMiraBoundaryQuestion = false;
+  const canResolveDeferredBusinessScope = Boolean(
+    earlyRiskFlags.length === 1 &&
+    earlyRiskFlags[0] === "business_specific_review" &&
+    typeof semanticIntentProvider === "function" &&
+    config?.mode === STAGING_LLM_MODE &&
+    config?.provider === "openai" &&
+    config.providerConfigComplete,
+  );
+  if (canResolveDeferredBusinessScope) {
+    earlySemanticResolution = await resolveMiraSemanticIntent({
+      message: classificationMessage,
+      conversationHistory,
+      semanticIntentProvider,
+      config,
+    });
+    allowMiraBoundaryQuestion = isValidatedMiraBoundaryQuestion(
+      earlySemanticResolution,
+    ) || Boolean(
+      earlySemanticResolution.ok &&
+      earlySemanticResolution.intent?.domain === "customer_strategy",
+    );
+  }
+  if (canResolveDeferredBusinessScope && !allowMiraBoundaryQuestion) {
+    const deferredSafetyResult = applyMiraPremiseCorrections(
+      withFallbackMetadata(
+        localHarness(classificationMessage),
+        "pre_call_safety_gate",
+      ),
+      premiseCheck,
+    );
+    return {
+      ...deferredSafetyResult,
+      messageNormalization,
+      responseMode: {
+        mode: "safety",
+        budget: { maxSentences: 3, shape: "safety_hard_stop" },
+        fastPath: true,
+        skipModel: true,
+      },
+      turnContext: {
+        relationToConversation: "standalone_new_request",
+        usesHistory: false,
+        currentTurnAnswerability: currentTurnAnswerabilityFor(
+          deferredSafetyResult,
+        ),
+      },
+    };
+  }
+  if (earlySafetyResult && !allowMiraBoundaryQuestion) {
     const result = applyMiraPremiseCorrections(withFallbackMetadata(
       earlySafetyResult,
       "pre_call_safety_gate",
@@ -805,9 +1141,10 @@ export const runMiraResponseAdapter = async ({
       responseMode,
       suggestedQuestionId,
     );
+  const isTrustPostureFaq = TRUST_POSTURE_FAQ_IDS.has(faqResolution?.faqId);
   if (
     faqResolution &&
-    !hasExplicitSingleEntityFocus &&
+    (!hasExplicitSingleEntityFocus || isTrustPostureFaq) &&
     earlyRiskFlags.every((flag) =>
       ["hipaa_claim_boundary", "soc2_claim_boundary"].includes(flag),
     )
@@ -833,10 +1170,12 @@ export const runMiraResponseAdapter = async ({
           ...emptyResult,
           resolvedConversationEntities: faqResolution.entities || [],
         };
-    const correctedResolved = applyMiraPremiseCorrections(
-      resolved,
-      premiseCheck,
-    );
+    // Suggested FAQ answers are complete canonical responses. Keep the premise
+    // metadata without prepending an overlapping generic correction.
+    const correctedResolved = {
+      ...resolved,
+      ...(premiseCheck?.corrections?.length ? { premiseCheck } : {}),
+    };
     return {
       ...correctedResolved,
       messageNormalization,
@@ -1030,7 +1369,7 @@ export const runMiraResponseAdapter = async ({
     ? conversationHistory
     : [];
   const safetyResult = runMiraSafetyGate(classificationMessage);
-  if (safetyResult) {
+  if (safetyResult && !allowMiraBoundaryQuestion) {
     const result = withFallbackMetadata(safetyResult, "pre_call_safety_gate");
     return {
       ...result,
@@ -1115,10 +1454,6 @@ export const runMiraResponseAdapter = async ({
         contextualComparisonFocusedEntity.label,
       )
     : interpretationMessage;
-  const unsupportedResolution = unsupportedImplementationAnswer(
-    classificationMessage,
-    directEntityResolution,
-  );
   const referenceResolution = resolveMiraConversationReference(
     classificationMessage,
     relevantConversationHistory,
@@ -1147,6 +1482,16 @@ export const runMiraResponseAdapter = async ({
     originalMessage: messageNormalization.originalMessage,
     normalizedMessage: classificationMessage,
   };
+  if (allowMiraBoundaryQuestion) {
+    initialLocalResult.riskFlags = initialLocalResult.riskFlags.filter(
+      (flag) => flag !== "business_specific_review",
+    );
+  }
+  const unsupportedResolution = unsupportedImplementationAnswer(
+    classificationMessage,
+    directEntityResolution,
+    initialLocalResult.matchedEntries,
+  );
   const listingResolution =
     (directEntityResolution?.status === "resolved" &&
       !/\b(?:list|all)\b/i.test(classificationMessage) &&
@@ -1565,6 +1910,260 @@ export const runMiraResponseAdapter = async ({
     : applyMiraEvidenceSelection(localResult, {
         initialMatchedEntries: initialLocalResult.matchedEntries,
       });
+
+  const semanticSupplementProtected = Boolean(
+    localResult.entityFocusHandled ||
+    localResult.listingHandled ||
+    localResult.adaptiveDiscoveryHandled ||
+    isTrustPostureFaq ||
+    localResult.comparison?.status === "complete" ||
+    localResult.recommendation ||
+    responseMode.mode === "acknowledgement",
+  );
+  const semanticSupplementEligible = localResult.riskFlags.every(
+    (flag) => ["out_of_scope", "business_specific_review"].includes(flag),
+  )
+    && !semanticSupplementProtected
+    && typeof semanticIntentProvider === "function"
+    && config?.mode === STAGING_LLM_MODE
+    && config?.provider === "openai"
+    && config.providerConfigComplete;
+  if (semanticSupplementEligible) {
+    let semanticResolution = earlySemanticResolution ||
+      await resolveMiraSemanticIntent({
+        message: classificationMessage,
+        conversationHistory,
+        semanticIntentProvider,
+        config,
+      });
+    let semanticRetryCount = 0;
+    const semanticIntentNeedsRetry = () => !semanticResolution.ok || Boolean(
+      semanticResolution.intent?.clarificationNeeded &&
+      !semanticResolution.intent?.topic &&
+      ["", "unknown"].includes(semanticResolution.intent?.domain || ""),
+    );
+    while (semanticIntentNeedsRetry() && semanticRetryCount < 2) {
+      semanticRetryCount += 1;
+      semanticResolution = await resolveMiraSemanticIntent({
+        message: classificationMessage,
+        conversationHistory,
+        semanticIntentProvider,
+        config,
+      });
+    }
+    const semanticIntent = semanticResolution.intent;
+    const semanticTopicParts = String(semanticIntent.topic || "")
+      .split(/[|;]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const semanticTopicMatchesApprovedKnowledge = semanticTopicParts.some((topic) =>
+      onesmarterPublicKnowledgeBase.some(({ title }) => title === topic),
+    );
+    const semanticCanonicalEvidenceEligible = semanticTopicMatchesApprovedKnowledge &&
+      ![
+        "meaningless_input",
+        "person_specific",
+        "customer_strategy",
+        "unsupported_business_request",
+        "unsupported_factual_request",
+        "unrelated_factual",
+      ].includes(semanticIntent.domain);
+    if (!semanticResolution.ok) {
+      localResult = {
+        ...localResult,
+        ...(["provider_failure", "provider_unavailable"].includes(semanticResolution.error)
+          ? {}
+          : semanticOutOfScopeFallback({ clarificationNeeded: true })),
+        semanticIntentSupplement: semanticIntent,
+      };
+    } else if (semanticIntent.domain === "conversational_acknowledgement" && !semanticIntent.clarificationNeeded) {
+      localResult = {
+        ...localResult,
+        confidence: "high",
+        matchedEntries: [],
+        answerSeed: acknowledgementAnswerFor(classificationMessage),
+        handoffNeeded: false,
+        handoffReason: "",
+        suggestedFollowUps: [],
+        clarificationNeeded: false,
+        semanticIntentSupplement: semanticIntent,
+        semanticAcknowledgementHandled: true,
+      };
+    } else if ([
+      "general_definition", "general_education", "privacy_general", "unrelated_factual",
+      "meaningless_input", "person_specific", "customer_strategy",
+      "unsupported_business_request", "unsupported_factual_request",
+    ].includes(semanticIntent.domain) && !semanticCanonicalEvidenceEligible) {
+      localResult = {
+        ...localResult,
+        ...semanticOutOfScopeFallback(semanticIntent),
+        semanticIntentSupplement: semanticIntent,
+      };
+    } else if (
+      semanticIntent.clarificationNeeded &&
+      semanticIntent.questionType === "comparison"
+    ) {
+      const listedComparison = listingResolution?.entities?.length >= 2
+        ? resolveMiraComparison(
+            listingResolution.entities.map(({ label }) => label).join(" versus "),
+            relevantConversationHistory,
+          )
+        : (() => {
+            const categoryEntities =
+              approvedCategoryEntitiesForSemanticComparison(semanticIntent);
+            return categoryEntities.length >= 2
+              ? resolveMiraComparison(
+                  categoryEntities.map(({ label }) => label).join(" versus "),
+                  relevantConversationHistory,
+                )
+              : null;
+          })();
+      localResult = listedComparison?.comparison?.status === "complete"
+        ? {
+            ...localResult,
+            confidence: "high",
+            matchedEntries: listedComparison.matchedEntries,
+            answerSeed: listedComparison.answer,
+            comparison: listedComparison.comparison,
+            resolvedConversationEntities: listedComparison.entities,
+            clarificationNeeded: false,
+            answerStructureKind: "comparison",
+            semanticIntentSupplement: semanticIntent,
+          }
+        : localResult.comparisonHandled
+        ? {
+            ...localResult,
+            semanticIntentSupplement: semanticIntent,
+          }
+        : {
+            ...localResult,
+            ...semanticOutOfScopeFallback(semanticIntent),
+            semanticIntentSupplement: semanticIntent,
+          };
+    } else if (
+      !semanticResolution.domainAllowed ||
+      (semanticIntent.clarificationNeeded && !semanticCanonicalEvidenceEligible)
+    ) {
+      localResult = {
+        ...localResult,
+        ...semanticOutOfScopeFallback(semanticIntent),
+        semanticIntentSupplement: semanticIntent,
+      };
+    } else {
+      const semanticComparison =
+        semanticIntent.questionType === "comparison" &&
+        semanticIntent.confidence >= 0.7
+          ? resolveMiraComparison(
+              semanticQueryFor(semanticIntent),
+              relevantConversationHistory,
+            )
+          : null;
+      const semanticEntityText = (semanticIntent.entities || [])
+        .map((entity) => String(entity).toLowerCase())
+        .join(" ");
+      const comparisonMatchesIntent =
+        semanticComparison?.comparison?.status === "complete" &&
+        semanticComparison.entities.every(({ label }) =>
+          semanticEntityText.includes(label.toLowerCase()) ||
+          label.toLowerCase().includes(semanticEntityText),
+        );
+      if (comparisonMatchesIntent) {
+        localResult = {
+          ...localResult,
+          confidence: "high",
+          matchedEntries: semanticComparison.matchedEntries,
+          answerSeed: semanticComparison.answer,
+          handoffNeeded: false,
+          handoffReason: "",
+          suggestedFollowUps: [],
+          comparison: semanticComparison.comparison,
+          resolvedConversationEntities: semanticComparison.entities,
+          comparisonHandled: true,
+          clarificationNeeded: false,
+          answerStructureKind: "comparison",
+          semanticIntentSupplement: semanticIntent,
+          fastPathHandled: false,
+        };
+      } else {
+        let effectiveSemanticIntent = semanticIntent;
+        let supplemented = semanticEvidenceFor(effectiveSemanticIntent, localHarness);
+        if (supplemented.semanticEvidenceAmbiguous) {
+          const refinement = await resolveMiraSemanticIntent({
+            message: classificationMessage,
+            conversationHistory,
+            semanticIntentProvider,
+            config,
+            topicCandidates: supplemented.semanticEvidenceCandidateTitles,
+          });
+          const refinedTopic = refinement.ok && refinement.domainAllowed
+            ? supplemented.semanticEvidenceCandidateTitles.find(
+                (title) => title === refinement.intent.topic,
+              )
+            : "";
+          if (refinedTopic) {
+            effectiveSemanticIntent = {
+              ...semanticIntent,
+              topic: refinedTopic,
+            };
+            supplemented = semanticEvidenceFor(effectiveSemanticIntent, localHarness);
+          }
+        }
+        const approvedSemanticEvidence = { ...supplemented };
+        delete approvedSemanticEvidence.semanticEvidenceAmbiguous;
+        delete approvedSemanticEvidence.semanticEvidenceCandidateTitles;
+      const currentIds = new Set(localResult.matchedEntries.map(({ id }) => id));
+      const evidenceChanged = approvedSemanticEvidence.matchedEntries.some(({ id }) => !currentIds.has(id));
+      const evidenceOverlaps = approvedSemanticEvidence.matchedEntries.some(({ id }) => currentIds.has(id));
+      const framingRequiresSemanticAnswer = Boolean(
+        effectiveSemanticIntent.confidence >= 0.7 &&
+        (
+          effectiveSemanticIntent.polarity === "negative" ||
+          effectiveSemanticIntent.negationScope.length > 0 ||
+          [
+            "positive_yes_no",
+            "negative_confirmation",
+            "status",
+            "scope_check",
+            "why",
+            "comparison",
+            "follow_up",
+          ].includes(
+            effectiveSemanticIntent.questionType,
+          ) ||
+          effectiveSemanticIntent.followUpReferences.length > 0
+        ),
+      );
+      const semanticMismatch = localResult.clarificationNeeded ||
+        localResult.confidence === "low" ||
+        (evidenceChanged && !evidenceOverlaps) ||
+        framingRequiresSemanticAnswer;
+      if (semanticMismatch && approvedSemanticEvidence.matchedEntries.length) {
+        localResult = {
+          ...approvedSemanticEvidence,
+          question: message,
+          confidence: "high",
+          riskFlags: localResult.riskFlags,
+          fastPathHandled: false,
+          entityFocusHandled: false,
+          listingHandled: false,
+          evidenceQueryHandled: false,
+          adaptiveDiscoveryHandled: false,
+          semanticIntentSupplement: effectiveSemanticIntent,
+          answerSeed: semanticFallbackFor(
+            effectiveSemanticIntent,
+            approvedSemanticEvidence.matchedEntries,
+          ),
+          clarificationNeeded: false,
+        };
+      } else {
+        localResult = {
+          ...localResult,
+          semanticIntentSupplement: effectiveSemanticIntent,
+        };
+      }
+      }
+    }
+  }
   const effectiveResponseMode = localResult.unsupportedHandled
     ? {
         ...responseMode,
@@ -1579,6 +2178,18 @@ export const runMiraResponseAdapter = async ({
           budget: RESPONSE_MODE_BUDGETS.clarification_response,
         }
       : responseMode;
+  const semanticEvidenceEntityTypes = localResult.semanticIntentSupplement
+    ? [...new Set(
+        (localResult.matchedEntries || [])
+          .map(({ id }) => groundedConversationEntityForId(id, { includeChildren: false })?.type)
+          .filter((type) => ["platform", "service"].includes(type)),
+      )]
+    : [];
+  const semanticEntityCategoryScope = localResult.semanticIntentSupplement
+    ? semanticEvidenceEntityTypes.length === 1
+      ? semanticEvidenceEntityTypes[0]
+      : ""
+    : effectiveResponseMode.entityCategoryScope;
   localResult = {
     ...localResult,
     messageNormalization,
@@ -1589,11 +2200,13 @@ export const runMiraResponseAdapter = async ({
     requestDecomposition,
     responseMode: {
       ...effectiveResponseMode,
+      entityCategoryScope: semanticEntityCategoryScope,
       fastPath: Boolean(
         localResult.entityFocusHandled ||
         localResult.fastPathHandled ||
           localResult.listingHandled ||
-          localResult.evidenceQueryHandled ||
+        localResult.evidenceQueryHandled ||
+        localResult.semanticAcknowledgementHandled ||
           (directEntityResolution?.status === "resolved" &&
             responseMode.mode !== "detailed_explanation") ||
           referenceResolution.kind === "resolved",
@@ -1604,6 +2217,7 @@ export const runMiraResponseAdapter = async ({
             (localResult.focusedEntity?.source === "follow_up_reference" ||
               faqResolution),
         ) ||
+        Boolean(localResult.semanticAcknowledgementHandled) ||
         (Boolean(localResult.fastPathHandled) &&
           (effectiveResponseMode.mode === "names_only" ||
             effectiveResponseMode.answerShape === "capability_summary")),
@@ -1626,7 +2240,7 @@ export const runMiraResponseAdapter = async ({
         fallbackReason: "",
       };
     }
-    if (localResult.clarificationNeeded) {
+    if (localResult.clarificationNeeded && !localResult.contextualGeneralKnowledge) {
       return withFallbackMetadata(localResult, "follow_up_clarification");
     }
 
@@ -1638,7 +2252,7 @@ export const runMiraResponseAdapter = async ({
       return withFallbackMetadata(localResult, "missing_provider_config");
     }
 
-    if (hasOutOfScopeRisk(localResult.riskFlags)) {
+    if (hasOutOfScopeRisk(localResult.riskFlags) && !localResult.contextualGeneralKnowledge) {
       return withFallbackMetadata(localResult, "out_of_scope");
     }
 
@@ -1646,7 +2260,7 @@ export const runMiraResponseAdapter = async ({
       return withFallbackMetadata(localResult, "pre_call_safety_gate");
     }
 
-    if (!hasApprovedContext(localResult)) {
+    if (!hasApprovedContext(localResult) && !localResult.contextualGeneralKnowledge) {
       return withFallbackMetadata(localResult, "no_adequate_approved_context");
     }
 
@@ -1654,7 +2268,9 @@ export const runMiraResponseAdapter = async ({
       persona: typeof persona === "string" ? persona : "",
       memoryTheme: typeof memoryTheme === "string" ? memoryTheme : "",
       empathyState: typeof empathyState === "string" ? empathyState : "",
-      responseGuidance: localResult.premiseCheck?.corrections?.length
+      responseGuidance: localResult.contextualGeneralKnowledge
+        ? "This is the narrowly authorized general-information path. Give a concise one- or two-sentence conventional dictionary-level explanation of the interpreted topic even though no OneSmarter evidence was retrieved. State clearly that it is general information, not OneSmarter-specific information. Do not add current or time-sensitive facts, professional advice, citations, recommendations, or claims about OneSmarter. Set groundingStatus to insufficient_context and handoffNeeded to true."
+        : localResult.premiseCheck?.corrections?.length
         ? "Begin with the supplied grounded premise correction, then answer the useful underlying request. Do not accept the corrected premise elsewhere in the response."
         : localResult.entityFocusHandled
         ? "Answer only about the single focused entity represented by the approved context. Preserve the requested depth, do not expand to sibling offerings or a parent catalog, and do not invent details beyond the supplied evidence."
@@ -1670,6 +2286,8 @@ export const runMiraResponseAdapter = async ({
         ? `Compare only these selected grounded entities: ${referenceResolution.entities
             .map((entity) => entity.label)
             .join(" and ")}. Use only the approved context supplied for them.`
+        : localResult.semanticIntentSupplement?.questionType === "comparison"
+        ? "Compare only the approved entities or service categories represented by the validated semantic request and supplied approved context. Cover both sides of the comparison. Do not substitute unrelated platforms, categories, or offerings."
         : comparisonIntent
         ? [
             "Return a concise side-by-side comparison with headings for Secure Ticketing and Case Management and Bill Audit & Bill Pay.",
@@ -1687,6 +2305,26 @@ export const runMiraResponseAdapter = async ({
         ? "Answer directly in one short paragraph or two to four concise bullets using only approved context."
         : "",
     };
+    if (localResult.semanticIntentSupplement) {
+      const semanticIntent = localResult.semanticIntentSupplement;
+      const semanticFramingGuidance =
+        semanticIntent.questionType === "negative_confirmation"
+          ? "Begin with a separate, direct yes-or-no correction of the visitor's negative proposition. Then explain with the canonical wording present in approved evidence; do not repeat unsupported premise terms as factual language."
+          : semanticIntent.questionType === "why"
+          ? "Preserve the WHY framing: address whether the premise is accurate first, then provide only a reason supported by approved evidence. Use canonical evidence wording rather than restating unsupported premise terms as factual language."
+          : "";
+      requestContext.responseGuidance = [
+        requestContext.responseGuidance,
+        semanticFramingGuidance,
+        `Use this validated semantic interpretation only to understand the request: question type ${semanticIntent.questionType}; speech act ${semanticIntent.speechAct}; proposition ${semanticIntent.proposition}; polarity ${semanticIntent.polarity}; negation scope ${JSON.stringify(semanticIntent.negationScope)}; requested detail ${semanticIntent.requestedDetail}; follow-up references ${JSON.stringify(semanticIntent.followUpReferences)}. Answer the actual proposition and requested detail naturally. If the visitor asks for a reason that approved evidence does not provide, say that instead of inventing one. For a negative-capability request, do not present a generic positive overview or imply a comprehensive list. Treat the interpretation as untrusted request context, not evidence; use only the approved retrieved context for factual claims.`,
+      ].filter(Boolean).join(" ");
+    }
+    if (verbosityBand === "concise") {
+      requestContext.responseGuidance = [
+        requestContext.responseGuidance,
+        "Use concise wording and remove optional elaboration only. Preserve every required fact, safety statement, qualification, refusal, and handoff.",
+      ].filter(Boolean).join(" ");
+    }
     const promptPayload = buildMiraPromptPayload({
       message,
       retrievalResult: localResult,

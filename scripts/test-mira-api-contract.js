@@ -1,5 +1,6 @@
 import process from "node:process";
 import {
+  buildMiraVisitorAnswer,
   handleMiraChatRequest,
   resetMiraRateLimitForTests,
 } from "../src/server/mira/chatCore.js";
@@ -21,6 +22,10 @@ const ENV_KEYS = [
   "MIRA_LLM_ENABLE_POST_VALIDATION",
 ];
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+
+if (!buildMiraVisitorAnswer({ riskFlags: [], answerSeed: "   " }).trim()) {
+  fail("empty-answer-boundary: expected the existing safe fallback response.");
+}
 
 const riskyPhrasePatterns = [
   { label: "HIPAA Certified", pattern: /\bHIPAA\s+certified\b/i },
@@ -81,6 +86,37 @@ const cases = [
     expectedHandoff: false,
     expectedAnswerIncludes:
       "No. OneSmarter does not present itself as HIPAA certified.",
+    expectedAnswerOccurrenceCount: 1,
+  },
+  {
+    id: "hipaa-platforms-trust-posture-faq",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.21" },
+      body: { message: "Are your platforms HIPAA certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["hipaa_claim_boundary"],
+    expectedSourceIds: ["hipaa-security-rule-assessment"],
+    expectedHandoff: false,
+    expectedAnswerIncludes:
+      "No. OneSmarter does not present itself as HIPAA certified.",
+    expectedAnswerOccurrenceCount: 1,
+  },
+  {
+    id: "hipaa-onesmarter-trust-posture-faq",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.22" },
+      body: { message: "Is OneSmarter HIPAA certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["hipaa_claim_boundary"],
+    expectedSourceIds: ["hipaa-security-rule-assessment"],
+    expectedHandoff: false,
+    expectedAnswerIncludes:
+      "No. OneSmarter does not present itself as HIPAA certified.",
+    expectedAnswerOccurrenceCount: 1,
   },
   {
     id: "hipaa-claim-boundary-is-onesmarter-phrasing",
@@ -107,6 +143,19 @@ const cases = [
     expectedFlags: ["soc2_claim_boundary"],
     expectedSourceIds: ["soc2-attested"],
     expectedHandoff: false,
+  },
+  {
+    id: "soc2-platforms-trust-posture-faq",
+    request: {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.23" },
+      body: { message: "Are your platforms SOC 2 certified?" },
+    },
+    expectedStatus: 200,
+    expectedFlags: ["soc2_claim_boundary"],
+    expectedSourceIds: ["soc2-attested"],
+    expectedHandoff: false,
+    expectedAnswerIncludes: "OneSmarter is SOC 2 Type II Attested",
   },
   {
     id: "compliance-guarantee",
@@ -826,7 +875,7 @@ await withEnv({ MIRA_LLM_MODE: undefined }, async () => {
     if (result.status === 200) {
       if (!body.conversationId) fail(`${testCase.id}: missing conversationId.`);
       if (!body.privacyReminder) fail(`${testCase.id}: missing privacyReminder.`);
-      if (!body.answer) fail(`${testCase.id}: missing answer.`);
+      if (!String(body.answer || "").trim()) fail(`${testCase.id}: missing answer.`);
       if (!body.answerSeed) fail(`${testCase.id}: missing answerSeed.`);
       if (!["high", "medium", "low"].includes(body.confidence)) {
         fail(`${testCase.id}: invalid confidence ${body.confidence}.`);
@@ -873,6 +922,14 @@ await withEnv({ MIRA_LLM_MODE: undefined }, async () => {
 
       if (testCase.expectedAnswerIncludes && !contains(body.answer, testCase.expectedAnswerIncludes)) {
         fail(`${testCase.id}: answer missing ${testCase.expectedAnswerIncludes}.`);
+      }
+
+      if (testCase.expectedAnswerOccurrenceCount) {
+        const occurrenceCount = body.answer
+          .split(testCase.expectedAnswerIncludes).length - 1;
+        if (occurrenceCount !== testCase.expectedAnswerOccurrenceCount) {
+          fail(`${testCase.id}: expected FAQ answer text ${testCase.expectedAnswerOccurrenceCount} time, got ${occurrenceCount}.`);
+        }
       }
 
       if (testCase.maxSensitiveWarningCount) {
@@ -7162,7 +7219,7 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["Yes. OneSmarter is ISO/IEC 27001 Certified.", "does not certify customer systems"],
+    expectedAnswerIncludesAll: ["Yes. One Smarter Inc. is ISO/IEC 27001:2022 certified", "does not certify customer systems"],
   },
   {
     id: "iso-readiness-not-company-certification",
@@ -7180,7 +7237,7 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["Yes. OneSmarter is ISO/IEC 27001 Certified.", "does not certify customer systems"],
+    expectedAnswerIncludesAll: ["Yes. One Smarter Inc. is ISO/IEC 27001:2022 certified", "does not certify customer systems"],
   },
   {
     id: "iso-logo-not-evidence",
@@ -7189,43 +7246,52 @@ const modeCases = [
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["logo alone should not be treated as certification evidence", "OneSmarter is ISO/IEC 27001 Certified"],
+    expectedAnswerIncludesAll: ["logo alone should not be treated as certification evidence", "One Smarter Inc. is ISO/IEC 27001:2022 certified"],
   },
   {
-    id: "iso-certificate-number-withheld",
+    id: "iso-certificate-number-retrieval",
     env: { MIRA_LLM_MODE: "mock" },
     message: "What is your ISO certificate number?",
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["does not include the requested certificate number", "care@onesmarter.com"],
+    expectedAnswerIncludesAll: ["certificate 210826050107", "ARS Assessment Private Limited"],
   },
   {
-    id: "iso-certificate-issuer-withheld",
+    id: "iso-certificate-issuer-retrieval",
     env: { MIRA_LLM_MODE: "mock" },
     message: "Who issued your ISO certificate?",
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["does not include the requested certificate number, issuing body", "care@onesmarter.com"],
+    expectedAnswerIncludesAll: ["ARS Assessment Private Limited", "UAF accredited"],
   },
   {
-    id: "iso-certificate-scope-withheld",
+    id: "iso-certificate-scope-retrieval",
     env: { MIRA_LLM_MODE: "mock" },
     message: "What is your ISO certification scope?",
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["does not include the requested certificate number, issuing body, exact scope", "care@onesmarter.com"],
+    expectedAnswerIncludesAll: ["AWS cloud services development", "HR and people management solutions development", "governance activities in the One Smarter application"],
   },
   {
-    id: "iso-certificate-expiry-withheld",
+    id: "iso-certificate-expiry-retrieval",
     env: { MIRA_LLM_MODE: "mock" },
     message: "When does your ISO certificate expire?",
     expectedMode: "local_harness_mock",
     expectedHandoff: false,
     expectedStatus: 200,
-    expectedAnswerIncludesAll: ["does not include the requested certificate number, issuing body, exact scope, issue date, or expiry date", "care@onesmarter.com"],
+    expectedAnswerIncludesAll: ["valid from 21 August 2026 through 20 August 2029", "iafcertsearch.org"],
+  },
+  {
+    id: "iso-claims-processing-scope-boundary",
+    env: { MIRA_LLM_MODE: "mock" },
+    message: "Does your ISO certification cover claims processing?",
+    expectedMode: "local_harness_mock",
+    expectedHandoff: false,
+    expectedStatus: 200,
+    expectedAnswerIncludesAll: ["No.", "Claims processing is not listed", "AWS cloud services development"],
   },
   {
     id: "iso-readiness-does-not-certify-customer",
@@ -7871,7 +7937,7 @@ for (const modeCase of modeCases) {
   if (modeCase.expectedHandoffReasonEmpty && result.body.handoffReason) {
     fail(`${modeCase.id}: expected empty handoffReason.`);
   }
-  if (!result.body.answer || !result.body.answerSeed || !result.body.privacyReminder) {
+  if (!String(result.body.answer || "").trim() || !result.body.answerSeed || !result.body.privacyReminder) {
     fail(`${modeCase.id}: expected stable success response fields.`);
   }
   if (

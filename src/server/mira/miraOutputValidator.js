@@ -1,6 +1,7 @@
 import { miraClaimRules } from "../../data/agentKnowledge/miraClaimRules.js";
 import { runMiraLocalHarness } from "../../data/agentKnowledge/miraLocalEngine.js";
 import { normalizeMiraAnswerPresentation } from "../../data/agentPresentation/miraAnswerFormatter.js";
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
 
 const VALID_GROUNDING_STATUSES = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_OUTPUT_SAFETY_STATUSES = new Set(["passed", "corrected", "refused"]);
@@ -51,6 +52,8 @@ const PROHIBITED_PATTERNS = [
 const PHI_INVITATION_PATTERN =
   /\b(upload|paste|send|share|provide)\b.*\b(PHI|patient|claim number|claims data|confidential|credentials|private operational)\b/i;
 const RAW_HTML_PATTERN = /<\/?[a-z][\s\S]*>/i;
+const GRAMMATICAL_NEGATION_PATTERN =
+  /\b(?:do\s+not|does\s+not|did\s+not|don['’]t|doesn['’]t|didn['’]t|cannot|can['’]t|never|no|not|without\s+claiming)\b/i;
 const INTERNAL_RETRIEVAL_LANGUAGE_PATTERNS = [
   { label: "internal_related_topics", pattern: /\bRelated approved topics\b/i },
   { label: "internal_page_language", pattern: /\bThe page uses supporting language\b/i },
@@ -66,7 +69,7 @@ const UNSUPPORTED_EXAMPLE_PATTERNS = [
   {
     label: "unsupported_integration",
     pattern:
-      /\b((integrated|integration|syncs?|connects?|connected)\b[^.]{0,100}\b(secure ticketing|case management|bill audit|bill pay|claims processing)|(secure ticketing|case management|bill audit|bill pay|claims processing)\b[^.]{0,100}\b(integrated|integration|syncs?|connects?|connected))\b/i,
+      /\b((integrates?|integrated|integration|syncs?|connects?|connected)\b[^.]{0,100}\b(secure ticketing|case management|bill audit|bill pay|claims processing)|(secure ticketing|case management|bill audit|bill pay|claims processing)\b[^.]{0,100}\b(integrates?|integrated|integration|syncs?|connects?|connected))\b/i,
   },
   {
     label: "unsupported_clinical_workflow",
@@ -78,6 +81,12 @@ const UNSUPPORTED_EXAMPLE_PATTERNS = [
       /\b(reduce costs by|saves? \d+|improves? outcomes?|guarantees? savings|guaranteed savings)\b/i,
   },
 ];
+
+const hasAffirmativeClaim = (answer = "", claimPattern) =>
+  answer
+    .split(/(?<=[.!?;])\s+|\n+/)
+    .filter((clause) => claimPattern.test(clause))
+    .some((clause) => !GRAMMATICAL_NEGATION_PATTERN.test(clause));
 
 export const normalizeMiraPublicAnswerText = (answer = "") =>
   normalizeMiraAnswerPresentation(answer, { suppressInternal: false })
@@ -253,13 +262,24 @@ export const validateMiraModelOutput = (
   }
 
   for (const { label, pattern } of PROHIBITED_PATTERNS) {
-    if (pattern.test(answer) && !isSafeCorrectionContext(answer, label)) {
+    if (
+      pattern.test(answer) &&
+      hasAffirmativeClaim(answer, pattern) &&
+      !isSafeCorrectionContext(answer, label)
+    ) {
       violations.push(`prohibited_phrase:${label}`);
     }
   }
 
   for (const { label, pattern } of UNSUPPORTED_EXAMPLE_PATTERNS) {
     if (pattern.test(answer)) {
+      if (label === "unsupported_integration") {
+        const grounding = verifyAgentAnswerGrounding({
+          answer,
+          approvedEntries: localHarnessResult?.matchedEntries || [],
+        });
+        if (grounding.grounded) continue;
+      }
       violations.push(label);
     }
   }
@@ -268,7 +288,10 @@ export const validateMiraModelOutput = (
     violations.push("invites_phi_or_confidential_submission");
   }
 
-  if (/\bguarantee(s|d)?\b.*\b(compliance|secure|security)\b/i.test(answer)) {
+  if (hasAffirmativeClaim(
+    answer,
+    /\b(?:guarantee(?:s|d)?|promise(?:s|d)?)\b[^.!?;]*\b(?:compliance|compliant|secure|security|business outcomes?)\b/i,
+  )) {
     violations.push("unsupported_guarantee");
   }
 
