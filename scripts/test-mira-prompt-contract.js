@@ -751,6 +751,52 @@ if (Object.values(invalidEffortRuntimeConfig).includes("secret-value-that-must-n
   fail("config: invalid-effort runtime config must not expose the raw API key.");
 }
 
+const captureReasoningBody = async (reasoningEffort) => {
+  const env = {
+    MIRA_LLM_MODE: "staging_llm",
+    MIRA_LLM_PROVIDER: "openai",
+    MIRA_LLM_MODEL: "gpt-5.6-luna",
+    MIRA_LLM_API_KEY: "secret-value-that-must-not-be-returned",
+    ...(reasoningEffort === undefined ? {} : { MIRA_LLM_REASONING_EFFORT: reasoningEffort }),
+  };
+  let capturedRequest = null;
+  await runOpenAiMiraAdapter({
+    message: "What does OneSmarter do?",
+    conversationId: `prompt-contract-luna-${reasoningEffort || "unset"}`,
+    requestContext: {},
+    retrievalResult: companyRetrieval,
+    riskFlags: companyRetrieval.riskFlags,
+    promptPayload: companyPrompt,
+    config: readMiraRuntimeConfig(env),
+    fetchImpl: async (url, request) => {
+      capturedRequest = { url, request };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ output_text: JSON.stringify(mockedModelOutput) }),
+      };
+    },
+  });
+  return JSON.parse(capturedRequest?.request?.body || "{}");
+};
+
+for (const effort of [undefined, "minimal", "unsupported-value"]) {
+  const lunaBody = await captureReasoningBody(effort);
+  if (lunaBody.reasoning) {
+    fail(`openai-adapter: gpt-5.6-luna must omit resolved minimal reasoning for ${effort || "unset"} effort.`);
+  }
+  if (lunaBody.model !== "gpt-5.6-luna" || lunaBody.store !== false || lunaBody.tools) {
+    fail("openai-adapter: gpt-5.6-luna compatibility must not change the remaining provider request shape.");
+  }
+}
+
+for (const effort of ["low", "medium", "high"]) {
+  const lunaBody = await captureReasoningBody(effort);
+  if (lunaBody.reasoning?.effort !== effort) {
+    fail(`openai-adapter: gpt-5.6-luna should receive supported reasoning effort ${effort}.`);
+  }
+}
+
 if (!contains(companyPrompt.system, "You are Mira Vale")) {
   fail("prompt: missing Mira system identity.");
 }
@@ -1059,7 +1105,7 @@ validateCase({
   id: "approved-iso-certification-output-passes",
   output: {
     answer:
-      "Yes. OneSmarter is ISO/IEC 27001 Certified. This describes OneSmarter's own organizational credential and does not certify customer systems.",
+      "Yes. One Smarter Inc. is ISO/IEC 27001:2022 certified for the stated certified scope. This describes its own organizational credential and does not certify customer systems.",
     handoffNeeded: false,
     handoffReason: null,
     suggestedFollowUps: [],

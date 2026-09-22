@@ -2,10 +2,13 @@ import fs from "node:fs";
 import process from "node:process";
 import { cafePersonas, cafeGenerationConstraints } from "../src/data/agentPresentation/cafePersonas.js";
 import {
-  currentCafeConversation,
-  earlierPublishedCafeConversations,
+  getApprovedCafeConversations,
+  getCafeWeekBucket,
+  getEarlierCafeConversations,
   getCafePresenceForPersonaId,
+  isCafeConversationActive,
   publishedCafeConversations,
+  selectCafeConversation,
 } from "../src/data/cafeConversations/index.js";
 import { cafeSeedTopics } from "../src/data/cafeSeedTopics.js";
 import {
@@ -42,14 +45,45 @@ if (!hasPublishedConversations(publishedCafeConversations)) {
 if (hasPublishedConversations([])) {
   fail("An empty published conversation set must be rejected.");
 }
-if (currentCafeConversation !== publishedCafeConversations[0]) {
-  fail("Current Café conversation must be the first newest-first published entry.");
+const duringWindow = new Date("2026-08-24T12:00:00.000Z");
+const sameWeek = new Date("2026-08-24T23:59:59.000Z");
+const nextWeek = new Date("2026-08-31T12:00:00.000Z");
+const afterWindow = new Date("2026-08-26T00:00:00.000Z");
+const currentCafeConversation = selectCafeConversation(publishedCafeConversations, duringWindow);
+if (!currentCafeConversation || currentCafeConversation.status !== "published") {
+  fail("Dynamic selection must return an approved published conversation.");
 }
+if (selectCafeConversation(publishedCafeConversations, sameWeek) !== currentCafeConversation) {
+  fail("Dynamic selection must remain stable within one Monday-based UTC week.");
+}
+if (selectCafeConversation(publishedCafeConversations, nextWeek) === currentCafeConversation) {
+  fail("Dynamic selection must change for the next UTC week bucket.");
+}
+if (selectCafeConversation([...publishedCafeConversations].reverse(), duringWindow)?.id !== currentCafeConversation.id) {
+  fail("Dynamic selection must not depend on publication-array position.");
+}
+const unpublishedFixture = { ...publishedCafeConversations[0], id: "unpublished-fixture", status: "unpublished" };
+const unreviewedFixture = { ...publishedCafeConversations[0], id: "unreviewed-fixture", reviewedBy: "" };
+if (
+  getApprovedCafeConversations([unpublishedFixture, unreviewedFixture, currentCafeConversation]).length !== 1 ||
+  selectCafeConversation([unpublishedFixture, unreviewedFixture], duringWindow) !== null
+) {
+  fail("Only published, human-reviewed conversations may be selected.");
+}
+const earlierPublishedCafeConversations = getEarlierCafeConversations(currentCafeConversation);
 if (
   earlierPublishedCafeConversations.length !== publishedCafeConversations.length - 1 ||
-  earlierPublishedCafeConversations.some((conversation, index) => conversation !== publishedCafeConversations[index + 1])
+  earlierPublishedCafeConversations.includes(currentCafeConversation)
 ) {
-  fail("Earlier Café conversations must remain available in published order.");
+  fail("Earlier approved conversations must exclude the selected conversation.");
+}
+const bucket = getCafeWeekBucket(duringWindow);
+if (
+  bucket.key !== "2026-08-24" ||
+  bucket.startsAt.toISOString() !== "2026-08-24T00:00:00.000Z" ||
+  bucket.presenceEndsAt.toISOString() !== "2026-08-26T00:00:00.000Z"
+) {
+  fail("Café weeks must start Monday 00:00 UTC with a 48-hour presence window.");
 }
 
 for (const conversation of publishedCafeConversations) {
@@ -96,16 +130,36 @@ for (const conversation of publishedCafeConversations) {
   }
 }
 
-const agentSource = fs.readFileSync(new URL("../src/components/AiAgentsPage.jsx", import.meta.url), "utf8");
+const agentSource = fs
+  .readFileSync(new URL("../src/components/AiAgentsPage.jsx", import.meta.url), "utf8")
+  .replace(/\r\n/g, "\n");
 const publishedParticipantIds = new Set(
   currentCafeConversation.participants,
 );
 
 for (const persona of cafePersonas) {
   const expectedPresence = publishedParticipantIds.has(persona.id) ? "in_cafe" : "at_work";
-  if (getCafePresenceForPersonaId(persona.id) !== expectedPresence) {
-    fail(`${persona.name}: expected Phase 4 derived presence ${expectedPresence}.`);
+  if (getCafePresenceForPersonaId(persona.id, currentCafeConversation, duringWindow) !== expectedPresence) {
+    fail(`${persona.name}: expected active-window presence ${expectedPresence}.`);
   }
+  if (getCafePresenceForPersonaId(persona.id, currentCafeConversation, afterWindow) !== "at_work") {
+    fail(`${persona.name}: presence must return to at_work after expiry.`);
+  }
+}
+if (!isCafeConversationActive(duringWindow) || isCafeConversationActive(afterWindow)) {
+  fail("The selected conversation must be active only inside its UTC presence window.");
+}
+if (getCafePresenceForPersonaId("mira-vale", currentCafeConversation, duringWindow) !== "at_work") {
+  fail("Permanent product rule: Mira must always remain at_work.");
+}
+const theoCafeConversation = publishedCafeConversations.find(({ participants }) => participants.includes("theo-mercer"));
+const theoActivePresence = getCafePresenceForPersonaId("theo-mercer", theoCafeConversation, duringWindow);
+const theoExpiredPresence = getCafePresenceForPersonaId("theo-mercer", theoCafeConversation, afterWindow);
+if (theoActivePresence !== "in_cafe" || theoActivePresence === "at_work") {
+  fail("Theo must be exclusively in_cafe, not at_work, while his selected Café conversation is active.");
+}
+if (theoExpiredPresence !== "at_work" || theoExpiredPresence === "in_cafe") {
+  fail("Theo must be exclusively at_work, not in_cafe, after Café presence expires.");
 }
 if (!agentSource.includes('name: "Mira Vale"') || !agentSource.includes('presence: "at_work"')) {
   fail("Permanent product rule: Mira must remain at_work.");
@@ -119,9 +173,12 @@ if (agentSource.includes("conversation.selection")) {
 }
 if (
   !agentSource.includes("Earlier Café conversations") ||
-  !agentSource.includes("invited {invitedParticipantName} to the Café")
+  !agentSource.includes("invited {invitedParticipantName} to the Café") ||
+  !agentSource.includes("viewedCafeConversationId") ||
+  !agentSource.includes("conversation={viewedCafeConversation}") ||
+  !/currentCafeConversation,\s+cafeNow/.test(agentSource)
 ) {
-  fail("Public Café rendering must expose earlier conversations and the light invitation line.");
+  fail("Selectable history must render independently from current-conversation presence.");
 }
 
 const generatorSource = fs.readFileSync(

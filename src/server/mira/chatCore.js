@@ -15,6 +15,11 @@ import { buildMiraAnswerStructure } from "./miraAnswerStructure.js";
 import { applyMiraAnswerCompleteness } from "./miraAnswerCompleteness.js";
 import { validateMiraFinalResponse } from "./miraFinalResponseValidator.js";
 import { sanitizeMiraVisitorAnswer } from "../../data/agentPresentation/miraAnswerFormatter.js";
+import {
+  chargeSuccessfulAgentWork,
+  readAgentDepletionContext,
+  sharedAgentStateStore,
+} from "../agentState/agentDepletionRuntime.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const AGENT_NAME = "Mira Vale";
@@ -22,6 +27,8 @@ const MODE = "local_harness_mock";
 const ENDPOINT = "/api/agents/mira/chat";
 const PRIVACY_REMINDER =
   "Do not submit PHI, confidential documents, or private operational details through this public agent.";
+const EMPTY_ANSWER_FALLBACK =
+  "I do not have an approved public answer for that yet. For business-specific questions, email care@onesmarter.com.";
 const MAX_CONVERSATION_HISTORY_MESSAGES = 6;
 const MAX_CONVERSATION_HISTORY_TOTAL_CHARS = 2000;
 const MAX_CONVERSATION_HISTORY_MESSAGE_CHARS = 700;
@@ -222,6 +229,9 @@ const disclaimerFor = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
     return "Do not submit PHI, patient information, confidential documents, or private operational details through the public agent.";
   }
+  if (result.contextualGeneralKnowledge) {
+    return "This is a general explanation, not OneSmarter-specific information.";
+  }
   if (result.mode === "staging_llm" && result.fallbackUsed === false) {
     return "This response is grounded in approved public OneSmarter content.";
   }
@@ -240,7 +250,7 @@ const disclaimerFor = (result) => {
   return "";
 };
 
-const buildAnswer = (result) => {
+export const buildMiraVisitorAnswer = (result) => {
   if (result.riskFlags.includes("phi_or_confidential_data")) {
     const safetyAnswer =
       "I cannot review PHI, confidential documents, or private operational details here. Please do not submit sensitive information through this public agent. For business-specific questions, email care@onesmarter.com.";
@@ -253,7 +263,8 @@ const buildAnswer = (result) => {
       ? `${complianceCorrection}\n\n${safetyAnswer}`
       : safetyAnswer);
   }
-  return sanitizeMiraVisitorAnswer(result.answerSeed);
+  const answer = sanitizeMiraVisitorAnswer(result.answerSeed);
+  return answer.trim() ? answer : EMPTY_ANSWER_FALLBACK;
 };
 
 const sanitizeAnswerStructure = (structure) => {
@@ -281,6 +292,9 @@ export const handleMiraChatRequest = async ({
   now = new Date(),
   logger = console,
   rateLimitStore,
+  agentStateStore = sharedAgentStateStore,
+  semanticIntentProvider = null,
+  isRequestAborted = () => false,
 } = {}) => {
   const timestamp = now.toISOString();
   let parsedBody = {};
@@ -507,6 +521,11 @@ export const handleMiraChatRequest = async ({
   try {
     const runtimeConfig = readMiraRuntimeConfig();
     logMiraRuntimeConfigOnce(runtimeConfig, activeRateLimitStore, logger);
+    const depletion = await readAgentDepletionContext({
+      agentId: "mira-vale",
+      stateStore: agentStateStore,
+      nowMs: now.getTime(),
+    });
     let result = await runMiraResponseAdapter({
       message: trimmedMessage,
       conversationId,
@@ -516,7 +535,9 @@ export const handleMiraChatRequest = async ({
       suggestedQuestionId:
         typeof suggestedQuestionId === "string" ? suggestedQuestionId : "",
       conversationHistory: normalizedHistory.history,
+      verbosityBand: depletion.verbosityBand,
       config: runtimeConfig,
+      semanticIntentProvider,
     });
     result = applyMiraAnswerCompleteness(result);
     result = validateMiraFinalResponse(result);
@@ -534,7 +555,7 @@ export const handleMiraChatRequest = async ({
       agent: AGENT_NAME,
       mode: result.mode || MODE,
       conversationId: normalizedConversationId,
-      answer: buildAnswer(result),
+      answer: buildMiraVisitorAnswer(result),
       answerCompleteness: result.answerCompleteness,
       finalResponseValidation: result.finalResponseValidation,
       businessGoals: result.businessGoals || [],
@@ -616,6 +637,19 @@ export const handleMiraChatRequest = async ({
         ? { providerUsageReasoningTokens: result.providerUsageReasoningTokens }
         : {}),
     };
+
+    if (
+      !result.fallbackUsed &&
+      !(result.riskFlags || []).includes("out_of_scope") &&
+      !(result.riskFlags || []).includes("phi_or_confidential_data") &&
+      !isRequestAborted()
+    ) {
+      await chargeSuccessfulAgentWork({
+        agentId: "mira-vale",
+        stateStore: agentStateStore,
+        nowMs: now.getTime(),
+      });
+    }
 
     safeLogEvent(
       {

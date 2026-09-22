@@ -150,7 +150,7 @@ const trustCenter = [
     title: "ISO/IEC 27001",
     path: "/trust-center/iso-27001",
     summary:
-      "OneSmarter's ISO/IEC 27001 Certified posture and information security management system.",
+      "One Smarter Inc.'s ISO/IEC 27001:2022 certification for the certified scope stated in the Trust Center.",
   },
   {
     title: "Security Practices",

@@ -12,11 +12,21 @@ import {
 } from "../data/agentPresentation/miraVoiceSamples.js";
 import { getMiraVisualStateForPosture } from "../data/agentPresentation/miraVisualStates.js";
 import { cafePersonas } from "../data/agentPresentation/cafePersonas.js";
+import { deriveTheoPresence } from "../data/agentPresentation/theoPresentation.js";
+import { deriveElenaPresence } from "../data/agentPresentation/elenaPresentation.js";
+import { deriveRaviPresence } from "../data/agentPresentation/raviPresentation.js";
+import { deriveSelenePresence } from "../data/agentPresentation/selenePresentation.js";
 import {
-  currentCafeConversation,
-  earlierPublishedCafeConversations,
+  getEarlierCafeConversations,
+  getCafeWeekBucket,
   getCafePresenceForPersonaId,
+  isCafeConversationActive,
+  selectCafeConversation,
 } from "../data/cafeConversations/index.js";
+import TheoAnalysisPanel from "./TheoAnalysisPanel.jsx";
+import ElenaConversationPanel from "./ElenaConversationPanel.jsx";
+import RaviConversationPanel from "./RaviConversationPanel.jsx";
+import SeleneConversationPanel from "./SeleneConversationPanel.jsx";
 
 const agents = [
   {
@@ -26,7 +36,7 @@ const agents = [
     role: "Website guide and first visitor-facing agent.",
     personality: "Warm, clear, composed, welcoming.",
     background: "Front-door guide for onboarding, executive briefings, and plain-language service explanations.",
-    status: "First guide concept",
+    status: "Live public-content guide",
     presence: "at_work",
     accent: "bg-red-600",
     memoryThemes: ["Simple explanations", "Capability routing", "Trust language", "Email handoff"],
@@ -38,7 +48,7 @@ const agents = [
     role: "AI readability and public website analysis.",
     personality: "Thoughtful, observant, precise.",
     background: "Reads websites through search behavior, AI-readability, and buyer-intent signals.",
-    status: "Future scan concept",
+    status: "Live supplied-content analysis",
     accent: "bg-sky-700",
     memoryThemes: ["Crawler view", "Metadata", "Service clarity", "Buyer signals"],
   },
@@ -49,7 +59,7 @@ const agents = [
     role: "Compliance and claim-boundary language review.",
     personality: "Careful, calm, serious when needed.",
     background: "Built around security questionnaires, vendor-risk language, and public trust claims.",
-    status: "Future review concept",
+    status: "Live compliance reader",
     accent: "bg-zinc-800",
     memoryThemes: ["HIPAA boundaries", "SOC 2 boundaries", "Safer wording", "Review readiness"],
   },
@@ -60,20 +70,20 @@ const agents = [
     role: "Workflow, ticketing, escalation, and process design.",
     personality: "Practical, direct, grounded.",
     background: "Shaped by operations rooms, service backlogs, audit trails, and process handoffs.",
-    status: "Future workflow concept",
+    status: "Live operations agent",
     accent: "bg-red-800",
     memoryThemes: ["Case management", "Ticket routing", "Escalations", "Audit trails"],
   },
   {
     name: "Selene Hart",
     initials: "SH",
-    title: "The Strategist",
-    role: "Business strategy and agent-orchestration thinker.",
+    title: "The AI Agent Architecture Strategist",
+    role: "OneSmarter agent architecture, grounding, validation, and coordination.",
     personality: "Creative, reflective, composed.",
-    background: "Connects transformation programs, operating models, and technical capability to business direction.",
-    status: "Future strategy concept",
+    background: "Explains how OneSmarter separates focused agent roles and applies approved knowledge, review gates, and claim boundaries.",
+    status: "Live architecture strategist",
     accent: "bg-slate-700",
-    memoryThemes: ["AI adoption", "Positioning", "Collaboration", "Executive outcomes"],
+    memoryThemes: ["Agent architecture", "Knowledge boundaries", "Review gates", "Safe coordination"],
   },
 ];
 
@@ -112,7 +122,7 @@ const conversationExamples = [
     id: "faq_iso_readiness_vs_certification",
     question: "What is the difference between your readiness service and your own certification?",
     answer:
-      "OneSmarter's ISO/IEC 27001 certification is its own organizational credential. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and OneSmarter does not issue ISO certificates.",
+      "One Smarter Inc.'s ISO/IEC 27001:2022 certification is its own organizational credential for the certified scope stated in the Trust Center. ISO/IEC 27001 readiness support is a separate client-facing service that helps organizations prepare through ISMS documentation, control mapping, evidence preparation, and remediation coordination. Readiness support does not automatically certify a customer, and One Smarter Inc. does not issue ISO certificates.",
   },
   {
     id: "faq_contact",
@@ -157,6 +167,7 @@ const personaResponses = {
 const MIRA_INPUT_LIMIT = 500;
 const MIRA_HISTORY_LIMIT = 6;
 const MIRA_HISTORY_TOTAL_LIMIT = 2000;
+const requestedCafeRestorationEvents = new Set();
 
 const isPresentationDebugEnabled = () =>
   typeof window !== "undefined" && window.location.hostname === "localhost";
@@ -609,7 +620,7 @@ const MiraVisualPresencePanel = ({ presentationState, showPresentationDebug }) =
         <p className="mt-2 max-w-2xl leading-5 text-zinc-400">
           Mira's visual posture reflects the tone of the current conversation.
           Static artwork only; no camera, tracking, or live avatar processing
-          is active..
+          is active.
         </p>
         <span className="mt-3 inline-flex rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-200">
           {visualState.label}
@@ -741,8 +752,8 @@ const AgentNetwork = () => (
         Mira highlighted
       </p>
       <p className="mt-1 text-sm leading-6 text-zinc-300">
-        First guide concept, connected to future analysis, compliance,
-        operations, and strategy agents.
+        Five specialized AI agents for public guidance, supplied-content analysis,
+        compliance review, operations guidance, and agent architecture.
       </p>
     </div>
   </div>
@@ -750,6 +761,11 @@ const AgentNetwork = () => (
 
 const AgentCard = ({ agent }) => {
   const isInCafe = agent.presence === "in_cafe";
+  const isMira = agent.name === "Mira Vale";
+  const isTheo = agent.name === "Theo Mercer";
+  const isElena = agent.name === "Elena Cross";
+  const isRavi = agent.name === "Ravi Sen";
+  const isSelene = agent.name === "Selene Hart";
 
   return (
     <article
@@ -796,6 +812,31 @@ const AgentCard = ({ agent }) => {
           </span>
         ))}
       </div>
+      {isMira && (
+        <a href="#mira-professional-guide" className="mt-6 inline-flex w-fit rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+          Open Mira
+        </a>
+      )}
+      {isTheo && (
+        <a href="#theo-professional-analysis" className="mt-6 inline-flex w-fit rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600">
+          Open Theo
+        </a>
+      )}
+      {isElena && (
+        <a href="#elena-professional-compliance" className="mt-6 inline-flex w-fit rounded-md bg-zinc-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700">
+          Open Elena
+        </a>
+      )}
+      {isRavi && (
+        <a href="#ravi-professional-operations" className="mt-6 inline-flex w-fit rounded-md bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+          Open Ravi
+        </a>
+      )}
+      {isSelene && (
+        <a href="#selene-professional-architecture" className="mt-6 inline-flex w-fit rounded-md bg-violet-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-600">
+          Open Selene
+        </a>
+      )}
     </article>
   );
 };
@@ -1167,11 +1208,11 @@ const MiraConversationPanel = () => {
     setIsAnswerHighlighted(true);
 
     window.requestAnimationFrame(() => {
-      answerPanelRef.current?.scrollIntoView({
+      threadEndRef.current?.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
           ? "auto"
           : "smooth",
-        block: "start",
+        block: "end",
       });
     });
 
@@ -1242,7 +1283,8 @@ const MiraConversationPanel = () => {
 
   const handleQuestionClick = async (example, index) => {
     setSelectedIndex(index);
-    const answerRequest = requestMiraAnswer(example.question, example.id);
+    setCustomQuestion(example.question);
+    const answerRequest = requestMiraAnswer(example.question);
     guideToAnswerPanel();
     await answerRequest;
   };
@@ -1443,7 +1485,7 @@ const MiraConversationPanel = () => {
           <div
             ref={conversationScrollRef}
             onScroll={handleConversationScroll}
-            className="mt-5 grid min-h-[clamp(16rem,34vh,22rem)] max-h-[clamp(16rem,34vh,22rem)] w-full min-w-0 max-w-full gap-4 overflow-y-auto overflow-x-hidden pr-0 sm:mt-6 sm:gap-5 sm:pr-1"
+            className="mt-5 grid min-h-[clamp(16rem,34vh,22rem)] w-full min-w-0 max-w-full gap-4 overflow-y-auto overflow-x-hidden pr-0 sm:mt-6 sm:gap-5 sm:pr-1"
             aria-live="polite"
           >
             {conversationTurns.length === 0 && (
@@ -1712,18 +1754,57 @@ const PersonaLayerPrototype = () => {
 
 const AiAgentsPage = () => {
   const showPresentationDebug = isPresentationDebugEnabled();
+  const [cafeNow] = useState(() => new Date());
+  const [isTheoAnalysisInFlight, setIsTheoAnalysisInFlight] = useState(false);
+  const [isElenaRequestInFlight, setIsElenaRequestInFlight] = useState(false);
+  const [isRaviRequestInFlight, setIsRaviRequestInFlight] = useState(false);
+  const [isSeleneRequestInFlight, setIsSeleneRequestInFlight] = useState(false);
+  const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
+  const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
+  useEffect(() => {
+    if (!currentCafeConversation || !isCafeConversationActive(cafeNow)) return undefined;
+
+    const bucketKey = getCafeWeekBucket(cafeNow).key;
+    const requestKey = `onesmarter:cafe-restoration:${bucketKey}:${currentCafeConversation.id}`;
+    if (requestedCafeRestorationEvents.has(requestKey)) return undefined;
+    requestedCafeRestorationEvents.add(requestKey);
+    fetch("/api/agents/cafe/restoration", {
+      method: "POST",
+    }).catch(() => requestedCafeRestorationEvents.delete(requestKey));
+    return undefined;
+  }, [cafeNow, currentCafeConversation]);
+  const earlierPublishedCafeConversations = getEarlierCafeConversations(
+    currentCafeConversation,
+  );
+  const viewedCafeConversation = earlierPublishedCafeConversations.find(
+    (conversation) => conversation.id === viewedCafeConversationId,
+  ) || currentCafeConversation;
   const cafePersonaNames = Object.fromEntries(
     cafePersonas.map((persona) => [persona.id, persona.name]),
   );
   const cafePersonaIdsByName = Object.fromEntries(
     cafePersonas.map((persona) => [persona.name, persona.id]),
   );
-  const agentsWithPresence = agents.map((agent) => agent.name === "Mira Vale"
-    ? agent
-    : {
-        ...agent,
-        presence: getCafePresenceForPersonaId(cafePersonaIdsByName[agent.name]),
-      });
+  const agentsWithPresence = agents.map((agent) => {
+    if (agent.name === "Mira Vale") return agent;
+    const cafePresence = getCafePresenceForPersonaId(
+      cafePersonaIdsByName[agent.name],
+      currentCafeConversation,
+      cafeNow,
+    );
+    return {
+      ...agent,
+      presence: agent.name === "Theo Mercer"
+        ? deriveTheoPresence({ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight })
+        : agent.name === "Elena Cross"
+          ? deriveElenaPresence({ cafePresence, isRequestInFlight: isElenaRequestInFlight })
+          : agent.name === "Ravi Sen"
+            ? deriveRaviPresence({ cafePresence, isRequestInFlight: isRaviRequestInFlight })
+            : agent.name === "Selene Hart"
+              ? deriveSelenePresence({ cafePresence, isRequestInFlight: isSeleneRequestInFlight })
+              : cafePresence,
+    };
+  });
   const cafeAgents = agentsWithPresence.filter(
     (agent) => agent.presence === "in_cafe" && agent.name !== "Mira Vale",
   );
@@ -1743,7 +1824,7 @@ const AiAgentsPage = () => {
             <p className="mt-6 max-w-3xl text-base leading-8 text-zinc-300 md:text-lg">
               OneSmarter is building a digital team of AI agents that can
               explain, review, analyze, and collaborate around real business
-              workflows. Mira is the first guide concept for explaining the
+              workflows. Mira is the live guide for explaining the
               public OneSmarter site in plain language.
             </p>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-200">
@@ -1773,7 +1854,7 @@ const AiAgentsPage = () => {
               Meet Mira Vale, the OneSmarter Guide
             </h2>
             <p className="mt-4 leading-7 text-gray-700">
-              Mira is the first visitor-facing agent concept. She answers
+              Mira is the live visitor-facing guide. She answers
               questions about OneSmarter from approved public website content,
               helping visitors understand platforms, technology services,
               business services, compliance readiness, and the Trust Center.
@@ -1807,7 +1888,7 @@ const AiAgentsPage = () => {
         </div>
       </section>
 
-      <section className="bg-zinc-950 px-4 py-16 sm:px-6 md:px-8 xl:px-10">
+      <section id="mira-professional-guide" className="scroll-mt-24 bg-zinc-950 px-4 py-16 sm:px-6 md:px-8 xl:px-10">
         <div className="qa-container-wide mx-auto min-w-0 max-w-full overflow-x-hidden rounded-xl border border-white/10 bg-[#090909] shadow-sm">
           <div className="min-w-0 max-w-full border-b border-white/10 px-4 py-6 text-white sm:px-5 md:px-8 md:py-8">
             <h2 className="text-2xl font-bold md:text-4xl">
@@ -1835,7 +1916,7 @@ const AiAgentsPage = () => {
             <p className="mt-4 leading-7 text-gray-700">
               The agent team is designed around clear roles, useful memory
               themes, and narrow work specialties rather than a generic chatbot
-              surface.
+              surface..
             </p>
           </div>
 
@@ -1846,6 +1927,14 @@ const AiAgentsPage = () => {
           </div>
         </div>
       </section>
+
+      <TheoAnalysisPanel onAnalysisStateChange={setIsTheoAnalysisInFlight} />
+
+      <ElenaConversationPanel onRequestStateChange={setIsElenaRequestInFlight} />
+
+      <RaviConversationPanel onRequestStateChange={setIsRaviRequestInFlight} />
+
+      <SeleneConversationPanel onRequestStateChange={setIsSeleneRequestInFlight} />
 
       <section className="bg-zinc-950 px-5 py-16 text-white md:px-12">
         <div className="qa-container mx-auto rounded-lg border border-white/10 bg-white/[0.04] p-6 md:p-8">
@@ -1858,12 +1947,13 @@ const AiAgentsPage = () => {
           <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
             The Café is intended to present selected conversations generated
             offline, reviewed by a person, and published to the site as data.
-            Its four café agents do not currently answer visitor questions;
-            Mira remains the separate working live agent.
+            The same four agents also have professional interfaces; Café
+            participation is a separate presentation layer and is never factual
+            evidence for professional answers.
           </p>
           <div className="mt-8">
             <CafeConversationTranscript
-              conversation={currentCafeConversation}
+              conversation={viewedCafeConversation}
               personaNames={cafePersonaNames}
             />
             {earlierPublishedCafeConversations.length > 0 && (
@@ -1873,12 +1963,26 @@ const AiAgentsPage = () => {
                 </summary>
                 <div className="mt-5 space-y-5">
                   {earlierPublishedCafeConversations.map((conversation) => (
-                    <CafeConversationTranscript
+                    <button
                       key={conversation.id}
-                      conversation={conversation}
-                      personaNames={cafePersonaNames}
-                    />
+                      type="button"
+                      onClick={() => setViewedCafeConversationId(conversation.id)}
+                      className="block w-full rounded-lg border border-white/10 bg-black/30 p-4 text-left text-sm font-semibold text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.06]"
+                    >
+                      View {conversation.participants
+                        .map((participantId) => cafePersonaNames[participantId])
+                        .join(" and ")}
+                    </button>
                   ))}
+                  {viewedCafeConversationId && (
+                    <button
+                      type="button"
+                      onClick={() => setViewedCafeConversationId("")}
+                      className="text-sm font-semibold text-red-300 underline-offset-4 hover:underline"
+                    >
+                      Return to this week&apos;s conversation
+                    </button>
+                  )}
                 </div>
               </details>
             )}
@@ -1896,8 +2000,8 @@ const AiAgentsPage = () => {
               Who is in the Café
             </h2>
             <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
-              This preview reflects the participants in the latest published
-              Café conversation.
+              This preview reflects this week&apos;s selected conversation during
+              its 48-hour UTC presence window.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {cafeAgents.map((agent) => (

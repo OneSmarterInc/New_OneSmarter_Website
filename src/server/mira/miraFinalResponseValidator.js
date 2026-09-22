@@ -4,6 +4,8 @@ import {
   capabilitySummaryAnswerForEntities,
 } from "./miraListingIntents.js";
 import { normalizeMiraAnswerPresentation } from "../../data/agentPresentation/miraAnswerFormatter.js";
+import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+import { stripInternalGuidance } from "./miraOutputValidator.js";
 
 const TRAILING_FOLLOW_UP =
   /\n+(?:would|do|can|could|what|which|how)\b[^\n?]*\?\s*$/i;
@@ -18,11 +20,13 @@ const normalized = (value = "") =>
 
 const questionCount = (answer = "") => (String(answer).match(/\?/g) || []).length;
 
-const sentenceCount = (answer = "") =>
+const splitStatements = (answer = "") =>
   String(answer)
     .replace(/^[-*]\s+/gm, "")
     .split(/(?<=[.!?])(?:\s+|$)/)
-    .filter((sentence) => sentence.trim()).length;
+    .filter((sentence) => sentence.trim());
+
+const sentenceCount = (answer = "") => splitStatements(answer).length;
 
 const canonicalNames = (result = {}) =>
   (result.resolvedConversationEntities || [])
@@ -78,6 +82,7 @@ const missingLabels = (answer, labels = []) => {
 };
 
 const categoryScopedCorrection = (result, answer, scope) => {
+  if (["faq_hipaa_status", "faq_soc2_attestation"].includes(result.faqId)) return null;
   if (!["platform", "service"].includes(scope)) return null;
   const selectedEntities = (result.resolvedConversationEntities || []).filter(
     (entity) => entity?.type === scope,
@@ -399,6 +404,39 @@ export const validateMiraFinalResponse = (result = {}) => {
       ["multiple_clarification_questions_trimmed"],
       "trim",
     );
+  }
+
+  if (result.groundingStatus === "grounded") {
+    const grounding = verifyAgentAnswerGrounding({
+      answer,
+      approvedEntries: result.matchedEntries || [],
+    });
+    if (!grounding.grounded) {
+      const answerStatements = splitStatements(answer);
+      const groundedSemanticTail = result.semanticIntentSupplement && answerStatements.length > 1
+        ? answerStatements.slice(1).join(" ")
+        : "";
+      const semanticTailGrounding = groundedSemanticTail
+        ? verifyAgentAnswerGrounding({
+            answer: groundedSemanticTail,
+            approvedEntries: result.matchedEntries || [],
+          })
+        : null;
+      if (semanticTailGrounding?.grounded) {
+        return correctionResult(
+          result,
+          `Regarding the proposition in your question:\n${groundedSemanticTail}`,
+          grounding.violations,
+          "trim",
+        );
+      }
+      return correctionResult(
+        result,
+        stripInternalGuidance(fallbackAnswerFor(result)),
+        grounding.violations,
+        "fallback",
+      );
+    }
   }
 
   return {
