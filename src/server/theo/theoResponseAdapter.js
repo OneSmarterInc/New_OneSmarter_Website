@@ -11,6 +11,7 @@ import { readTheoRuntimeConfig } from "./theoRuntimeConfig.js";
 import { runTheoLocalAnalysis, formatTheoVisitorAnswer, normalizeTheoAnalysisForVisitor } from "./theoLocalEngine.js";
 import { buildTheoPromptPayload } from "./theoPromptContract.js";
 import { validateTheoModelOutput } from "./theoOutputValidator.js";
+import { reviewTheoEvidence } from "./theoEvidenceReview.js";
 import {
   chargeSuccessfulAgentWork,
   readAgentDepletionContext,
@@ -149,6 +150,7 @@ export const runTheoResponseAdapter = async ({
   config = readTheoRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
   intentProvider,
+  evidenceReviewer = reviewTheoEvidence,
 } = {}) => {
   const localAnalysis = runTheoLocalAnalysis({ message, websiteContent });
   if (config.mode !== "staging_llm") {
@@ -258,6 +260,8 @@ export const runTheoResponseAdapter = async ({
     approvedRoleFacts,
     fallbackAnalysis: semanticLocalAnalysis,
     evidenceStatus: isRoleRequest ? "approved_professional_role" : "supplied_content_only",
+    requireEvidenceReview: !isRoleRequest,
+    evidenceReview: isRoleRequest ? null : await evidenceReviewer({ websiteContent, analysis: parsedAnalysis, config }),
   });
   if (!validation.valid) {
     return { analysis: semanticLocalAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}`, semanticIntent };

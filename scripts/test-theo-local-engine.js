@@ -49,7 +49,8 @@ assert.match(scenarioResults[1].overallAssessment, /buyer can understand/i);
 assert.ok(scenarioResults[1].findings.some((item) => /buyer/i.test(item.area)));
 assert.ok(scenarioResults[2].findings.some((item) => /innovative|world-class|cutting-edge/i.test(item.evidence)));
 assert.match(JSON.stringify(scenarioResults[3]), /company|provider|entity|relationship/i);
-assert.ok(scenarioResults[4].findings.some((item) => /missing|unclear/i.test(item.area)));
+assert.ok(scenarioResults[4].findings.some((item) => item.area === "Buyer information — review"));
+assert.ok(scenarioResults[4].findings.every((item) => !item.issue.includes("does not provide enough detail")));
 assert.match(formatTheoVisitorAnswer(scenarioResults[5]), /innovative|world-class|cutting-edge/i);
 
 const materiallyDifferentOutputs = new Set(scenarioResults.slice(0, 5).map((result) => JSON.stringify({
@@ -74,7 +75,7 @@ const unsupported = runTheoLocalAnalysis({
 });
 assert.equal(unsupported.clarificationNeeded, false);
 assert.equal(unsupported.evidenceStatus, "supplied_content_unsupported");
-assert.match(unsupported.overallAssessment, /does not provide evidence/i);
+assert.match(unsupported.overallAssessment, /cannot verify.*evidence review/i);
 assert.match(unsupported.overallAssessment, /ISO certification/i);
 assert.match(unsupported.overallAssessment, /pricing/i);
 assert.match(unsupported.overallAssessment, /customer names/i);

@@ -108,11 +108,11 @@ assert.match(liveActionFollowUp.result.answer, /does not establish live access|n
 assert.doesNotMatch(liveActionFollowUp.result.answer, /perform another professional agent's task/i);
 
 const positivePolarity = await run("Does depletion make an agent less accurate?", makeIntent({
-  topic: "Operational State and Factual Accuracy", proposition: "Depletion makes an agent less accurate",
+  topic: "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", proposition: "Depletion makes an agent less accurate",
   questionType: "positive_yes_no", requestedDetail: "effect of depletion on accuracy",
 }));
 const negativePolarity = await run("Does depletion not make an agent less accurate?", makeIntent({
-  topic: "Operational State and Factual Accuracy", proposition: "Depletion does not make an agent less accurate",
+  topic: "Operational State, Depletion, Energy, Café Restoration, and Factual Accuracy", proposition: "Depletion does not make an agent less accurate",
   polarity: "negative", questionType: "negative_confirmation", speechAct: "confirmation_request",
   requestedDetail: "confirm accuracy is preserved", negationScope: [{ marker: "not", scope: "make an agent less accurate" }],
 }));

@@ -1,5 +1,6 @@
 import { isTheoInstructionShapedContent, normalizeTheoText } from "./theoLocalEngine.js";
 import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+import { applyTheoEvidenceReview } from "./theoEvidenceReview.js";
 
 const PRIORITIES = new Set(["high", "medium", "low"]);
 const INTERNAL_LEAK = /\b(?:system prompt|developer message|internal instructions?|runtime metadata|retrieval result|matched sources?|api key|secret|cafe persona|generation notes)\b/i;
@@ -24,6 +25,8 @@ export const validateTheoModelOutput = (output, {
   approvedRoleFacts = [],
   fallbackAnalysis,
   evidenceStatus = "supplied_content_only",
+  evidenceReview = null,
+  requireEvidenceReview = false,
 } = {}) => {
   const violations = [];
   if (!output || typeof output !== "object" || Array.isArray(output)) violations.push("invalid_shape");
@@ -34,6 +37,14 @@ export const validateTheoModelOutput = (output, {
   if (typeof output?.clarificationNeeded !== "boolean") violations.push("invalid_clarification_state");
   if (output?.clarificationNeeded && !nonEmpty(output?.clarificationQuestion)) violations.push("missing_clarification_question");
   if (!output?.clarificationNeeded && output?.clarificationQuestion !== null) violations.push("unexpected_clarification_question");
+
+  if (violations.length) return { valid: false, violations, fallbackAnalysis };
+  if (evidenceReview) {
+    const reviewed = applyTheoEvidenceReview(output || {}, evidenceReview, websiteContent);
+    if (!reviewed) violations.push("invalid_evidence_review");
+    else output = reviewed;
+  } else if (requireEvidenceReview) violations.push("missing_evidence_review");
+  if (violations.length) return { valid: false, violations, fallbackAnalysis };
 
   const visitorText = JSON.stringify(output || {});
   if (INTERNAL_LEAK.test(visitorText)) violations.push("internal_instruction_leak");
@@ -75,12 +86,13 @@ export const validateTheoModelOutput = (output, {
     const evidence = normalize(item.evidence);
     const absenceObservation = /\b(?:not supplied|no .* supplied|does not (?:state|provide|include)|word|words)\b/i.test(item.evidence);
     const absenceFinding = /\b(?:not supplied|no .* supplied|does not (?:state|provide|include)|not (?:explicitly )?(?:identifiable|identified|provided|included|stated)|missing|omitted)\b/i.test(item.issue);
+    if (absenceFinding && !evidenceReview) violations.push("unverified_absence_finding");
     if (absenceFinding && !absenceObservation) {
       violations.push("absence_finding_uses_present_content_as_evidence");
       break;
     }
     const comparableEvidence = evidence.replace(/…$/, "").trim();
-    if (comparableEvidence && !absenceObservation && !evidenceText.includes(comparableEvidence) && !roleGrounding?.grounded) {
+    if (comparableEvidence && !absenceObservation && !evidenceText.includes(comparableEvidence) && !item.evidence.split("\n").every((quote) => evidenceText.includes(normalize(quote))) && !roleGrounding?.grounded) {
       violations.push("finding_evidence_not_supplied");
       break;
     }

@@ -529,3 +529,6 @@ if (failures.length) {
 
 console.log("Mira presentation state tests passed.");
 console.log(`Ran ${cases.length} presentation state cases.`);
+
+const productionPage = (await import("node:fs")).readFileSync("src/components/AiAgentsPage.jsx", "utf8");
+if (productionPage.includes("Staging AI preview") || productionPage.includes("Staging preview") || productionPage.includes("staged grounded response path")) { throw new Error("Mira production labels must not describe a staging preview"); }
