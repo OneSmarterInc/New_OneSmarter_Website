@@ -1,3 +1,4 @@
+import { supportedTheoFixtureReview } from "./fixtures/theo-evidence-review.js";
 import assert from "node:assert/strict";
 import { runTheoResponseAdapter } from "../src/server/theo/theoResponseAdapter.js";
 
@@ -22,7 +23,7 @@ const history = [
 ];
 let intentRequest;
 let promptRequest;
-const followUp = await runTheoResponseAdapter({
+const followUp = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview,
   message: "Why do you say that?",
   websiteContent,
   conversationHistory: history,
@@ -50,7 +51,7 @@ assert.match(promptRequest.promptPayload.context, /ExampleCo provides a case wor
 assert.doesNotMatch(promptRequest.promptPayload.context, /The supplied page points to operations teams/);
 
 let generationCalls = 0;
-const ambiguous = await runTheoResponseAdapter({
+const ambiguous = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview,
   message: "What about the other one?",
   websiteContent,
   conversationHistory: history,
@@ -62,7 +63,7 @@ assert.equal(ambiguous.analysis.clarificationNeeded, true);
 assert.match(ambiguous.analysis.clarificationQuestion, /which claim|section|comparison/i);
 assert.equal(generationCalls, 0);
 
-const providerFailure = await runTheoResponseAdapter({
+const providerFailure = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview,
   message: "What important information is missing?",
   websiteContent,
   conversationHistory: history,
@@ -75,7 +76,7 @@ assert.equal(providerFailure.fallbackReason, "provider_timeout");
 assert.equal(providerFailure.analysis.evidenceStatus, "supplied_content_only");
 assert.doesNotMatch(JSON.stringify(providerFailure.analysis), /system prompt|café persona/i);
 
-const suppliedClaimFallback = await runTheoResponseAdapter({
+const suppliedClaimFallback = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview,
   message: "Assess whether the certification statement is supported by the supplied page.",
   websiteContent: "# Security page\nExampleCo provides workflow services for operations teams.\nExampleCo is HIPAA certified.\nContact the team for details.",
   config,

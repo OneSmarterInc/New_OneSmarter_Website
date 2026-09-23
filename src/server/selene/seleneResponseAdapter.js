@@ -5,6 +5,7 @@ import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
 import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
 import { seleneApprovedKnowledge } from "../../data/agentKnowledge/seleneApprovedKnowledge.js";
 import { chargeSuccessfulAgentWork, readAgentDepletionContext, sharedAgentStateStore } from "../agentState/agentDepletionRuntime.js";
+import { retrieveSeleneSemanticKnowledge } from "./seleneSemanticRetrieval.js";
 import { runSeleneLocalEngine } from "./seleneLocalEngine.js";
 import { validateSeleneModelOutput } from "./seleneOutputValidator.js";
 import { buildSelenePromptPayload } from "./selenePromptContract.js";
@@ -17,9 +18,9 @@ export const SELENE_HISTORY_TOTAL_LIMIT = 2000;
 const AGENT = "Selene Hart";
 const ENDPOINT = "/api/agents/selene/chat";
 const fallbackRateLimitStore = createMiraMemoryRateLimitStore({ buckets: new Map() });
-const seleneIntentTopics = seleneApprovedKnowledge.map(({ id, title }) => ({ id, title }));
+const seleneIntentTopics = seleneApprovedKnowledge.map(({ id, title, approvedSummary }) => ({ id, title, description: approvedSummary }));
 const seleneSemanticTopicLabels = [
-  ...seleneIntentTopics.map(({ title }) => title),
+  ...seleneIntentTopics.flatMap(({ id, title }) => [id, title]),
   "acknowledgement",
   "outside-selene-scope",
 ];
@@ -95,6 +96,7 @@ export const runSeleneResponseAdapter = async ({
   config = readSeleneRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
   intentProvider,
+  retrievalProvider,
 } = {}) => {
   if (config.mode !== "staging_llm") {
     const localResult = runSeleneLocalEngine({ message, verbosityBand });
@@ -113,9 +115,9 @@ export const runSeleneResponseAdapter = async ({
       ok: message.length <= SELENE_MESSAGE_LIMIT && !containsSeleneSensitiveData(message),
       error: containsSeleneSensitiveData(message) ? "sensitive_input" : "message_too_long",
     }),
-    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
+    provider: (request) => (intentProvider || ((enriched) => runOpenAiAgentIntentProvider(enriched, { config })))({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, set topic to the exact title of the single best matching label. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. A plural or collective reference that clearly denotes the OneSmarter professional-agent system is not ambiguous merely because individual agent names are omitted; resolve it to the relevant approved architecture or orchestration topic. Still require clarification when the referent cannot be determined from the current proposition and bounded history. Use domain live_system_action with Professional Agent Role Separation when the proposition asks whether a professional agent can access or act in a visitor or customer system. Classify semantic equivalents under an allowed domain even when vocabulary differs. A high-confidence conversational acknowledgement may use domain conversational_acknowledgement and topic acknowledgement; it does not need clarification. Meaningless input or a bare ambiguous entity needs clarification. Preserve the logical proposition exactly: a negative confirmation asks whether its negative proposition is correct, while an ordinary yes/no question asks whether its positive proposition is true. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject; they are labels, not evidence, and you must not answer or select evidence. For supported requests, semantically compare the current question against every catalog description and set topic to the exact ID or title of the best match. Interpret paraphrases and metaphors by meaning, not shared vocabulary. A short self-contained definition question does not need more context merely because it has few words. The current explicit subject takes precedence over unrelated prior topics. Use Selene Hart Professional Role for questions specifically about Selene. Use Professional Agent Role Separation for another professional agent, agent routing, or role comparisons. A plural or collective reference that clearly denotes the OneSmarter professional-agent system is not ambiguous merely because individual agent names are omitted; resolve it to the relevant approved architecture or orchestration topic. Still require clarification when the referent cannot be determined from the current proposition and bounded history. Use domain live_system_action with Professional Agent Role Separation when the proposition asks whether a professional agent can access or act in a visitor or customer system. Classify semantic equivalents under an allowed domain even when vocabulary differs. A high-confidence conversational acknowledgement may use domain conversational_acknowledgement and topic acknowledgement; it does not need clarification. Meaningless input or a bare ambiguous entity needs clarification. Preserve the logical proposition exactly: a negative confirmation asks whether its negative proposition is correct, while an ordinary yes/no question asks whether its positive proposition is true. Populate followUpReferences only when prior conversation is needed to resolve a reference; direct references such as you or your do not require history.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: seleneIntentTopics } },
       outputSchema: {
         ...request.outputSchema,
@@ -124,18 +126,23 @@ export const runSeleneResponseAdapter = async ({
           topic: { ...request.outputSchema.properties.topic, enum: seleneSemanticTopicLabels },
         },
       },
-    }, { config })),
+    }),
   });
   if (!semanticResolution.ok) {
     const localResult = runSeleneLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent };
   }
   const resolvedIntent = semanticResolution.intent;
-  const hasApprovedSemanticTopic = seleneIntentTopics.some(({ title }) => title === resolvedIntent.topic);
-  const semanticIntent = resolvedIntent.clarificationNeeded
+  const hasApprovedSemanticTopic = seleneIntentTopics.some(({ id, title }) => id === resolvedIntent.topic || title === resolvedIntent.topic);
+  let semanticIntent = resolvedIntent.clarificationNeeded
     && resolvedIntent.confidence >= 0.55 && hasApprovedSemanticTopic
     ? { ...resolvedIntent, clarificationNeeded: false }
     : resolvedIntent;
+  if (semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded
+    && semanticIntent.domain !== "conversational_acknowledgement") {
+    const selected = await retrieveSeleneSemanticKnowledge({ message, semanticIntent, config, provider: retrievalProvider });
+    semanticIntent = selected ? { ...semanticIntent, topic: selected.id } : { ...semanticIntent, clarificationNeeded: true };
+  }
   const retrieved = semanticIntent.domain === "conversational_acknowledgement"
     ? intentAwareScopeFallback(semanticIntent)
     : semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded

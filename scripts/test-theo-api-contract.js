@@ -1,3 +1,4 @@
+import { supportedTheoFixtureReview } from "./fixtures/theo-evidence-review.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { handleTheoChatRequest, runTheoResponseAdapter, THEO_CONTENT_LIMIT, THEO_HISTORY_LIMIT, THEO_MESSAGE_LIMIT } from "../src/server/theo/theoResponseAdapter.js";
@@ -104,13 +105,13 @@ const semanticIntent = {
   followUpReferences: [], confidence: 0.98, clarificationNeeded: false, mentionedNames: [],
 };
 const intentProvider = async () => ({ intent: semanticIntent });
-const providerSuccess = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "", modelOutput: { answer: JSON.stringify(valid.body.analysis) } }) });
+const providerSuccess = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview, message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "", modelOutput: { answer: JSON.stringify(valid.body.analysis) } }) });
 assert.equal(providerSuccess.mode, "staging_llm");
 assert.equal(providerSuccess.fallbackUsed, false);
-const failedProvider = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "provider_timeout", modelOutput: null }) });
+const failedProvider = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview, message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "provider_timeout", modelOutput: null }) });
 assert.equal(failedProvider.fallbackUsed, true);
 assert.equal(failedProvider.fallbackReason, "provider_timeout");
-const malformedProvider = await runTheoResponseAdapter({ message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "", modelOutput: { answer: "not-json" } }) });
+const malformedProvider = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview, message: "Analyze", websiteContent: content, config: liveConfig, intentProvider, providerAdapter: async () => ({ error: "", modelOutput: { answer: "not-json" } }) });
 assert.equal(malformedProvider.fallbackUsed, true);
 assert.equal(malformedProvider.fallbackReason, "malformed_theo_analysis_json");
 

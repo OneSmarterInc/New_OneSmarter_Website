@@ -1,3 +1,4 @@
+import { supportedTheoFixtureReview } from "./fixtures/theo-evidence-review.js";
 import assert from "node:assert/strict";
 import {
   THEO_APPROVED_ROLE_FACTS,
@@ -41,7 +42,7 @@ const generatedAnalysis = (overallAssessment) => ({
 const run = async ({ message, semanticIntent, websiteContent = content, history = [] }) => {
   let intentRequest;
   let answerRequest;
-  const result = await runTheoResponseAdapter({
+  const result = await runTheoResponseAdapter({ evidenceReviewer: supportedTheoFixtureReview,
     message,
     websiteContent,
     conversationHistory: history,

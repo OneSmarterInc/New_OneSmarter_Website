@@ -1364,7 +1364,7 @@ const MiraConversationPanel = () => {
             Guided interaction
           </p>
           <h3 className="text-2xl font-bold md:text-3xl">
-            Staging AI preview
+            Ask Mira
           </h3>
           <p className="mt-4 leading-7 text-zinc-300">
             Mira can answer sample questions or a short typed question using
@@ -1373,7 +1373,7 @@ const MiraConversationPanel = () => {
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-zinc-300">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
-              Staging AI preview
+              AI guide
             </span>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
               Grounded in approved content
@@ -1463,14 +1463,14 @@ const MiraConversationPanel = () => {
               </div>
               <div className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
                 <h4 className="font-semibold text-white">Mira Vale</h4>
-                <p className="text-sm text-zinc-400">staged grounded response path</p>
+                <p className="text-sm text-zinc-400">Grounded in approved content</p>
                 <p className="mt-1 text-xs text-zinc-500">
                   AI-generated response - verify important information.
                 </p>
               </div>
             </div>
             <span className="max-w-full self-start break-words rounded-full border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs font-semibold text-red-200 [overflow-wrap:anywhere]">
-              Staging preview
+              AI guide
             </span>
             <button
               type="button"

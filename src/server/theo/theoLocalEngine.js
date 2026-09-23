@@ -88,9 +88,9 @@ const unsupportedFactAnalysis = (facts, content) => {
   if (!unsupported.length) return null;
   const list = unsupported.join(unsupported.length > 1 ? ", " : "");
   return {
-    overallAssessment: `The supplied content does not provide evidence for the requested ${list}, so ${unsupported.length === 1 ? "that fact" : "those facts"} cannot be determined from this page.`,
+    overallAssessment: `This review cannot verify the requested ${list}; further evidence review is needed before drawing a conclusion.`,
     strengths: ["Page content was supplied and can be assessed for what it explicitly states."],
-    findings: unsupported.map((fact) => finding("Unsupported requested fact", `The requested ${fact} cannot be verified from the supplied page content.`, `The supplied content does not state ${fact}.`, "high")),
+    findings: unsupported.map((fact) => finding("Unsupported requested fact", `The requested ${fact} cannot be verified from the supplied page content.`, excerptTheoEvidence(content), "high")),
     recommendations: [recommendation("high", `Provide explicit, verifiable page evidence before making claims about ${list}.`, "Theo should distinguish missing evidence from a negative conclusion and must not invent the requested facts.")],
     clarificationNeeded: false,
     clarificationQuestion: null,
@@ -157,30 +157,30 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "", semant
   const addStructureChecks = () => {
     if (headings.length) strengths.push(`The supplied content exposes information hierarchy through ${headings.length} recognized heading${headings.length === 1 ? "" : "s"}.`);
     else {
-      findings.push(finding("Page structure", "No explicit Markdown or labelled heading is present in the supplied content.", excerptTheoEvidence(lines[0]), "high"));
-      recommendations.push(recommendation("high", "Add a clear H1 and descriptive section headings.", "Explicit hierarchy helps readers and automated systems identify the page topic and major sections."));
+      // A text excerpt does not establish the original page hierarchy.
+      recommendations.push(recommendation("high", "Review the page hierarchy and supply explicit heading markup for a structural assessment.", "Explicit hierarchy helps readers and automated systems identify the page topic and major sections."));
     }
   };
   const addOfferingCheck = () => {
     if (hasOffering) strengths.push("The supplied text uses recognizable offering language such as service, product, platform, or solution.");
     else {
-      findings.push(finding("Offering clarity", "The page does not directly identify what kind of offering is being described.", excerptTheoEvidence(content), "high"));
-      recommendations.push(recommendation("high", "Name the offering and state what it does in direct language.", "A reader should not have to infer the offering from general claims."));
+      // Failure of a local vocabulary check is not evidence of semantic absence.
+      recommendations.push(recommendation("high", "Review whether the supplied wording makes the offering and its purpose clear.", "This is a review suggestion, not a finding that the offering is absent."));
     }
   };
   const addBuyerDetails = () => {
     if (hasAudience) strengths.push("The supplied content gives a recognizable audience signal.");
     else {
-      findings.push(finding("Buyer understanding — unclear", "The intended buyer or audience is not identified.", excerptTheoEvidence(content), "high"));
-      recommendations.push(recommendation("high", "State who the offering is for and which problem it addresses.", "This lets a buyer decide whether the page is relevant."));
+      // Audience recognition requires semantic evidence, not a fixed audience vocabulary.
+      recommendations.push(recommendation("high", "Review how clearly the content connects the offering to its intended audience.", "This suggestion does not establish that an audience is missing."));
     }
     if (!hasAction) {
-      findings.push(finding("Buyer understanding — unclear", "The next step for an interested buyer is missing.", excerptTheoEvidence(lines.at(-1)), "medium"));
-      recommendations.push(recommendation("medium", "Add one specific buyer next step.", "A decision-useful page should tell an interested reader what to do next."));
+      // Do not infer an absent next step from unrecognized wording.
+      recommendations.push(recommendation("medium", "Review whether the supplied next step is actionable.", "A decision-useful page should tell an interested reader what to do next."));
     } else strengths.push("The page gives an interested buyer a recognizable next action.");
     if (wordCount < 120) {
-      findings.push(finding("Buyer information — missing", "The brief content does not provide enough detail about scope, boundaries, process, or proof for evaluation.", `${wordCount} supplied words.`, "medium"));
-      recommendations.push(recommendation("medium", "Add supported scope, process, boundaries, and proof points.", "These details help a buyer evaluate fit rather than only recognize the category."));
+      findings.push(finding("Buyer information — review", "The supplied excerpt is brief; its length alone does not establish which evaluation details are present or absent.", excerptTheoEvidence(content), "low"));
+      recommendations.push(recommendation("medium", "Review scope, process, boundaries, and proof points against the supplied text.", "These details help a buyer evaluate fit rather than only recognize the category."));
     }
   };
   const addVagueLanguage = () => {
@@ -193,20 +193,20 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "", semant
     const identifiedEntity = companyMatch?.[1] || firstLineEntity;
     if (identifiedEntity) strengths.push(`The company or provider is identifiable from supplied wording: ${excerptTheoEvidence(identifiedEntity, 80)}.`);
     else {
-      findings.push(finding("AI entity clarity", "The company or provider entity is not explicitly identifiable.", excerptTheoEvidence(lines[0]), "high"));
-      recommendations.push(recommendation("high", "Name the company and connect it directly to the offering.", "AI systems need an explicit company-to-service relationship rather than an implied one."));
+      // Unknown to the local recognizer is not absent from the document.
+      recommendations.push(recommendation("high", "Review the connection between the named provider and its offering.", "AI systems need an explicit company-to-service relationship rather than an implied one."));
     }
     if (labelledFacts.length) {
       strengths.push(`The supplied content explicitly labels ${labelledFacts.map(({ label }) => label).join(", ")}.`);
     }
     addOfferingCheck();
     if (!hasAudience) {
-      findings.push(finding("AI relationship clarity", "The relationship between the offering and its intended audience is unclear.", excerptTheoEvidence(content), "high"));
-      recommendations.push(recommendation("high", "State who uses the offering and what problem it addresses.", "This establishes the company–service–audience relationship for machine understanding."));
+      // Semantic review must establish any relationship gap before it is asserted.
+      recommendations.push(recommendation("high", "Review the offering-to-audience relationship using the complete supplied text.", "This establishes the company–service–audience relationship for machine understanding."));
     }
     if (hasMetadata) strengths.push("The supplied material includes an explicit metadata or structured-information cue.");
     else {
-      findings.push(finding("Metadata evidence", "Metadata was not supplied, so its quality cannot be assessed.", "No title, meta description, canonical, schema, JSON-LD, or social metadata was supplied.", "low"));
+      // Omitted markup cannot establish that the page lacks metadata.
       recommendations.push(recommendation("low", "Separately supply the title, meta description, canonical URL, and relevant structured data for review.", "Theo should not infer omitted metadata from body copy."));
     }
   };
@@ -229,9 +229,9 @@ export const runTheoLocalAnalysis = ({ message = "", websiteContent = "", semant
 
   return {
     overallAssessment: focus === "ai_buyer_clarity"
-      ? "The supplied content is machine-interpretable at a broad level, but buyers still lack important evaluation detail and specific proof."
+      ? "The supplied excerpt supports the wording and structure observations below; completeness has not been established."
       : focus === "buyer_understanding"
-      ? `A potential buyer can understand ${hasOffering ? "the broad offering category" : "that the page is promotional"}, but ${findings.length ? "important evaluation information remains unclear or missing" : "the supplied content is broadly decision-useful"}.`
+      ? "A potential buyer can understand what the supplied content establishes; the observations below distinguish that evidence from suggested improvements."
       : focus === "ambiguous_language" || focus === "generic_marketing"
         ? vagueTerms.length ? "The service description relies on vague promotional language that prevents a precise understanding of the offering." : "The supplied service language is reasonably specific, with no common promotional superlatives detected."
         : focus === "ai_readability"
