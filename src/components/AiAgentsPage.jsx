@@ -1857,7 +1857,7 @@ const AiAgentsPage = () => {
               Mira is the live visitor-facing guide. She answers
               questions about OneSmarter from approved public website content,
               helping visitors understand platforms, technology services,
-              business services, compliance readiness, and the Trust Center.
+              business services, compliance readiness, and the Trust Center..
             </p>
             <a
               href="mailto:care@onesmarter.com"
