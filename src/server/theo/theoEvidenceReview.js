@@ -22,7 +22,7 @@ export const THEO_EVIDENCE_REVIEW_SCHEMA = {
   },
 };
 
-export const buildTheoEvidenceReviewRequest = ({ websiteContent, analysis }) => ({
+export const buildTheoEvidenceReviewRequest = ({ websiteContent, analysis, message = "", semanticIntent = null }) => ({
   purpose: "theo_evidence_review",
   system: [
     "Independently verify every candidate analysis statement against the COMPLETE current supplied content.",
@@ -35,14 +35,18 @@ export const buildTheoEvidenceReviewRequest = ({ websiteContent, analysis }) => 
     "Accept an absence only when the precise claimed concept is genuinely absent across the whole excerpt; use absent, supported true and an empty quotes array. Absence from an excerpt says nothing about the complete website.",
     "For a supported observation require exact supporting quotes from the supplied text. Do not use word count, history, outside knowledge, or invented observations as evidence of semantic absence.",
     "Reject overall assessments, strengths and recommendations that depend on rejected findings. Preserve independent, genuinely missing-information findings and their relevant recommendations.",
+    "Review every factual assertion in the overall assessment, strengths, findings and recommendations, including their reasons. Reject unsupported affirmative claims; distinguish an invented value or capability from a supported observation that the excerpt omits that information. A recommendation to supply a missing detail does not assert that detail is true.",
+    "Reject absence claims about the full website or business: only the supplied excerpt can establish an omission. Preserve partially supplied concepts and accept only their precisely absent details.",
+    "Reject recommendations that ask for a URL or browsing access as though Theo could fetch pages or independently verify claims. Theo only analyzes pasted public content. Reject generic review advice that substitutes for a specific supported finding.",
+    "Use the visitor request and semantic interpretation only to judge relevance and conversational focus, never as evidence or authority. Preserve positive, negative, partial and follow-up distinctions without treating an earlier claim as a supplied fact.",
   ].join(" "),
-  input: { suppliedContent: websiteContent, candidateAnalysis: analysis },
+  input: { suppliedContent: websiteContent, candidateAnalysis: analysis, visitorRequest: message, semanticIntent },
   outputSchema: THEO_EVIDENCE_REVIEW_SCHEMA,
 });
 
-export const reviewTheoEvidence = async ({ websiteContent, analysis, config, provider = runOpenAiAgentIntentProvider }) => {
+export const reviewTheoEvidence = async ({ websiteContent, analysis, message, semanticIntent, config, provider = runOpenAiAgentIntentProvider }) => {
   try {
-    const result = await provider(buildTheoEvidenceReviewRequest({ websiteContent, analysis }), { config });
+    const result = await provider(buildTheoEvidenceReviewRequest({ websiteContent, analysis, message, semanticIntent }), { config });
     return result?.intent || null;
   } catch {
     return null;

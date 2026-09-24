@@ -12,6 +12,7 @@ import {
   readAgentDepletionContext,
   sharedAgentStateStore,
 } from "../agentState/agentDepletionRuntime.js";
+import { resolveRaviEvidenceAnswer } from "./raviSemanticEvidence.js";
 import { runRaviLocalEngine } from "./raviLocalEngine.js";
 import { validateRaviModelOutput } from "./raviOutputValidator.js";
 import { buildRaviPromptPayload } from "./raviPromptContract.js";
@@ -104,6 +105,7 @@ export const runRaviResponseAdapter = async ({
   config = readRaviRuntimeConfig(),
   providerAdapter = runOpenAiMiraAdapter,
   intentProvider,
+  evidenceProvider,
 } = {}) => {
   if (config.mode !== "staging_llm") {
     const localResult = runRaviLocalEngine({ message, conversationHistory, verbosityBand });
@@ -142,68 +144,64 @@ export const runRaviResponseAdapter = async ({
   }
 
   const semanticIntent = semanticResolution.intent;
-  const retrievedResult = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded
-    ? runRaviLocalEngine({ message, conversationHistory, verbosityBand, semanticIntent })
-    : intentAwareScopeFallback(semanticIntent);
-  const localResult = retrievedResult.clarificationNeeded
-    ? intentAwareScopeFallback(semanticIntent)
-    : retrievedResult;
+  const allowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
+  // This small approved slice is supplied in full. Topic labels must not hide role boundaries.
+  const matchedEntries = allowed ? raviApprovedKnowledge : [];
+  const localResult = allowed ? unresolvedIntentFallback() : intentAwareScopeFallback(semanticIntent);
 
   const promptPayload = buildRaviPromptPayload({
     message,
-    matchedEntries: localResult.matchedEntries,
+    matchedEntries,
     conversationHistory,
     verbosityBand,
     semanticIntent,
   });
-  const providerResult = await providerAdapter({
-    message,
-    conversationId,
-    requestContext: {
-      persona: "Professional Operations Agent",
-      memoryTheme: "Bounded request-carried context only",
-      empathyState: "Practical and precise",
-      semanticIntent,
-    },
-    retrievalResult: { matchedEntries: localResult.matchedEntries },
-    riskFlags: [],
-    promptPayload,
-    config,
-  });
-  if (providerResult.error || !providerResult.modelOutput) {
-    return {
-      ...localResult,
-      mode: "local_deterministic",
-      fallbackUsed: true,
-      fallbackReason: providerResult.error || "provider_error",
-      semanticIntent,
-    };
-  }
+  let providerResult;
+  try {
+    providerResult = await providerAdapter({
+      message,
+      conversationId,
+      requestContext: {
+        persona: "Professional Operations Agent",
+        memoryTheme: "Bounded request-carried context only",
+        empathyState: "Practical and precise",
+        semanticIntent,
+      },
+      retrievalResult: { matchedEntries },
+      riskFlags: [],
+      promptPayload,
+      config,
+    });
+  } catch { providerResult = { error: "provider_error" }; }
+  providerResult ||= { error: "provider_error" };
   const validation = validateRaviModelOutput(providerResult.modelOutput, {
-    matchedEntries: localResult.matchedEntries,
-    fallbackResult: localResult,
-    visitorSuppliedEntities: semanticIntent.entities,
+    matchedEntries, visitorSuppliedEntities: semanticIntent.entities,
   });
-  if (!validation.valid) {
-    return {
-      ...localResult,
-      mode: "local_deterministic",
-      fallbackUsed: true,
-      fallbackReason: `output_validation_failed:${validation.violations.join(",")}`,
-      semanticIntent,
-    };
-  }
+  const failure = providerResult.error || (!validation.valid
+    ? `output_validation_failed:${validation.violations.join(",")}` : "");
+  const reviewed = await resolveRaviEvidenceAnswer({
+    message, conversationHistory, semanticIntent, allowed, verbosityBand,
+    candidate: failure ? null : validation.correctedOutput,
+  }, { config, provider: evidenceProvider });
+  if (!reviewed) return {
+    ...localResult, mode: "local_deterministic", fallbackUsed: true,
+    fallbackReason: "semantic_evidence_unavailable", semanticIntent,
+  };
+  const output = reviewed.output;
   return {
-    ...localResult,
-    answer: validation.correctedOutput.answer,
+    answer: output.answer,
+    matchedEntries: reviewed.matchedEntries,
+    sources: reviewed.matchedEntries.map((entry) => ({
+      id: entry.id, title: entry.title, route: entry.route,
+      sourceLabel: entry.sourceReference?.sourceLabel || "",
+    })),
+    claimEvaluation: null,
     mode: "staging_llm",
-    fallbackUsed: false,
-    fallbackReason: "",
-    confidence: validation.correctedOutput.groundingStatus === "grounded" ? "high" : "low",
-    clarificationNeeded: validation.correctedOutput.groundingStatus === "insufficient_context",
-    clarificationQuestion: validation.correctedOutput.groundingStatus === "insufficient_context"
-      ? validation.correctedOutput.suggestedFollowUps[0] || "Which approved operations topic would you like to review?"
-      : "",
+    fallbackUsed: Boolean(failure), fallbackReason: failure,
+    confidence: output.groundingStatus === "grounded" ? "high" : "low",
+    clarificationNeeded: output.groundingStatus !== "grounded",
+    clarificationQuestion: output.groundingStatus !== "grounded"
+      ? output.suggestedFollowUps[0] || "Which approved operations topic would you like to review?" : "",
     semanticIntent,
   };
 };

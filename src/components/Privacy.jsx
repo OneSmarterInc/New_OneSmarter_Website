@@ -67,6 +67,24 @@ const Privacy = () => {
           the Cookie Settings option available on our website.
         </p>
 
+        <h3 className="text-lg font-semibold mb-2">Vercel Analytics and Speed Insights</h3>
+        <p className="mb-4">
+          We also use Vercel Analytics to measure website visits and
+          Vercel Speed Insights to measure page performance, including loading, responsiveness,
+          and visual stability. These services send usage and performance data to
+          Vercel, which may include page URLs, referrers, browser and device
+          information, country, and performance measurements.
+        </p>
+        <p className="mb-4">
+          These services load separately from Google Analytics and are not
+          controlled by the Google Analytics cookie choices described above.
+          Vercel Analytics uses request-derived visitor hashes rather than
+          third-party cookies. For details, see Vercel's{' '}
+          <a href="https://vercel.com/docs/analytics/privacy-policy" className="underline">Web Analytics privacy documentation</a>
+          {' '}and{' '}
+          <a href="https://vercel.com/docs/speed-insights/privacy-policy" className="underline">Speed Insights privacy documentation</a>.
+        </p>
+
         <h3 className="text-lg font-semibold mb-2">Data Security</h3>
         <p className="mb-4">
           Access to personal data is restricted to employees who need it. We use physical and digital safeguards to protect your information.
@@ -77,8 +95,8 @@ const Privacy = () => {
           We may update this policy. Any significant changes will be communicated via email or site notification.
         </p>
 
-        <p className="text-sm italic">Last updated: July 7, 2026</p>
-        <p className="text-sm italic">Last reviewed: July 7, 2026</p>
+        <p className="text-sm italic">Last updated: September 24, 2026</p>
+        <p className="text-sm italic">Last reviewed: September 24, 2026</p>
 
       </div>
     </main>
