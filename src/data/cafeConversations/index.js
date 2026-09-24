@@ -1,3 +1,4 @@
+import { publishedCafeSnapshot } from "./publishedCafeSnapshot.js";
 import { cafe20260819TheoElenaCookingProgramme } from "./cafe-2026-08-19-theo-elena-cooking-programme.js";
 import { cafe20260819SeleneTheoCookingProgramme } from "./cafe-2026-08-19-selene-theo-cooking-programme.js";
 import { cafe20260819ElenaRaviDivisiveFilm } from "./cafe-2026-08-19-elena-ravi-divisive-film.js";
@@ -6,11 +7,15 @@ export const CAFE_PRESENCE_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 // Publication order remains newest-first for visitor history. Active selection
 // deliberately does not depend on this order.
-export const publishedCafeConversations = [
+const legacyCafeConversations = [
   cafe20260819ElenaRaviDivisiveFilm,
   cafe20260819SeleneTheoCookingProgramme,
   cafe20260819TheoElenaCookingProgramme,
 ];
+
+export const publishedCafeConversations = publishedCafeSnapshot.length
+  ? publishedCafeSnapshot
+  : legacyCafeConversations;
 
 export const getApprovedCafeConversations = (conversations = publishedCafeConversations) =>
   conversations.filter(

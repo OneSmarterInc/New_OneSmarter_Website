@@ -32,5 +32,8 @@ src/data/cafeConversations/drafts/
 
 .env*
 
-# Private local Cafe review workspace, including approval records and locks.
-cafe-data/
+# Keep drafts, reviews and locks private; deploy only approved publication JSON.
+cafe-data/*
+!cafe-data/published/
+cafe-data/published/*
+!cafe-data/published/*.json

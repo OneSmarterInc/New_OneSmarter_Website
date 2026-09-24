@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -163,7 +164,11 @@ try {
     const after = { ...await snapshot(path.join(repo, "src")), ...await snapshot(path.join(repo, "api")) };
     assert.deepEqual(after, protectedBefore);
     const ignore = await fs.readFile(path.join(repo, ".gitignore"), "utf8");
-    assert.ok(ignore.split(/\r?\n/).includes("cafe-data/"));
+    assert.ok(ignore.includes("cafe-data/*"));
+    for (const filename of ["cafe-data/drafts/private.json", "cafe-data/.review.lock", "cafe-data/published/private.tmp"]) {
+      assert.equal(spawnSync("git", ["check-ignore", "-q", filename], { cwd: repo }).status, 0);
+    }
+    assert.equal(spawnSync("git", ["check-ignore", "-q", "cafe-data/published/approved.json"], { cwd: repo }).status, 1);
   });
   console.log(`Cafe publication: ${checks} checks passed.`);
 } finally { await cleanup(); }
