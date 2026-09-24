@@ -261,7 +261,7 @@ export const runTheoResponseAdapter = async ({
     fallbackAnalysis: semanticLocalAnalysis,
     evidenceStatus: isRoleRequest ? "approved_professional_role" : "supplied_content_only",
     requireEvidenceReview: !isRoleRequest,
-    evidenceReview: isRoleRequest ? null : await evidenceReviewer({ websiteContent, analysis: parsedAnalysis, config }),
+    evidenceReview: isRoleRequest ? null : await evidenceReviewer({ websiteContent, analysis: parsedAnalysis, message, semanticIntent, config }),
   });
   if (!validation.valid) {
     return { analysis: semanticLocalAnalysis, mode: "local_analysis", fallbackUsed: true, fallbackReason: `output_validation_failed:${validation.violations.join(",")}`, semanticIntent };
