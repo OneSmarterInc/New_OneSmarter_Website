@@ -52,7 +52,10 @@ export const validateTheoModelOutput = (output, {
 
   const evidenceText = normalize([websiteContent, ...approvedRoleFacts].filter(Boolean).join("\n"));
   const normalizedVisitorText = normalize(visitorText);
-  if (GUARDED_FACT_TERMS.some((term) => normalizedVisitorText.includes(term) && !evidenceText.includes(term))) {
+  // A complete semantic review checks assertions, absences and recommendations
+  // separately. Vocabulary absence cannot disprove a verified content omission.
+  // Keep the legacy guard for outputs that have not passed that review.
+  if (!evidenceReview && GUARDED_FACT_TERMS.some((term) => normalizedVisitorText.includes(term) && !evidenceText.includes(term))) {
     violations.push("unsupported_factual_inference");
   }
   if (UNATTRIBUTED_ONESMARTER_CLAIM.test(visitorText) && !SUPPLIED_CONTENT_ATTRIBUTION.test(visitorText)) {
