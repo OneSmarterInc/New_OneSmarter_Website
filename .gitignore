@@ -31,3 +31,6 @@ docs/design-reference/
 src/data/cafeConversations/drafts/
 
 .env*
+
+# Private local Cafe review workspace, including approval records and locks.
+cafe-data/
