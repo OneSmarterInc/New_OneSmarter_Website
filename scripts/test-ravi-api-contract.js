@@ -1,3 +1,4 @@
+import { raviEvidenceFixture } from "./raviSemanticTestFixture.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { runRaviLocalEngine } from "../src/server/ravi/raviLocalEngine.js";
@@ -120,6 +121,7 @@ const intentProviderFor = (message, overrides) => async () => ({ intent: operati
 const providerFailure = await runRaviResponseAdapter({
   message: "Explain claims workflow modernization.",
   config: liveConfig,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: intentProviderFor("Explain claims workflow modernization."),
   providerAdapter: async () => ({ error: "provider_timeout", modelOutput: null }),
 });
@@ -130,6 +132,7 @@ assert.doesNotMatch(providerFailure.answer, /provider_timeout|stack|internal/i);
 const malformed = await runRaviResponseAdapter({
   message: "Explain secure ticketing.",
   config: liveConfig,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: intentProviderFor("Explain secure ticketing."),
   providerAdapter: async () => ({ error: "", modelOutput: { answer: "" } }),
 });
@@ -139,6 +142,7 @@ assert.match(malformed.fallbackReason, /output_validation_failed/);
 const unsafeAction = await runRaviResponseAdapter({
   message: "Explain secure ticketing.",
   config: liveConfig,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: intentProviderFor("Explain secure ticketing."),
   providerAdapter: async () => ({
     error: "",
@@ -158,6 +162,7 @@ assert.match(unsafeAction.fallbackReason, /live_system_action_claim/);
 const cafeLeak = await runRaviResponseAdapter({
   message: "Explain secure ticketing.",
   config: liveConfig,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: intentProviderFor("Explain secure ticketing."),
   providerAdapter: async () => ({
     error: "",
@@ -178,6 +183,7 @@ let unrelatedProviderCalls = 0;
 const unrelated = await runRaviResponseAdapter({
   message: "asdf banana random weather",
   config: liveConfig,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: intentProviderFor("asdf banana random weather", {
     domain: "weather",
     topic: "unrelated weather text",

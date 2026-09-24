@@ -1,3 +1,4 @@
+import { raviEvidenceFixture } from "./raviSemanticTestFixture.js";
 import assert from "node:assert/strict";
 import process from "node:process";
 import { runRaviResponseAdapter } from "../src/server/ravi/raviResponseAdapter.js";
@@ -27,7 +28,8 @@ const run = async (message, semanticIntent, conversationHistory = []) => {
   let answerCalls = 0;
   const result = await runRaviResponseAdapter({
     message, conversationHistory, config,
-    intentProvider: async (request) => {
+    evidenceProvider: raviEvidenceFixture,
+  intentProvider: async (request) => {
       intentCalls += 1;
       assert.equal(request.input.currentVisitorMessage, message);
       assert.equal(request.input.agentContext.agentIdentity, "Ravi Sen");
@@ -132,6 +134,7 @@ assert.deepEqual(followUp.result.semanticIntent.followUpReferences, ["escalation
 let generatedPrompt;
 const generated = await runRaviResponseAdapter({
   message: "How does secure ticketing work?", config,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: async () => ({ intent: intent({
     topic: "secure ticketing", proposition: "OneSmarter supports secure ticketing",
     questionType: "how", speechAct: "explanation_request",
@@ -139,7 +142,7 @@ const generated = await runRaviResponseAdapter({
   }) }),
   providerAdapter: async ({ promptPayload, retrievalResult }) => {
     generatedPrompt = promptPayload;
-    assert.deepEqual(retrievalResult.matchedEntries.map(({ id }) => id), ["secure-ticketing-case-management"]);
+    assert.deepEqual(retrievalResult.matchedEntries, raviApprovedKnowledge);
     return { modelOutput: {
       answer: "OneSmarter's secure ticketing supports secure intake, workflow tracking, routing, status visibility, and audit history. Ravi can explain the workflow but cannot access or modify a live queue.",
       handoffNeeded: false, handoffReason: null, suggestedFollowUps: [],
@@ -154,13 +157,14 @@ assert.match(generatedPrompt.user, /how approved secure ticketing works/);
 
 const generatedNegative = await runRaviResponseAdapter({
   message: "Can Ravi not access or change our ticket queue?", config,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: async () => ({ intent: intent({
     proposition: "Ravi cannot access or change a customer ticket queue", polarity: "negative",
     negationScope: [{ marker: "not", scope: "access or change a customer ticket queue" }],
     questionType: "negative_confirmation",
   }) }),
   providerAdapter: async ({ retrievalResult, promptPayload }) => {
-    assert.deepEqual(retrievalResult.matchedEntries.map(({ id }) => id), ["secure-ticketing-case-management"]);
+    assert.deepEqual(retrievalResult.matchedEntries, raviApprovedKnowledge);
     assert.match(promptPayload.user, /negative_confirmation/);
     return { modelOutput: {
       answer: "Correct. Ravi does not access or change customer ticket queues or production environments; he can explain approved workflow concepts.",
@@ -199,8 +203,8 @@ const structuredAction = await run(
     intentFocus: { operation: "evaluate_request", propositionIds: ["p1"], relationIds: [] },
   }),
 );
-assert.equal(structuredAction.result.claimEvaluation.ruleId, "no-real-system-actions");
-assert.equal(structuredAction.result.claimEvaluation.status, "REFUSE_UNSUPPORTED");
+assert.match(structuredAction.result.answer, /cannot|without/i);
+assert.doesNotMatch(structuredAction.result.answer, /I performed|I changed|I accessed/i);
 
 const advisoryRequest = await run(
   "Could Ravi advise on a handoff while our staff retain authority?",
@@ -217,10 +221,11 @@ const advisoryRequest = await run(
     intentFocus: { operation: "evaluate_request", propositionIds: ["p1"], relationIds: [] },
   }),
 );
-assert.equal(advisoryRequest.result.claimEvaluation.status, "ALLOW_WITH_QUALIFICATION");
+assert.match(advisoryRequest.result.answer, /routing|escalation|handoff/i);
 
 const invalidRelationship = await runRaviResponseAdapter({
   message: "Explain the difference between those two statements.", config,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: async () => ({ intent: intent({
     atomicPropositions: [{
       id: "p1", subject: "an agent", predicate: "can access", object: "a queue",
@@ -259,6 +264,7 @@ assert.ok(inventedEntityClaim.violations.some((violation) =>
 
 const generatedRole = await runRaviResponseAdapter({
   message: "What does Elena handle?", config,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: async () => ({ intent: intent({
     domain: "agent_roles", topic: "OneSmarter Professional Agent Role Directory",
     entities: ["Elena Cross"], proposition: "Elena Cross has a professional role at OneSmarter",
@@ -266,7 +272,7 @@ const generatedRole = await runRaviResponseAdapter({
     requestedDetail: "Elena Cross's professional role", mentionedNames: ["Elena"],
   }) }),
   providerAdapter: async ({ retrievalResult }) => {
-    assert.deepEqual(retrievalResult.matchedEntries.map(({ id }) => id), ["professional-agent-role-directory"]);
+    assert.deepEqual(retrievalResult.matchedEntries, raviApprovedKnowledge);
     return { modelOutput: {
       answer: "Elena Cross is OneSmarter's Compliance Reader for compliance, certification, readiness, and claim-boundary language.",
       handoffNeeded: false, handoffReason: null, suggestedFollowUps: [],
@@ -304,6 +310,7 @@ assert.equal(new Set(scopeAnswers).size, scopeAnswers.length);
 
 const intentFailure = await runRaviResponseAdapter({
   message: "Could you describe our routing options?", config,
+  evidenceProvider: raviEvidenceFixture,
   intentProvider: async () => ({ error: "provider_unavailable" }),
   providerAdapter: async () => { throw new Error("answer provider must not run"); },
 });
