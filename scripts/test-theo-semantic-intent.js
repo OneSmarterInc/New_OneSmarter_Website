@@ -97,6 +97,7 @@ const why = await run({
 assert.notEqual(positive.result.analysis.overallAssessment, negative.result.analysis.overallAssessment);
 assert.deepEqual(positive.intentRequest.input.suppliedContentContext, {
   available: true,
+  suppliedText: content,
   evidenceType: "visitor_supplied_public_page",
   objectOfAnalysis: true,
 });

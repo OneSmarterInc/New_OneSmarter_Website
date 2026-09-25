@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { runMiraResponseAdapter } from "./llmAdapter.js";
+import { describeMiraExecution } from "./miraExecutionDiagnostics.js";
 import { readMiraRuntimeConfig } from "./miraRuntimeConfig.js";
 import {
   createMiraRateLimitStore,
@@ -662,6 +663,7 @@ export const handleMiraChatRequest = async ({
         latencyMs: result.providerMetadata?.latencyMs ?? null,
         providerStatus: result.providerMetadata?.providerStatus || "",
         providerHttpStatus: result.providerMetadata?.httpStatus ?? null,
+        ...describeMiraExecution(result, runtimeConfig),
         tokenUsage: result.providerMetadata?.tokenUsage || null,
         validationStatus: result.outputSafetyStatus || "",
         fallbackUsed: Boolean(result.fallbackUsed),
