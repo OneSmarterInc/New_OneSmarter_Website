@@ -1023,7 +1023,7 @@ const normalizeModelHandoff = (modelOutput, localResult) => {
   };
 };
 
-export const runMiraResponseAdapter = async ({
+const runMiraResponseAdapterInternal = async ({
   message,
   conversationId,
   persona,
@@ -2401,6 +2401,38 @@ export const runMiraResponseAdapter = async ({
     mode: LOCAL_HARNESS_MODE,
     fallbackUsed: false,
     fallbackReason: "",
+  };
+};
+
+// Observe adapter calls without changing routing, answers or the legacy API mode.
+export const runMiraResponseAdapter = async (options = {}) => {
+  const generationAdapter = options.openAiAdapter || runOpenAiMiraAdapter;
+  let generationAdapterCalls = 0;
+  let generationMetadata;
+  let semanticProviderCalls = 0;
+  let semanticProviderCompleted = 0;
+  const result = await runMiraResponseAdapterInternal({
+    ...options,
+    openAiAdapter: async (request) => {
+      generationAdapterCalls += 1;
+      const response = await generationAdapter(request);
+      generationMetadata = response.metadata;
+      return response;
+    },
+    semanticIntentProvider: typeof options.semanticIntentProvider === "function"
+      ? async (...args) => {
+          semanticProviderCalls += 1;
+          const response = await options.semanticIntentProvider(...args);
+          if (response?.intent) semanticProviderCompleted += 1;
+          return response;
+        }
+      : options.semanticIntentProvider,
+  });
+  return {
+    ...result,
+    // Preserve transport evidence even when output validation uses a local answer.
+    providerMetadata: result.providerMetadata || generationMetadata,
+    executionTrace: { generationAdapterCalls, semanticProviderCalls, semanticProviderCompleted },
   };
 };
 
