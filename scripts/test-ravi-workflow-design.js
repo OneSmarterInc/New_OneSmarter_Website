@@ -60,7 +60,10 @@ for (const failure of ["intent", "evidence"]) {
     evidenceProvider: async () => ({ intent: { ...envelope("Invented answer"), citations: [{ entryId: platform.id, quote: "Invented fact" }] } }),
   });
   assert.equal(result.fallbackUsed, true);
-  assert.equal(result.clarificationNeeded, true);
+  assert.equal(result.clarificationNeeded, false);
+  assert.equal(result.execution.stage, failure === "intent" ? "semantic_provider" : "evidence_review");
+  assert.equal(result.execution.status, failure === "intent" ? "provider_failure" : "citation_validation_failure");
+  assert.ok(!result.answer.includes("Please restate who"));
 }
 // Existing conversation-grounding suite exercises live actions, third-party permissions,
 // customer-specific permissions, negative/WHY/HOW, compound follow-ups and unrelated input.

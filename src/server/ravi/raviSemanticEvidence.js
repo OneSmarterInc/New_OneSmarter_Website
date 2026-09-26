@@ -17,6 +17,7 @@ export const buildRaviEvidenceRequest = ({ message, conversationHistory, semanti
     verbosityBand === "concise" ? "Keep the answer concise by removing optional elaboration only; retain every fact, boundary, qualification and handoff." : "Keep the answer concise and directly responsive.",
     "Return the final answer and exact evidence citations: entryId and a verbatim source fact, summary or allowed claim. Citations must support the answer's meaning, including its subjects and negation. Do not expose citations or internal reasoning in the answer.",
     "When validationFeedback is supplied, repair the rejected candidate using only approved evidence. Preserve the requested explanation and all boundaries. A lexical validator may reject supported wording; rephrase naturally without adding facts, concealing unsupported entities, or weakening qualifications. If support is insufficient, say so.",
+    "When candidateEntityReview is provided, independently assess the existing candidate: copy its answer exactly, identify actual named entities with verbatim supporting citations, and identify single words used as ordinary grammatical prose rather than names. Never classify a person, organization, product, identifier or number as ordinary prose to evade validation. Do not invent support. Use null when no candidate can be assessed. This assessment authorizes no new facts or permissions. The answer may remain unchanged when it is fully supported; otherwise repair it.",
     "Use grounded for answers supported by the cited facts, insufficient_context with handoffNeeded true when requested facts are unknown. Unsupported permissions are unknown, not denied. Return no unsupported explanation just to fill a gap.",
   ].join(" "),
   input: {
@@ -25,12 +26,22 @@ export const buildRaviEvidenceRequest = ({ message, conversationHistory, semanti
   },
   outputSchema: {
     type: "object", additionalProperties: false,
-    required: ["answer", "handoffNeeded", "handoffReason", "suggestedFollowUps", "groundingStatus", "outputSafetyStatus", "citations"],
+    required: ["answer", "handoffNeeded", "handoffReason", "suggestedFollowUps", "groundingStatus", "outputSafetyStatus", "citations", "candidateEntityReview"],
     properties: {
       answer: string, handoffNeeded: { type: "boolean" }, handoffReason: { type: ["string", "null"] },
       suggestedFollowUps: { type: "array", items: string },
       groundingStatus: { type: "string", enum: ["grounded", "insufficient_context", "refused"] },
       outputSafetyStatus: { type: "string", enum: ["passed", "corrected", "refused"] },
+      candidateEntityReview: { anyOf: [
+        { type: "null" },
+        { type: "object", additionalProperties: false,
+          required: ["answer", "ordinaryProse", "entities"], properties: {
+            answer: string,
+            ordinaryProse: { type: "array", items: string },
+            entities: { type: "array", items: { type: "object", additionalProperties: false,
+              required: ["text", "entryId", "quote"], properties: { text: string, entryId: string, quote: string } } },
+          } },
+      ] },
       citations: { type: "array", items: {
         type: "object", additionalProperties: false, required: ["entryId", "quote"],
         properties: { entryId: { type: "string", enum: raviApprovedKnowledge.map(({ id }) => id) }, quote: string },
@@ -39,34 +50,75 @@ export const buildRaviEvidenceRequest = ({ message, conversationHistory, semanti
   },
 });
 
+// Never retain raw provider exception text: it may contain credentials or payloads.
+export const raviSafeProviderReason = error => {
+  const message = error?.message;
+  if (error?.name === "AbortError" || message === "provider_timeout") return "timeout";
+  if (["intent_provider_incomplete", "provider_incomplete_max_output_tokens"].includes(message)) return "incomplete_output";
+  if (message === "intent_provider_empty_output") return "empty_output";
+  if (message === "intent_provider_unavailable") return "unavailable";
+  const http = "intent_provider_http_";
+  if (typeof message === "string" && message.startsWith(http)) {
+    const code = Number(message.slice(http.length));
+    if (Number.isInteger(code) && code >= 400 && code <= 599) return `http_${code}`;
+  }
+  return "transport_failure";
+};
+
 export const resolveRaviEvidenceAnswer = async (input, { config, provider = runOpenAiAgentIntentProvider } = {}) => {
-  try {
-    let reviewInput = input;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const result = await provider(buildRaviEvidenceRequest(reviewInput), { config: {
-        ...config, apiKey: config.apiKey, maxTokens: Math.max(config.maxTokens, 2000),
-        timeoutMs: Math.max(config.timeoutMs, 20000),
-      } });
-      const output = result?.intent;
-      if (!output || !Array.isArray(output.citations)) return null;
-      const matchedEntries = [];
+  let reviewInput = input;
+  const attempts = [];
+  const transportConfig = Object.defineProperty({ ...config,
+    maxTokens: Math.max(config.maxTokens || 0, 2000),
+    timeoutMs: Math.max(config.timeoutMs || 0, 20000),
+  }, "apiKey", { value: config.apiKey, enumerable: false });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let result;
+    try {
+      result = await provider(buildRaviEvidenceRequest(reviewInput), { config: transportConfig });
+      if (result?.error) throw new Error(result.error);
+    } catch (error) {
+      const reason = raviSafeProviderReason(error);
+      attempts.push({ status: "provider_failure", reason });
+      return { status: "provider_failure", reason, attempts };
+    }
+    const output = result?.intent;
+    let status = "success";
+    let violations = [];
+    const matchedEntries = [];
+    if (!output || !Array.isArray(output.citations)) {
+      status = "malformed_output";
+      violations = ["invalid_citation_envelope"];
+    } else {
       for (const citation of output.citations) {
-        const entry = input.allowed && raviApprovedKnowledge.find(({ id }) => id === citation.entryId);
-        if (!entry || typeof citation.quote !== "string" || !citation.quote.trim() ||
-          ![entry.approvedSummary, ...entry.sourceFacts, ...entry.allowedClaims].includes(citation.quote)) return null;
+        const entry = input.allowed && raviApprovedKnowledge.find(({ id }) => id === citation?.entryId);
+        if (!entry) { status = "invalid_source"; violations = ["source_not_approved"]; break; }
+        if (typeof citation.quote !== "string" || !citation.quote.trim() ||
+            ![entry.approvedSummary, ...entry.sourceFacts, ...entry.allowedClaims].includes(citation.quote)) {
+          status = "citation_validation_failure"; violations = ["citation_not_verbatim"]; break;
+        }
         if (!matchedEntries.includes(entry)) matchedEntries.push(entry);
       }
-      const validation = validateRaviModelOutput(output, {
-        matchedEntries, visitorSuppliedEntities: input.semanticIntent.entities,
-      });
-      if (!validation.valid) {
-        reviewInput = { ...input, candidate: output, validationFeedback: { violations: validation.violations } };
-        continue;
-      }
-      // A refusal is not a substitute for a grounded factual answer.
-      if (output.groundingStatus === "refused" && !output.handoffNeeded) return null;
-      return { output: validation.correctedOutput, matchedEntries };
     }
-    return null;
-  } catch { return null; }
+    if (status === "success" && output.groundingStatus === "refused" && !output.handoffNeeded) {
+      status = "refusal_invalid";
+      violations = ["refusal_requires_handoff"];
+    }
+    let validation;
+    if (status === "success") {
+      validation = validateRaviModelOutput(output, { matchedEntries,
+        visitorSuppliedEntities: input.semanticIntent.entities,
+        reviewedCandidate: reviewInput.candidate,
+        entityReview: output.candidateEntityReview,
+      });
+      if (!validation.valid) { status = "validation_rejected"; violations = validation.violations; }
+    }
+    attempts.push({ status, violations });
+    if (status === "success") return { status, output: validation.correctedOutput, matchedEntries, attempts };
+    // One repair for citation, envelope or answer failures. Preserve the original
+    // message, proposition and history; feedback never becomes factual evidence.
+    reviewInput = { ...input, candidate: output || null, validationFeedback: { stage: status, violations } };
+  }
+  const last = attempts.at(-1);
+  return { status: last.status === "validation_rejected" ? "validation_exhausted" : last.status, reason: last.violations[0], violations: last.violations, attempts };
 };

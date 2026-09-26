@@ -47,7 +47,8 @@ try {
    providerAdapter: async () => assert.fail('generation must not run after intent failure'),
   });
   assert.equal(result.fallbackUsed, true);
-  assert.equal(raviExecutionOutcome(result), 'semantic_provider_failure');
+  assert.equal(raviExecutionOutcome(result), failure === 'invalid' ? 'semantic_output_failure' : 'semantic_provider_failure');
+  assert.equal(result.clarificationNeeded, false);
   assert.equal(JSON.stringify(result).includes(secret), false);
  }
  assert.equal(raviExecutionOutcome({ clarificationNeeded: true, fallbackReason: '' }), 'semantic_clarification');
@@ -67,4 +68,4 @@ assert.equal(logs.length, 1);
 assert.equal(logs[0].outcome, 'semantic_provider_failure');
 assert.equal(logs[0].fallbackUsed, true);
 assert.equal(JSON.stringify([logs, loggedResponse]).includes('fixture-secret-never-log'), false);
-assert.deepEqual(Object.keys(logs[0]).sort(), ['endpoint', 'event', 'fallbackUsed', 'mode', 'outcome', 'requestId'].sort());
+assert.deepEqual(Object.keys(logs[0]).sort(), ['endpoint', 'event', 'execution', 'fallbackUsed', 'mode', 'outcome', 'requestId'].sort());
