@@ -123,6 +123,7 @@ for (const repair of [false, true]) {
 }
 let citationAttempts = 0;
 const citationRepair = await run({ message: "Explain design considerations.", plan: selection(platform, { coverage: "partial" }),
+  intent: semantic("Compare the design considerations.", { questionType: "comparison" }),
   reviewer: async () => ({ intent: { ...envelope(reviewedAnswer),
     citations: [{ evidenceId: ++citationAttempts === 1 ? "invented" : platform }] } }) });
 assert.equal(citationRepair.calls.repair, 1); assert.equal(citationRepair.result.fallbackUsed, false);
