@@ -73,14 +73,15 @@ export const raviSafeProviderReason = error => {
   return "transport_failure";
 };
 
-export const resolveRaviEvidenceAnswer = async (input, { config, provider = runOpenAiAgentIntentProvider, onAttemptDiagnostic, approvedAnswerSelection } = {}) => {
+export const resolveRaviEvidenceAnswer = async (input, { config, provider = runOpenAiAgentIntentProvider, onAttemptDiagnostic, approvedAnswerSelection, repairAllowed = true } = {}) => {
   let reviewInput = input;
   const attempts = [];
   const transportConfig = Object.defineProperty({ ...config,
     maxTokens: Math.max(config.maxTokens || 0, 2000),
     timeoutMs: Math.max(config.timeoutMs || 0, 20000),
   }, "apiKey", { value: config.apiKey, enumerable: false });
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const attemptLimit = repairAllowed ? 2 : 1;
+  for (let attempt = 0; attempt < attemptLimit; attempt += 1) {
     const started = performance.now();
     let providerDurationMs = null;
     let providerHttpStatus = null;
@@ -107,7 +108,7 @@ export const resolveRaviEvidenceAnswer = async (input, { config, provider = runO
         candidateChanged: typeof reviewInput.candidate?.answer === "string" && typeof output?.answer === "string"
           ? reviewInput.candidate.answer !== output.answer : null,
         repairResult: attempt === 0 ? "not_a_repair" : status === "success" ? "accepted" : "failed",
-        nextAction: status === "success" ? "return_answer" : status === "provider_failure" || attempt === 1 ? "return_failure" : "repair",
+        nextAction: status === "success" ? "return_answer" : status === "provider_failure" || attempt === attemptLimit - 1 ? "return_failure" : "repair",
         grounding: groundingDiagnostic,
       }));
     let result;

@@ -2,6 +2,24 @@ import { raviApprovedKnowledge } from "../../data/agentKnowledge/raviApprovedKno
 import { validateRaviModelOutput } from "./raviOutputValidator.js";
 import { raviEvidenceCatalog, resolveRaviEvidenceIds } from "./raviEvidenceCatalog.js";
 
+// One explicitly resolved proposition is not compound reasoning. Relations,
+// multiple propositions and relationship-focused operations still require review.
+export const isRaviSimpleProposition = intent => {
+  const propositions = intent.atomicPropositions || [];
+  const focus = intent.intentFocus || {};
+  if (propositions.length > 1 || intent.propositionRelations?.length || focus.relationIds?.length ||
+      ["compare", "explain_relationship", "correct"].includes(focus.operation)) return false;
+  if (!propositions.length) return true;
+  const proposition = propositions[0];
+  return [proposition.id, proposition.subject, proposition.predicate, proposition.object]
+    .every(value => typeof value === "string" && value.trim()) &&
+    ["current_turn", "established_in_history"].includes(proposition.contextStatus) &&
+    ["questioned", "asserted"].includes(proposition.epistemicStatus) &&
+    proposition.subject === intent.entities?.[0] &&
+    proposition.polarity === intent.polarity &&
+    (focus.propositionIds || []).every(id => id === proposition.id);
+};
+
 // Keep source selection separate from the unchanged shared intent contract.
 // The model selects an approved record; it cannot author the extractive answer.
 export const withRaviApprovedAnswerSelection = request => ({
@@ -72,7 +90,7 @@ export const resolveRaviApprovedAnswer = ({ selection, semanticIntent, allowed, 
   if (!Array.isArray(selection?.evidenceIds)) return partial ? null : legacySummaryAnswer({ selection, semanticIntent, allowed });
   if (!allowed || semanticIntent.clarificationNeeded || selection.subjectsPreserved !== true ||
       selection.qualificationsPreserved !== true || selection.coverage !== (partial ? "partial" : "complete") ||
-      semanticIntent.atomicPropositions.length || semanticIntent.propositionRelations.length) return null;
+      !isRaviSimpleProposition(semanticIntent)) return null;
   const units = resolveRaviEvidenceIds(selection.evidenceIds);
   if (!units) return null;
   if (selection.requestKind === "agent_boundary") {

@@ -83,7 +83,9 @@ const unavailable = await runRaviResponseAdapter({ message: variants[0][0], conf
 });
 assert.equal(unavailable.execution.stage, 'evidence_review'); assert.equal(unavailable.execution.status, 'provider_failure');
 assert.equal(unavailable.clarificationNeeded, false); assert.notEqual(unavailable.answer, supported);
-assert.ok(unavailable.answer.includes("couldn't verify"));
+assert.equal(unavailable.answer, unavailable.claimEvaluation.approvedAlternative);
+assert.equal(unavailable.claimEvaluation.status, 'ALLOW_WITH_QUALIFICATION');
+assert.ok(unavailable.matchedEntries.some(entry => entry.id === platform.id));
 // Entity classification belongs to an independent review of the exact candidate.
 // Different grammatical prose receives no vocabulary exceptions.
 for (const prose of ['Consider', 'Document', 'Maintain']) {

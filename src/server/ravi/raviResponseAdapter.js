@@ -15,6 +15,7 @@ import {
 import { resolveRaviEvidenceAnswer, raviSafeProviderReason } from "./raviSemanticEvidence.js";
 import { withRaviApprovedAnswerSelection, resolveRaviApprovedAnswer } from "./raviApprovedAnswer.js";
 import { runRaviLocalEngine } from "./raviLocalEngine.js";
+import { prepareRaviDeterministicFallback } from "./raviDeterministicFallback.js";
 import { validateRaviModelOutput } from "./raviOutputValidator.js";
 import { buildRaviPromptPayload } from "./raviPromptContract.js";
 import { readRaviRuntimeConfig } from "./raviRuntimeConfig.js";
@@ -181,6 +182,8 @@ export const runRaviResponseAdapter = async ({
     semanticIntent, execution: { stage: "semantic_intent", status: "ambiguity" },
   };
   const allowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
+  const deterministicFallback = prepareRaviDeterministicFallback({ semanticIntent,
+    selection: approvedAnswerSelection, allowed });
   const approvedAnswer = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed });
   if (approvedAnswer) return approvedAnswer;
   const approvedPartial = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed, partial: true });
@@ -226,9 +229,11 @@ export const runRaviResponseAdapter = async ({
     candidate: hasEvidencePlan ? null : !failure ? validation.correctedOutput :
       validation.violations.length && validation.violations.every(code => code === "unsupported_named_entity")
         ? providerResult.modelOutput : null,
-  }, { config, provider: evidenceProvider, onAttemptDiagnostic: onEvidenceReviewAttempt, approvedAnswerSelection });
+  }, { config, provider: evidenceProvider, onAttemptDiagnostic: onEvidenceReviewAttempt, approvedAnswerSelection,
+    repairAllowed: !deterministicFallback || approvedAnswerSelection?.coverage === "partial" ||
+      semanticIntent.speechAct === "recommendation_request" });
   if (reviewed.status !== "success") return {
-    ...(approvedPartial || localResult), mode: "local_deterministic", fallbackUsed: true,
+    ...(approvedPartial || deterministicFallback || localResult), mode: "local_deterministic", fallbackUsed: true,
     fallbackReason: `evidence_review:${reviewed.status}`, semanticIntent,
     execution: { stage: "evidence_review", status: reviewed.status, reason: reviewed.reason,
       attempts: reviewed.attempts, generationFailure: failure },

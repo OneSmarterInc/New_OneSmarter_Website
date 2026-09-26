@@ -28,7 +28,7 @@ let passed = 0;
 for (const [id, messages] of groups) for (const message of messages) {
   const entry = kb.find(e => e.id === id);
   const intent = semantic(message, entry, { questionType: message.startsWith("How") ? "how" : "status" });
-  // Reproduce the former arbitration: even an exact approved candidate is lost on review failure.
+  // Review failure must retain the independently prepared approved local answer.
   const before = await runRaviResponseAdapter({ message, config, intentProvider: async () => ({ intent }),
     providerAdapter: async () => ({ modelOutput: { answer: entry.approvedSummary, handoffNeeded: false,
       handoffReason: null, suggestedFollowUps: [], groundingStatus: "grounded", outputSafetyStatus: "passed" } }),
@@ -36,7 +36,8 @@ for (const [id, messages] of groups) for (const message of messages) {
   });
   assert.equal(before.execution.status, "provider_failure");
   assert.equal(before.fallbackUsed, true);
-  assert.notEqual(before.answer, entry.approvedSummary);
+  assert.equal(before.answer, entry.approvedSummary);
+  assert.equal(before.claimEvaluation.status, "ALLOW");
   for (let repeat = 0; repeat < 3; repeat++) {
     let intentCalls = 0, generationCalls = 0, reviewCalls = 0;
     const after = await runRaviResponseAdapter({ message, config,
