@@ -7,9 +7,14 @@ const singleWord = value => typeof value === "string" && [...words.segment(value
 // self-certify a newly written answer. Only casing changes for grounding;
 // every word, factual assertion and live-action safety check is retained.
 export const raviEntityGroundingView = ({ answer, reviewedCandidate, entityReview,
-  matchedEntries, visitorSuppliedEntities = [] }) => {
-  if (!entityReview || entityReview.answer !== reviewedCandidate?.answer ||
-      entityReview.answer !== answer) return { answer, valid: true };
+  matchedEntries, visitorSuppliedEntities = [], normalizeAnswer = value => value }) => {
+  // Compare the exact visible content being validated on all three sides.
+  // The output validator already normalizes formatting. Comparing that answer
+  // with raw multiline review text would silently discard a valid independent
+  // entity review. This does not authorize changed words, facts or subjects.
+  if (!entityReview || typeof entityReview.answer !== "string" || typeof reviewedCandidate?.answer !== "string" ||
+      normalizeAnswer(entityReview.answer) !== normalizeAnswer(reviewedCandidate.answer) ||
+      normalizeAnswer(entityReview.answer) !== answer) return { answer, valid: true };
   if (!Array.isArray(entityReview.ordinaryProse) || !Array.isArray(entityReview.entities)) {
     return { answer, valid: false };
   }

@@ -54,7 +54,7 @@ export const validateRaviModelOutput = (
   }
   if (output?.groundingStatus === "grounded") {
     const entityView = raviEntityGroundingView({ answer, reviewedCandidate, entityReview,
-      matchedEntries, visitorSuppliedEntities });
+      matchedEntries, visitorSuppliedEntities, normalizeAnswer: clean });
     if (!entityView.valid) violations.push("invalid_entity_evidence_review");
     const grounding = verifyAgentAnswerGrounding({ answer: entityView.valid ? entityView.answer : answer, approvedEntries: matchedEntries });
     emitRaviDiagnostic(onGroundingDiagnostic, () => raviGroundingDiagnostic({ grounding, answer, matchedEntries, entityView }));
