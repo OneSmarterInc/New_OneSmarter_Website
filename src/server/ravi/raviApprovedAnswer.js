@@ -81,9 +81,13 @@ export const resolveRaviApprovedAnswer = ({ selection, semanticIntent, allowed, 
         !units.some(unit => unit.id === "ravi-professional-role:fact:1") ||
         units.some(unit => unit.entryId !== "ravi-professional-role")) return null;
   } else {
+    // Scope and clarification describe the conversational act, not an evidence
+    // gap. A complete, subject-preserving source plan can answer either without
+    // synthesis. Keep permission, causal, comparative and compound requests on
+    // the reviewed path; source coverage never overrides those boundaries.
     if (!["public_information", "general_guidance"].includes(selection.requestKind) ||
-        !["status", "how", "follow_up", "recommendation_request"].includes(semanticIntent.questionType) ||
-        !["question", "explanation_request", "recommendation_request"].includes(semanticIntent.speechAct) ||
+        !["status", "how", "follow_up", "recommendation_request", "scope_check", "clarification"].includes(semanticIntent.questionType) ||
+        !["question", "explanation_request", "recommendation_request", "scope_request", "clarification_request"].includes(semanticIntent.speechAct) ||
         ["negative", "mixed"].includes(semanticIntent.polarity) || semanticIntent.negationScope.length) return null;
   }
   const matchedEntries = [...new Set(units.map(unit => unit.entryId))]
