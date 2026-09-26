@@ -3,6 +3,8 @@ import { raviClaimRules } from "../../data/agentKnowledge/raviClaimRules.js";
 import { runOpenAiAgentIntentProvider } from "../agentIntent/agentIntentOpenAiProvider.js";
 import { validateRaviModelOutput } from "./raviOutputValidator.js";
 import { raviEvidenceCatalog, resolveRaviEvidenceIds } from "./raviEvidenceCatalog.js";
+import { performance } from "node:perf_hooks";
+import { emitRaviDiagnostic, raviTextDiagnostic, raviCitationDiagnostic, raviEvidenceSelectionDiagnostic } from "./raviReviewDiagnostics.js";
 
 const string = { type: "string" };
 export const buildRaviEvidenceRequest = ({ message, conversationHistory, semanticIntent, candidate, allowed, verbosityBand = "normal", validationFeedback = null }) => ({
@@ -70,7 +72,7 @@ export const raviSafeProviderReason = error => {
   return "transport_failure";
 };
 
-export const resolveRaviEvidenceAnswer = async (input, { config, provider = runOpenAiAgentIntentProvider } = {}) => {
+export const resolveRaviEvidenceAnswer = async (input, { config, provider = runOpenAiAgentIntentProvider, onAttemptDiagnostic, approvedAnswerSelection } = {}) => {
   let reviewInput = input;
   const attempts = [];
   const transportConfig = Object.defineProperty({ ...config,
@@ -78,13 +80,53 @@ export const resolveRaviEvidenceAnswer = async (input, { config, provider = runO
     timeoutMs: Math.max(config.timeoutMs || 0, 20000),
   }, "apiKey", { value: config.apiKey, enumerable: false });
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const started = performance.now();
+    let providerDurationMs = null;
+    let providerHttpStatus = null;
+    let groundingDiagnostic = null;
+    const emitAttempt = ({ status, violations = [], output, matchedEntries = [], validation, providerStatus, providerReason = null }) =>
+      emitRaviDiagnostic(onAttemptDiagnostic, () => ({
+        attemptNumber: attempt + 1,
+        repairAttemptNumber: attempt,
+        reviewStatus: status,
+        validationStatus: validation ? (validation.valid ? "passed" : "rejected") : "not_run",
+        validationViolations: [...violations],
+        providerStatus,
+        providerReason,
+        providerHttpStatus,
+        providerDurationMs,
+        stageDurationMs: Math.max(0, performance.now() - started),
+        suppliedSourceIds: input.allowed ? raviApprovedKnowledge.map(entry => entry.id) : [],
+        suppliedEvidenceIds: input.allowed ? raviEvidenceCatalog().map(unit => unit.id) : [],
+        selectedApprovedEvidence: raviEvidenceSelectionDiagnostic(approvedAnswerSelection),
+        claimedCitations: raviCitationDiagnostic(output?.citations),
+        validatedSourceIds: matchedEntries.map(entry => entry.id),
+        inputCandidate: raviTextDiagnostic(reviewInput.candidate?.answer),
+        reviewedAnswer: raviTextDiagnostic(output?.answer),
+        candidateChanged: typeof reviewInput.candidate?.answer === "string" && typeof output?.answer === "string"
+          ? reviewInput.candidate.answer !== output.answer : null,
+        repairResult: attempt === 0 ? "not_a_repair" : status === "success" ? "accepted" : "failed",
+        nextAction: status === "success" ? "return_answer" : status === "provider_failure" || attempt === 1 ? "return_failure" : "repair",
+        grounding: groundingDiagnostic,
+      }));
     let result;
     try {
-      result = await provider(buildRaviEvidenceRequest(reviewInput), { config: transportConfig });
+      const fetchImpl = globalThis.fetch;
+      const observedFetch = provider === runOpenAiAgentIntentProvider && typeof fetchImpl === "function"
+        ? async (...args) => {
+          const response = await fetchImpl(...args);
+          providerHttpStatus = Number.isInteger(response.status) ? response.status : null;
+          return response;
+        } : undefined;
+      result = await provider(buildRaviEvidenceRequest(reviewInput), { config: transportConfig,
+        ...(observedFetch ? { fetchImpl: observedFetch } : {}) });
+      providerDurationMs = Math.max(0, performance.now() - started);
       if (result?.error) throw new Error(result.error);
     } catch (error) {
+      providerDurationMs = Math.max(0, performance.now() - started);
       const reason = raviSafeProviderReason(error);
       attempts.push({ status: "provider_failure", reason });
+      emitAttempt({ status: "provider_failure", providerStatus: "failed", providerReason: reason });
       return { status: "provider_failure", reason, attempts };
     }
     const output = result?.intent;
@@ -120,10 +162,12 @@ export const resolveRaviEvidenceAnswer = async (input, { config, provider = runO
         visitorSuppliedEntities: input.semanticIntent.entities,
         reviewedCandidate: reviewInput.candidate,
         entityReview: output.candidateEntityReview,
+        onGroundingDiagnostic: onAttemptDiagnostic ? diagnostic => { groundingDiagnostic = diagnostic; } : undefined,
       });
       if (!validation.valid) { status = "validation_rejected"; violations = validation.violations; }
     }
     attempts.push({ status, violations });
+    emitAttempt({ status, violations, output, matchedEntries, validation, providerStatus: "returned_output" });
     if (status === "success") return { status, output: validation.correctedOutput, matchedEntries, attempts };
     // One repair for citation, envelope or answer failures. Preserve the original
     // message, proposition and history; feedback never becomes factual evidence.

@@ -117,6 +117,7 @@ export const runRaviResponseAdapter = async ({
   providerAdapter = runOpenAiMiraAdapter,
   intentProvider,
   evidenceProvider,
+  onEvidenceReviewAttempt,
 } = {}) => {
   if (config.mode !== "staging_llm") {
     const localResult = runRaviLocalEngine({ message, conversationHistory, verbosityBand });
@@ -225,7 +226,7 @@ export const runRaviResponseAdapter = async ({
     candidate: hasEvidencePlan ? null : !failure ? validation.correctedOutput :
       validation.violations.length && validation.violations.every(code => code === "unsupported_named_entity")
         ? providerResult.modelOutput : null,
-  }, { config, provider: evidenceProvider });
+  }, { config, provider: evidenceProvider, onAttemptDiagnostic: onEvidenceReviewAttempt, approvedAnswerSelection });
   if (reviewed.status !== "success") return {
     ...(approvedPartial || localResult), mode: "local_deterministic", fallbackUsed: true,
     fallbackReason: `evidence_review:${reviewed.status}`, semanticIntent,
@@ -364,6 +365,14 @@ export const handleRaviChatRequest = async ({
     conversationHistory: history.history,
     conversationId,
     verbosityBand: depletion.verbosityBand,
+    onEvidenceReviewAttempt: diagnostic => {
+      // Serialize each attempt separately: nested objects must not collapse to
+      // [Object] in runtime logs. The evidence stage supplies only safe fields.
+      try {
+        const pending = logger(JSON.stringify({ event: "ravi_evidence_review_attempt", endpoint: ENDPOINT, requestId, ...diagnostic }));
+        if (pending && typeof pending.catch === "function") pending.catch(() => {});
+      } catch { /* Observability must not change the response. */ }
+    },
   });
   try {
     logger({ event: "ravi_request_execution", endpoint: ENDPOINT, requestId,
