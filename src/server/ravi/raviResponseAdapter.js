@@ -116,12 +116,15 @@ export const runRaviResponseAdapter = async ({
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
 
+  // Object spread intentionally excludes the runtime's protected credential.
+  // Preserve that protection on the transport-specific copy as well.
+  const intentConfig = Object.defineProperty({
+    ...config,
+    maxTokens: Math.max(config.maxTokens, 3_000),
+    timeoutMs: Math.max(config.timeoutMs, 20_000),
+  }, "apiKey", { value: config.apiKey, enumerable: false });
   const resolveIntent = intentProvider || ((request) => runOpenAiAgentIntentProvider(request, {
-    config: {
-      ...config,
-      maxTokens: Math.max(config.maxTokens, 3_000),
-      timeoutMs: Math.max(config.timeoutMs, 20_000),
-    },
+    config: intentConfig,
   }));
   const semanticResolution = await resolveAgentIntent({
     agentIdentity: "Ravi Sen",
@@ -206,6 +209,19 @@ export const runRaviResponseAdapter = async ({
   };
 };
 
+// Log only controlled categories, never provider payloads, credentials or visitor text.
+export const raviExecutionOutcome = (result) => {
+  const reason = result.fallbackReason || "";
+  if (reason.startsWith("output_validation_failed:")) return "validation_rejection";
+  if (reason === "provider_timeout") return "generation_timeout";
+  if (reason.startsWith("provider_incomplete")) return "generation_incomplete";
+  if (["provider_failure", "provider_unavailable", "invalid_provider_intent"].includes(reason)) return "semantic_provider_failure";
+  if (reason === "missing_provider_config") return "configuration_failure";
+  if (reason) return "provider_or_evidence_failure";
+  if (result.clarificationNeeded) return "semantic_clarification";
+  return result.mode === "staging_llm" ? "validated_response" : "deterministic_response";
+};
+
 export const handleRaviChatRequest = async ({
   method = "GET",
   body,
@@ -215,6 +231,7 @@ export const handleRaviChatRequest = async ({
   isRequestAborted = () => false,
   now = new Date(),
   responseAdapter = runRaviResponseAdapter,
+  logger = console.info,
 } = {}) => {
   const requestId = crypto.randomUUID();
   let parsed;
@@ -275,6 +292,12 @@ export const handleRaviChatRequest = async ({
     conversationId,
     verbosityBand: depletion.verbosityBand,
   });
+  try {
+    logger({ event: "ravi_request_execution", endpoint: ENDPOINT, requestId,
+      outcome: raviExecutionOutcome(result),
+      mode: result.mode === "staging_llm" ? "staging_llm" : "local_deterministic",
+      fallbackUsed: Boolean(result.fallbackUsed) });
+  } catch { /* Observability must not change the response. */ }
   const response = {
     status: 200,
     body: {

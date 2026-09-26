@@ -15,6 +15,7 @@ import { runElenaLocalEngine } from "./elenaLocalEngine.js";
 import { validateElenaModelOutput } from "./elenaOutputValidator.js";
 import { buildElenaPromptPayload } from "./elenaPromptContract.js";
 import { readElenaRuntimeConfig } from "./elenaRuntimeConfig.js";
+import { completeElenaEvidenceFallback } from "./elenaTerminologyEvidence.js";
 import {
   chargeSuccessfulAgentWork,
   readAgentDepletionContext,
@@ -249,7 +250,7 @@ export const runElenaResponseAdapter = async ({
         preferredKnowledgeIds: semanticPolicy.canonicalKnowledgeIds,
       })
     : intentAwareScopeFallback(semanticIntent);
-  const localResult = retrievedResult.clarificationNeeded
+  let localResult = retrievedResult.clarificationNeeded
     ? intentAwareScopeFallback(semanticIntent)
     : retrievedResult;
 
@@ -263,6 +264,7 @@ export const runElenaResponseAdapter = async ({
       localResult.sources.push({ id: entry.id, title: entry.title, route: entry.route, sourceLabel: entry.sourceReference.sourceLabel });
     }
   }
+  localResult = completeElenaEvidenceFallback(localResult);
   const promptPayload = buildElenaPromptPayload({
     message,
     matchedEntries: localResult.matchedEntries,
@@ -271,20 +273,24 @@ export const runElenaResponseAdapter = async ({
     semanticIntent,
     claimEvaluation: localResult.claimEvaluation || claimEvaluation,
   });
-  const providerResult = await providerAdapter({
-    message,
-    conversationId,
-    requestContext: {
-      persona: "Professional Compliance Reader",
-      memoryTheme: "Bounded request-carried context only",
-      empathyState: "Careful and precise",
-      semanticIntent,
-    },
-    retrievalResult: { matchedEntries: localResult.matchedEntries },
-    riskFlags: [],
-    promptPayload,
-    config,
-  });
+  let providerResult;
+  try {
+    providerResult = await providerAdapter({
+      message,
+      conversationId,
+      requestContext: {
+        persona: "Professional Compliance Reader",
+        memoryTheme: "Bounded request-carried context only",
+        empathyState: "Careful and precise",
+        semanticIntent,
+      },
+      retrievalResult: { matchedEntries: localResult.matchedEntries },
+      riskFlags: [],
+      promptPayload,
+      config,
+    });
+  } catch { providerResult = { error: "provider_error" }; }
+  providerResult ||= { error: "provider_error" };
   if (providerResult.error || !providerResult.modelOutput) {
     return {
       ...localResult,
@@ -323,6 +329,19 @@ export const runElenaResponseAdapter = async ({
   };
 };
 
+// Log only controlled categories, never provider payloads, credentials or visitor text.
+export const elenaExecutionOutcome = (result) => {
+  const reason = result.fallbackReason || "";
+  if (reason.startsWith("output_validation_failed:")) return "validation_rejection";
+  if (reason === "provider_timeout") return "generation_timeout";
+  if (reason.startsWith("provider_incomplete")) return "generation_incomplete";
+  if (["provider_failure", "provider_unavailable", "invalid_provider_intent"].includes(reason)) return "semantic_provider_failure";
+  if (reason === "missing_provider_config") return "configuration_failure";
+  if (reason) return "provider_or_evidence_failure";
+  if (result.clarificationNeeded) return "semantic_clarification";
+  return result.mode === "staging_llm" ? "validated_response" : "deterministic_response";
+};
+
 export const handleElenaChatRequest = async ({
   method = "GET",
   body,
@@ -332,6 +351,7 @@ export const handleElenaChatRequest = async ({
   isRequestAborted = () => false,
   now = new Date(),
   responseAdapter = runElenaResponseAdapter,
+  logger = console.info,
 } = {}) => {
   const requestId = crypto.randomUUID();
   let parsed;
@@ -389,6 +409,12 @@ export const handleElenaChatRequest = async ({
     conversationId,
     verbosityBand: depletion.verbosityBand,
   });
+  try {
+    logger({ event: "elena_request_execution", endpoint: ENDPOINT, requestId,
+      outcome: elenaExecutionOutcome(result),
+      mode: result.mode === "staging_llm" ? "staging_llm" : "local_deterministic",
+      fallbackUsed: Boolean(result.fallbackUsed) });
+  } catch { /* Observability must not change the response. */ }
   const response = {
     status: 200,
     body: {
