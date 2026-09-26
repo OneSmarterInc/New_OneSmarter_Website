@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { prepareRaviDeterministicFallback } from "../src/server/ravi/raviDeterministicFallback.js";
 import { runRaviResponseAdapter } from "../src/server/ravi/raviResponseAdapter.js";
 import { raviApprovedKnowledge } from "../src/data/agentKnowledge/raviApprovedKnowledge.js";
 const config = { mode: "staging_llm", provider: "openai", providerConfigComplete: true };
@@ -42,8 +43,10 @@ for (let repeat = 0; repeat < 3; repeat++) {
           citations: [{ entryId: platform.id, quote: platform.sourceFacts[0] }, { entryId: role.id, quote: role.sourceFacts[1] }] } };
       },
     });
-    assert.equal(reviews, 2);
-    assert.equal(result.fallbackUsed, false, result.fallbackReason);
+    const retained = prepareRaviDeterministicFallback({ semanticIntent: result.semanticIntent, allowed: true });
+    assert.equal(reviews, retained ? 1 : 2);
+    assert.equal(result.fallbackUsed, Boolean(retained), result.fallbackReason);
+    if (retained) assert.equal(result.answer, retained.answer);
     assert.equal(result.clarificationNeeded, false);
     assert.notEqual(result.answer, platform.approvedSummary);
     runs++;
@@ -60,7 +63,10 @@ for (const failure of ["intent", "evidence"]) {
     evidenceProvider: async () => ({ intent: { ...envelope("Invented answer"), citations: [{ entryId: platform.id, quote: "Invented fact" }] } }),
   });
   assert.equal(result.fallbackUsed, true);
-  assert.equal(result.clarificationNeeded, true);
+  assert.equal(result.clarificationNeeded, false);
+  assert.equal(result.execution.stage, failure === "intent" ? "semantic_provider" : "evidence_review");
+  assert.equal(result.execution.status, failure === "intent" ? "provider_failure" : "citation_validation_failure");
+  assert.ok(!result.answer.includes("Please restate who"));
 }
 // Existing conversation-grounding suite exercises live actions, third-party permissions,
 // customer-specific permissions, negative/WHY/HOW, compound follow-ups and unrelated input.

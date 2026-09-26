@@ -153,7 +153,7 @@ const semanticBoundaryFallback = (semanticIntent, claimEvaluation, matchedEntrie
   }
   const roleDirectory = matchedEntries.find(({ id }) => id === "professional-agent-role-directory");
   if (roleDirectory) return roleDirectory.sourceFacts.join(" ");
-  if (semanticIntent.questionType === "recommendation_request" && matchedEntries.length) {
+  if ((semanticIntent.questionType === "recommendation_request" || semanticIntent.speechAct === "recommendation_request") && matchedEntries.length) {
     return `${matchedEntries[0].approvedSummary} The approved evidence supports general explanation only; it does not establish a customer-specific selection, implementation, or action.`;
   }
   return matchedEntries[0]?.approvedSummary || RAVI_CLARIFICATION;
@@ -165,7 +165,7 @@ const contextualMessage = (message, conversationHistory = []) => {
   return priorUser?.content ? `${message} ${priorUser.content}` : message;
 };
 
-export const runRaviLocalEngine = ({ message = "", conversationHistory = [], semanticIntent = null } = {}) => {
+export const runRaviLocalEngine = ({ message = "", conversationHistory = [], semanticIntent = null, approvedEntries = null } = {}) => {
   if (semanticIntent?.clarificationNeeded) {
     return localResult({
       answer: RAVI_CLARIFICATION,
@@ -183,9 +183,11 @@ export const runRaviLocalEngine = ({ message = "", conversationHistory = [], sem
   ].filter(Boolean).join(" ") : "";
   const contextual = semanticMessage || contextualMessage(message, conversationHistory);
   const text = normalized(contextual);
-  const matchedEntries = semanticIntent
+  // Internal callers may supply canonical records already selected semantically.
+  // This avoids a second textual retrieval decision for the same resolved request.
+  const matchedEntries = approvedEntries || (semanticIntent
     ? retrieveRaviKnowledgeForIntent(semanticIntent)
-    : retrieveRaviKnowledge(contextual);
+    : retrieveRaviKnowledge(contextual));
   const matchedIds = matchedEntries.map(({ id }) => id);
 
   if (!semanticIntent && /\b(?:close|change|edit|open|assign|route|escalate|perform)\b.{0,50}\b(?:this|that|the|a)\s+(?:ticket|case)\b/i.test(contextual)) {

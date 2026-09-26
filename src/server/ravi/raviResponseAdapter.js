@@ -12,8 +12,10 @@ import {
   readAgentDepletionContext,
   sharedAgentStateStore,
 } from "../agentState/agentDepletionRuntime.js";
-import { resolveRaviEvidenceAnswer } from "./raviSemanticEvidence.js";
+import { resolveRaviEvidenceAnswer, raviSafeProviderReason } from "./raviSemanticEvidence.js";
+import { withRaviApprovedAnswerSelection, resolveRaviApprovedAnswer } from "./raviApprovedAnswer.js";
 import { runRaviLocalEngine } from "./raviLocalEngine.js";
+import { prepareRaviDeterministicFallback } from "./raviDeterministicFallback.js";
 import { validateRaviModelOutput } from "./raviOutputValidator.js";
 import { buildRaviPromptPayload } from "./raviPromptContract.js";
 import { readRaviRuntimeConfig } from "./raviRuntimeConfig.js";
@@ -73,6 +75,16 @@ const unresolvedIntentFallback = () => ({
   claimEvaluation: null,
 });
 
+const failedReviewResponse = (stage) => ({
+  answer: stage === "semantic_provider"
+    ? "I couldn't process this request reliably because the interpretation service is unavailable. Please try again later."
+    : stage === "semantic_output"
+      ? "I couldn't reliably validate the interpretation of this request. Please try again later."
+      : "I couldn't verify a supported answer against the approved operations evidence for this request. I haven't accessed or changed any live system. Please try again later or contact care@onesmarter.com for help.",
+  matchedEntries: [], sources: [], confidence: "low", clarificationNeeded: false,
+  clarificationQuestion: "", claimEvaluation: null,
+});
+
 export const normalizeRaviConversationHistory = (history) => {
   if (history === undefined || history === null) return { ok: true, history: [] };
   if (!Array.isArray(history)) {
@@ -106,23 +118,41 @@ export const runRaviResponseAdapter = async ({
   providerAdapter = runOpenAiMiraAdapter,
   intentProvider,
   evidenceProvider,
+  onEvidenceReviewAttempt,
 } = {}) => {
   if (config.mode !== "staging_llm") {
     const localResult = runRaviLocalEngine({ message, conversationHistory, verbosityBand });
     return { ...localResult, mode: "local_deterministic", fallbackUsed: false, fallbackReason: "" };
   }
   if (config.provider !== "openai" || !config.providerConfigComplete) {
-    const localResult = runRaviLocalEngine({ message: "", verbosityBand, semanticIntent: { clarificationNeeded: true } });
+    const localResult = failedReviewResponse("semantic_provider");
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
 
-  const resolveIntent = intentProvider || ((request) => runOpenAiAgentIntentProvider(request, {
-    config: {
-      ...config,
-      maxTokens: Math.max(config.maxTokens, 3_000),
-      timeoutMs: Math.max(config.timeoutMs, 20_000),
-    },
+  // Object spread intentionally excludes the runtime's protected credential.
+  // Preserve that protection on the transport-specific copy as well.
+  const intentConfig = Object.defineProperty({
+    ...config,
+    maxTokens: Math.max(config.maxTokens, 3_000),
+    timeoutMs: Math.max(config.timeoutMs, 20_000),
+  }, "apiKey", { value: config.apiKey, enumerable: false });
+  let intentProviderReason = "";
+  let approvedAnswerSelection = null;
+  const callIntent = intentProvider || ((request) => runOpenAiAgentIntentProvider(request, {
+    config: intentConfig,
   }));
+  const resolveIntent = async request => {
+    try {
+      const result = await callIntent(withRaviApprovedAnswerSelection(request));
+      if (result?.error) throw new Error(result.error);
+      if (result?.intent?.semanticIntent) {
+        approvedAnswerSelection = result.intent.approvedAnswerSelection;
+        return { intent: result.intent.semanticIntent };
+      }
+      return result;
+    }
+    catch (error) { intentProviderReason = raviSafeProviderReason(error); throw error; }
+  };
   const semanticResolution = await resolveAgentIntent({
     agentIdentity: "Ravi Sen",
     message,
@@ -139,15 +169,26 @@ export const runRaviResponseAdapter = async ({
     }),
   });
   if (!semanticResolution.ok) {
-    const localResult = unresolvedIntentFallback();
-    return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent };
+    const stage = semanticResolution.error === "invalid_provider_intent" ? "semantic_output" : "semantic_provider";
+    return { ...failedReviewResponse(stage), mode: "local_deterministic", fallbackUsed: true,
+      fallbackReason: semanticResolution.error, semanticIntent: semanticResolution.intent,
+      execution: { stage, status: semanticResolution.error, reason: intentProviderReason || semanticResolution.error } };
+
   }
 
   const semanticIntent = semanticResolution.intent;
+  if (semanticResolution.domainAllowed && semanticIntent.clarificationNeeded) return {
+    ...unresolvedIntentFallback(), mode: "local_deterministic", fallbackUsed: false, fallbackReason: "",
+    semanticIntent, execution: { stage: "semantic_intent", status: "ambiguity" },
+  };
   const allowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
+  const deterministicFallback = prepareRaviDeterministicFallback({ semanticIntent, selection: approvedAnswerSelection, allowed });
+  const approvedAnswer = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed });
+  if (approvedAnswer) return approvedAnswer;
+  const approvedPartial = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed, partial: true });
   // This small approved slice is supplied in full. Topic labels must not hide role boundaries.
   const matchedEntries = allowed ? raviApprovedKnowledge : [];
-  const localResult = allowed ? unresolvedIntentFallback() : intentAwareScopeFallback(semanticIntent);
+  const localResult = allowed ? failedReviewResponse("evidence_review") : intentAwareScopeFallback(semanticIntent);
 
   const promptPayload = buildRaviPromptPayload({
     message,
@@ -157,7 +198,10 @@ export const runRaviResponseAdapter = async ({
     semanticIntent,
   });
   let providerResult;
-  try {
+  // The structured evidence plan supplies the review's starting point. A second
+  // uncited draft adds no authority; let the bounded evidence stage compose it.
+  const hasEvidencePlan = Array.isArray(approvedAnswerSelection?.evidenceIds);
+  if (!hasEvidencePlan) try {
     providerResult = await providerAdapter({
       message,
       conversationId,
@@ -177,15 +221,25 @@ export const runRaviResponseAdapter = async ({
   const validation = validateRaviModelOutput(providerResult.modelOutput, {
     matchedEntries, visitorSuppliedEntities: semanticIntent.entities,
   });
-  const failure = providerResult.error || (!validation.valid
+  const failure = hasEvidencePlan ? "" : providerResult.error || (!validation.valid
     ? `output_validation_failed:${validation.violations.join(",")}` : "");
   const reviewed = await resolveRaviEvidenceAnswer({
     message, conversationHistory, semanticIntent, allowed, verbosityBand,
-    candidate: failure ? null : validation.correctedOutput,
-  }, { config, provider: evidenceProvider });
-  if (!reviewed) return {
-    ...localResult, mode: "local_deterministic", fallbackUsed: true,
-    fallbackReason: "semantic_evidence_unavailable", semanticIntent,
+    candidate: hasEvidencePlan ? null : !failure ? validation.correctedOutput :
+      validation.violations.length && validation.violations.every(code => code === "unsupported_named_entity")
+        ? providerResult.modelOutput : null,
+  }, { config, provider: evidenceProvider, onAttemptDiagnostic: onEvidenceReviewAttempt, approvedAnswerSelection,
+    repairAllowed: !deterministicFallback });
+  if (reviewed.status !== "success") return {
+    ...(deterministicFallback || approvedPartial || localResult), mode: "local_deterministic", fallbackUsed: true,
+    fallbackReason: `evidence_review:${reviewed.status}`, semanticIntent,
+    execution: { stage: "evidence_review", status: reviewed.status, reason: reviewed.reason,
+      attempts: reviewed.attempts, generationFailure: failure },
+  };
+  if ((deterministicFallback || approvedPartial) && reviewed.output.groundingStatus !== "grounded") return {
+    ...(approvedPartial || deterministicFallback), mode: "local_deterministic", semanticIntent,
+    fallbackUsed: true, fallbackReason: "evidence_review:insufficient_context",
+    execution: { stage: "evidence_review", status: "insufficient_context", attempts: reviewed.attempts },
   };
   const output = reviewed.output;
   return {
@@ -203,8 +257,48 @@ export const runRaviResponseAdapter = async ({
     clarificationQuestion: output.groundingStatus !== "grounded"
       ? output.suggestedFollowUps[0] || "Which approved operations topic would you like to review?" : "",
     semanticIntent,
+    execution: { stage: "evidence_review", status: "success", attempts: reviewed.attempts,
+      generationFailure: failure },
   };
 };
+
+// Log only controlled categories, never provider payloads, credentials or visitor text.
+export const raviExecutionOutcome = (result) => {
+  const reason = result.fallbackReason || "";
+  if (reason.startsWith("evidence_review:") && executionStatuses.has(reason.slice("evidence_review:".length))) return reason;
+  if (reason === "invalid_provider_intent") return "semantic_output_failure";
+  if (reason.startsWith("output_validation_failed:")) return "validation_rejection";
+  if (reason === "provider_timeout") return "generation_timeout";
+  if (reason.startsWith("provider_incomplete")) return "generation_incomplete";
+  if (["provider_failure", "provider_unavailable", "invalid_provider_intent"].includes(reason)) return "semantic_provider_failure";
+  if (reason === "missing_provider_config") return "configuration_failure";
+  if (reason) return "provider_or_evidence_failure";
+  if (result.clarificationNeeded) return "semantic_clarification";
+  return result.mode === "staging_llm" ? "validated_response" : "deterministic_response";
+};
+
+// These are diagnostic codes, not visitor-language matching rules.
+const executionStages = new Set(["semantic_provider", "semantic_output", "semantic_intent", "approved_answer", "evidence_review"]);
+const executionStatuses = new Set(["success", "ambiguity", "provider_failure", "invalid_provider_intent",
+  "malformed_output", "invalid_source", "citation_validation_failure", "validation_rejected", "validation_exhausted", "refusal_invalid", "insufficient_context"]);
+const executionReasons = new Set(["timeout", "incomplete_output", "empty_output", "unavailable", "transport_failure",
+  "invalid_provider_intent", "invalid_citation_envelope", "source_not_approved", "citation_not_verbatim",
+  "refusal_requires_handoff", "unsupported_named_entity", "unsupported_factual_assertion",
+  "invalid_entity_evidence_review", "live_system_action_claim", "grounded_without_approved_evidence",
+  "invalid_shape", "invalid_answer", "invalid_handoff_state", "invalid_handoff_reason", "invalid_followups",
+  "invalid_grounding_status", "invalid_output_safety_status", "internal_instruction_leak", "cafe_persona_leak",
+  "fabricated_source_reference", "unsupported_guarantee", "invented_integration", "invented_customer_claim",
+  "invented_commercial_detail", "insufficient_context_requires_handoff", "factual_answer_without_approved_evidence"]);
+export const raviSafeExecutionTrace = (execution) => ({
+  stage: executionStages.has(execution?.stage) ? execution.stage : "unavailable",
+  status: executionStatuses.has(execution?.status) ? execution.status : "unavailable",
+  reason: !execution?.reason ? "" : executionReasons.has(execution.reason) ? execution.reason :
+    raviSafeProviderReason({ message: `intent_provider_${execution?.reason}` }),
+  attempts: (execution?.attempts || []).slice(0, 2).map(attempt => ({
+    status: executionStatuses.has(attempt.status) ? attempt.status : "unavailable",
+    violations: (attempt.violations || []).filter(code => executionReasons.has(code)),
+  })),
+});
 
 export const handleRaviChatRequest = async ({
   method = "GET",
@@ -215,6 +309,7 @@ export const handleRaviChatRequest = async ({
   isRequestAborted = () => false,
   now = new Date(),
   responseAdapter = runRaviResponseAdapter,
+  logger = console.info,
 } = {}) => {
   const requestId = crypto.randomUUID();
   let parsed;
@@ -274,7 +369,21 @@ export const handleRaviChatRequest = async ({
     conversationHistory: history.history,
     conversationId,
     verbosityBand: depletion.verbosityBand,
+    onEvidenceReviewAttempt: diagnostic => {
+      // Serialize each attempt separately: nested objects must not collapse to
+      // [Object] in runtime logs. The evidence stage supplies only safe fields.
+      try {
+        const pending = logger(JSON.stringify({ event: "ravi_evidence_review_attempt", endpoint: ENDPOINT, requestId, ...diagnostic }));
+        if (pending && typeof pending.catch === "function") pending.catch(() => {});
+      } catch { /* Observability must not change the response. */ }
+    },
   });
+  try {
+    logger({ event: "ravi_request_execution", endpoint: ENDPOINT, requestId,
+      outcome: raviExecutionOutcome(result),
+      mode: result.mode === "staging_llm" ? "staging_llm" : "local_deterministic",
+      fallbackUsed: Boolean(result.fallbackUsed), execution: raviSafeExecutionTrace(result.execution) });
+  } catch { /* Observability must not change the response. */ }
   const response = {
     status: 200,
     body: {
