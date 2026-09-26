@@ -182,8 +182,7 @@ export const runRaviResponseAdapter = async ({
     semanticIntent, execution: { stage: "semantic_intent", status: "ambiguity" },
   };
   const allowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
-  const deterministicFallback = prepareRaviDeterministicFallback({ semanticIntent,
-    selection: approvedAnswerSelection, allowed });
+  const deterministicFallback = prepareRaviDeterministicFallback({ semanticIntent, selection: approvedAnswerSelection, allowed });
   const approvedAnswer = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed });
   if (approvedAnswer) return approvedAnswer;
   const approvedPartial = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed, partial: true });
@@ -230,16 +229,16 @@ export const runRaviResponseAdapter = async ({
       validation.violations.length && validation.violations.every(code => code === "unsupported_named_entity")
         ? providerResult.modelOutput : null,
   }, { config, provider: evidenceProvider, onAttemptDiagnostic: onEvidenceReviewAttempt, approvedAnswerSelection,
-    repairAllowed: !deterministicFallback || approvedAnswerSelection?.coverage === "partial" ||
-      semanticIntent.speechAct === "recommendation_request" });
+    repairAllowed: !deterministicFallback });
   if (reviewed.status !== "success") return {
-    ...(approvedPartial || deterministicFallback || localResult), mode: "local_deterministic", fallbackUsed: true,
+    ...(deterministicFallback || approvedPartial || localResult), mode: "local_deterministic", fallbackUsed: true,
     fallbackReason: `evidence_review:${reviewed.status}`, semanticIntent,
     execution: { stage: "evidence_review", status: reviewed.status, reason: reviewed.reason,
       attempts: reviewed.attempts, generationFailure: failure },
   };
-  if (approvedPartial && reviewed.output.groundingStatus !== "grounded") return {
-    ...approvedPartial, fallbackUsed: true, fallbackReason: "evidence_review:insufficient_context",
+  if ((deterministicFallback || approvedPartial) && reviewed.output.groundingStatus !== "grounded") return {
+    ...(approvedPartial || deterministicFallback), mode: "local_deterministic", semanticIntent,
+    fallbackUsed: true, fallbackReason: "evidence_review:insufficient_context",
     execution: { stage: "evidence_review", status: "insufficient_context", attempts: reviewed.attempts },
   };
   const output = reviewed.output;

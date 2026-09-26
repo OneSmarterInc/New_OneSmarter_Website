@@ -12,10 +12,12 @@ export const prepareRaviDeterministicFallback = ({ semanticIntent, selection, al
       !["question", "explanation_request", "scope_request", "clarification_request", "recommendation_request"].includes(semanticIntent.speechAct) ||
       ["negative", "mixed"].includes(semanticIntent.polarity) || semanticIntent.negationScope.length ||
       !["clarify", "answer_proposition", "explain_proposition", "evaluate_request"].includes(semanticIntent.intentFocus.operation)) return null;
-  if (selection && (!Array.isArray(selection.evidenceIds) ||
-      !["public_information", "general_guidance"].includes(selection.requestKind) ||
-      !["complete", "partial"].includes(selection.coverage) ||
-      selection.subjectsPreserved !== true || selection.qualificationsPreserved !== true)) return null;
+  // The extractive plan evaluates different text: selected whole source statements.
+  // Its coverage/qualification verdict cannot validate or invalidate the local
+  // engine's independently qualified answer. Validate that answer below instead.
+  // Legacy injected providers have no evidence plan; preserve their explicit
+  // non-descriptive decision rather than reinterpret that older contract.
+  if (selection && !Array.isArray(selection.evidenceIds)) return null;
   const entry = raviApprovedKnowledge.find(entry => [entry.id, entry.title].includes(semanticIntent.topic));
   if (!entry) return null;
   if (semanticIntent.entities[0] === "Ravi Sen" && entry.id !== "ravi-professional-role") return null;

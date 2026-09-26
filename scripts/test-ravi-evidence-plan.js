@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { runRaviLocalEngine } from "../src/server/ravi/raviLocalEngine.js";
 import { performance } from "node:perf_hooks";
 import { runRaviResponseAdapter } from "../src/server/ravi/raviResponseAdapter.js";
 import { resolveRaviApprovedAnswer } from "../src/server/ravi/raviApprovedAnswer.js";
@@ -76,7 +77,7 @@ for (const q of ["Explain ticket routing.", "How should routing and escalation w
     });
     assert.equal(calls.review - count, 1);
     assert.equal(result.answer, failure
-      ? `${platform.approvedSummary} ${role.sourceFacts[1]} The approved information does not establish the remaining requested details. Contact care@onesmarter.com for a scoped review.` : supported);
+      ? runRaviLocalEngine({ semanticIntent: intent(q, { questionType: "recommendation_request", speechAct: "recommendation_request" }) }).answer : supported);
     assert.equal(result.fallbackUsed, failure);
     assert.equal(result.clarificationNeeded, false);
   }

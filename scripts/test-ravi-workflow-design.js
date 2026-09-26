@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { prepareRaviDeterministicFallback } from "../src/server/ravi/raviDeterministicFallback.js";
 import { runRaviResponseAdapter } from "../src/server/ravi/raviResponseAdapter.js";
 import { raviApprovedKnowledge } from "../src/data/agentKnowledge/raviApprovedKnowledge.js";
 const config = { mode: "staging_llm", provider: "openai", providerConfigComplete: true };
@@ -42,8 +43,10 @@ for (let repeat = 0; repeat < 3; repeat++) {
           citations: [{ entryId: platform.id, quote: platform.sourceFacts[0] }, { entryId: role.id, quote: role.sourceFacts[1] }] } };
       },
     });
-    assert.equal(reviews, 2);
-    assert.equal(result.fallbackUsed, false, result.fallbackReason);
+    const retained = prepareRaviDeterministicFallback({ semanticIntent: result.semanticIntent, allowed: true });
+    assert.equal(reviews, retained ? 1 : 2);
+    assert.equal(result.fallbackUsed, Boolean(retained), result.fallbackReason);
+    if (retained) assert.equal(result.answer, retained.answer);
     assert.equal(result.clarificationNeeded, false);
     assert.notEqual(result.answer, platform.approvedSummary);
     runs++;

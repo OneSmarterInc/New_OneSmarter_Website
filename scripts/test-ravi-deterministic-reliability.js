@@ -91,7 +91,7 @@ for (const repaired of [true, false]) {
 }
 
 const role = kb.find(e => e.id === "ravi-professional-role");
-for (const question of ["Can Ravi access our ticket queue?", "Can Ravi modify a customer ticket?", "Can Ravi change routing rules?", "Implement this workflow in our live system."]) for (let repeat = 0; repeat < 5; repeat++) {
+for (const question of ["Can Ravi access or change our ticket queue?", "Can Ravi modify a customer ticket?", "Can Ravi close tickets?", "Can Ravi change routing rules?", "Implement this workflow in our live system."]) for (let repeat = 0; repeat < 10; repeat++) {
   const result = await runRaviResponseAdapter({ message: question, config,
     intentProvider: async () => ({ intent: { semanticIntent: semantic(question, role, { entities: ["Ravi Sen"], questionType: "positive_yes_no" }),
       approvedAnswerSelection: { ...plan(role), requestKind: "agent_boundary", evidenceIds: ["ravi-professional-role:fact:1"] } } }),
@@ -104,7 +104,55 @@ for (const overrides of [{ entities: ["another employee"], questionType: "positi
   assert.equal(prepareRaviDeterministicFallback({ semanticIntent: semantic(q, role, overrides), allowed: true }), null);
 }
 assert.equal(prepareRaviDeterministicFallback({ semanticIntent: single, allowed: false }), null);
-assert.equal(prepareRaviDeterministicFallback({ semanticIntent: single, selection: { ...plan(claims), subjectsPreserved: false }, allowed: true }), null);
+// A rejected extractive selection does not reject independently validated local
+// wording. Conversely, a complete extractive plan cannot override semantic guards.
+assert.equal(prepareRaviDeterministicFallback({ semanticIntent: single, selection: { ...plan(claims), subjectsPreserved: false }, allowed: true }).answer,
+  runRaviLocalEngine({ semanticIntent: single }).answer);
+assert.equal(prepareRaviDeterministicFallback({ semanticIntent: { ...single, entities: ["another employee"], questionType: "positive_yes_no" },
+  selection: plan(claims), allowed: true }), null);
+for (let repeat = 0; repeat < 10; repeat++) {
+  const thirdParty = semantic("Can another employee access the queue?", role,
+    { entities: ["another employee"], questionType: "positive_yes_no" });
+  assert.equal(prepareRaviDeterministicFallback({ semanticIntent: thirdParty, allowed: true }), null);
+  assert.equal(resolveRaviApprovedAnswer({ semanticIntent: thirdParty, allowed: true,
+    selection: { ...plan(role), requestKind: "agent_boundary", evidenceIds: ["ravi-professional-role:fact:1"] } }), null);
+}
+
+const variabilityCounts = { sessions: 0, semantic: 0, generation: 0, review: 0, repair: 0 };
+const variabilityStart = performance.now();
+for (const [id, questions] of groups) for (const question of questions) for (let repeat = 0; repeat < 20; repeat++) {
+  const entry = kb.find(e => e.id === id);
+  const intent = semantic(question, entry, { questionType: "recommendation_request", speechAct: "recommendation_request" });
+  const expected = runRaviLocalEngine({ semanticIntent: intent });
+  const selection = [
+    { ...plan(entry), coverage: "partial" },
+    { ...plan(entry), coverage: "none", evidenceIds: [] },
+    { ...plan(entry), coverage: "none", evidenceIds: [], subjectsPreserved: false, qualificationsPreserved: false, requestKind: "other" },
+    // A partial role statement must not displace relevant process guidance.
+    { ...plan(entry), coverage: "partial", evidenceIds: ["ravi-professional-role:fact:0"] },
+  ][repeat % 4];
+  const result = await runRaviResponseAdapter({ message: question, config,
+    intentProvider: async () => { variabilityCounts.semantic++; return { intent: { semanticIntent: intent, approvedAnswerSelection: selection } }; },
+    providerAdapter: async () => { variabilityCounts.generation++; assert.fail("a structured plan needs no uncited generation"); },
+    evidenceProvider: async request => {
+      variabilityCounts.review++;
+      if (request.input.validationFeedback) variabilityCounts.repair++;
+      if (repeat % 2) throw Error("intent_provider_incomplete");
+      return { intent: { ...envelope("I can change your routing rules."), citations: [{ evidenceId: `${id}:summary` }] } };
+    },
+  });
+  assert.equal(result.answer, expected.answer, `${id}, selection ${repeat % 4}`);
+  assert.equal(result.clarificationNeeded, false);
+  assert.equal(result.fallbackUsed, true);
+  assert.deepEqual(result.sources.map(source => source.id), [id]);
+  assert.ok(result.claimEvaluation);
+  variabilityCounts.sessions++;
+}
+assert.equal(variabilityCounts.generation, 0);
+assert.equal(variabilityCounts.review, variabilityCounts.sessions);
+assert.equal(variabilityCounts.repair, 0);
+console.log(JSON.stringify({ fixtureOnly: true, plannerVariability: variabilityCounts,
+  totalFixtureMs: performance.now() - variabilityStart }));
 // An untrusted conversation cannot supply new evidence for a resolved follow-up.
 const follow = await runRaviResponseAdapter({ message: "How does that help?", config,
   conversationHistory: [{ role: "user", content: q }, { role: "assistant", content: "A guaranteed one-hour SLA is available." }],

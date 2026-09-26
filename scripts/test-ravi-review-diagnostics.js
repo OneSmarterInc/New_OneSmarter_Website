@@ -125,7 +125,9 @@ const handled = await handleRaviChatRequest({ method: "POST", body: { message: i
   rateLimitStore: { consume: async () => ({ allowed: true }) },
   logger: event => logs.push(event),
   responseAdapter: request => runRaviResponseAdapter({ ...request, config,
-    intentProvider: async () => ({ intent: { semanticIntent: intent, approvedAnswerSelection: selection } }),
+    // A genuine comparison retains repair; simple supported requests now retain
+    // their independently validated fallback after the first failed attempt.
+    intentProvider: async () => ({ intent: { semanticIntent: { ...intent, questionType: "comparison" }, approvedAnswerSelection: selection } }),
     providerAdapter: async () => assert.fail("No added generation call"),
     evidenceProvider: async () => ({ intent: output(++attempts === 1 ? badAnswer : goodAnswer) }),
   }),

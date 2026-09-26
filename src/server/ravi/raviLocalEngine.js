@@ -153,7 +153,7 @@ const semanticBoundaryFallback = (semanticIntent, claimEvaluation, matchedEntrie
   }
   const roleDirectory = matchedEntries.find(({ id }) => id === "professional-agent-role-directory");
   if (roleDirectory) return roleDirectory.sourceFacts.join(" ");
-  if (semanticIntent.questionType === "recommendation_request" && matchedEntries.length) {
+  if ((semanticIntent.questionType === "recommendation_request" || semanticIntent.speechAct === "recommendation_request") && matchedEntries.length) {
     return `${matchedEntries[0].approvedSummary} The approved evidence supports general explanation only; it does not establish a customer-specific selection, implementation, or action.`;
   }
   return matchedEntries[0]?.approvedSummary || RAVI_CLARIFICATION;
