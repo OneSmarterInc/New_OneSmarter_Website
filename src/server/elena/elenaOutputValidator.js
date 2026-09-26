@@ -3,6 +3,7 @@ import {
   evaluateElenaClaim,
 } from "../../data/agentKnowledge/elenaClaimRules.js";
 import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+import { elenaNonTerminologyAssertions, isApprovedTerminologyComposition } from "./elenaTerminologyEvidence.js";
 
 const VALID_GROUNDING = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_SAFETY = new Set(["passed", "corrected", "refused"]);
@@ -37,13 +38,15 @@ export const validateElenaModelOutput = (output, {
   if (!VALID_SAFETY.has(output?.outputSafetyStatus)) violations.push("invalid_output_safety_status");
 
   const answer = clean(output?.answer);
+  const approvedTerminologyOnly = isApprovedTerminologyComposition(answer, matchedEntries);
+  const assertions = elenaNonTerminologyAssertions(answer, matchedEntries);
   if (INTERNAL_LEAK.test(answer)) violations.push("internal_instruction_leak");
   if (CAFE_LEAK.test(answer)) violations.push("cafe_persona_leak");
   if (FABRICATED_SOURCE.test(answer)) violations.push("fabricated_source_reference");
-  if (GUARANTEE.test(answer) && !safeCorrection(answer)) violations.push("unsupported_guarantee");
-  if (UNSUPPORTED_CERTIFICATION.test(answer) && !safeCorrection(answer)) violations.push("unsupported_certification_claim");
-  if (CUSTOMER_CERTIFICATION.test(answer) && !safeCorrection(answer)) violations.push("customer_certification_claim");
-  if (ISO_SCOPE_OVERREACH.test(answer) && !safeCorrection(answer)) violations.push("iso_scope_overreach");
+  if (GUARANTEE.test(assertions) && !safeCorrection(assertions)) violations.push("unsupported_guarantee");
+  if (UNSUPPORTED_CERTIFICATION.test(assertions) && !safeCorrection(assertions)) violations.push("unsupported_certification_claim");
+  if (CUSTOMER_CERTIFICATION.test(assertions) && !safeCorrection(assertions)) violations.push("customer_certification_claim");
+  if (ISO_SCOPE_OVERREACH.test(assertions) && !safeCorrection(assertions)) violations.push("iso_scope_overreach");
   if (output?.groundingStatus === "grounded" && matchedEntries.length === 0) {
     violations.push("grounded_without_approved_evidence");
   }
@@ -77,15 +80,16 @@ export const validateElenaModelOutput = (output, {
     if (!grounding.grounded) violations.push(...grounding.violations);
   }
 
-  const outputClaimEvaluation = answer ? evaluateElenaClaim(answer) : null;
+  const outputClaimEvaluation = assertions ? evaluateElenaClaim(assertions) : null;
   const unresolvedOutputParaphrase =
     outputClaimEvaluation?.matchedRuleId === "not_in_elena_approved_knowledge" &&
     claimEvaluation &&
     claimEvaluation.status !== ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED;
   if (
     outputClaimEvaluation?.status === ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED &&
+    !approvedTerminologyOnly &&
     (!unresolvedOutputParaphrase || matchedEntries.some(entry => entry.sourceReference?.type === "authoritative-terminology")) &&
-    !safeCorrection(answer) &&
+    !safeCorrection(assertions) &&
     matchedEntries.length
   ) {
     violations.push("claim_rule_rejected_answer");

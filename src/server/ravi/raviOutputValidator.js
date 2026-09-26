@@ -1,4 +1,6 @@
 import { verifyAgentAnswerGrounding } from "../agentGrounding/agentGroundingVerifier.js";
+import { raviEntityGroundingView } from "./raviEntityEvidence.js";
+import { emitRaviDiagnostic, raviGroundingDiagnostic } from "./raviReviewDiagnostics.js";
 
 const VALID_GROUNDING = new Set(["grounded", "insufficient_context", "refused"]);
 const VALID_SAFETY = new Set(["passed", "corrected", "refused"]);
@@ -18,7 +20,7 @@ const safeBoundary = (answer) => /\b(?:not|does not|do not|cannot|can't|instead|
 
 export const validateRaviModelOutput = (
   output,
-  { matchedEntries = [], fallbackResult, visitorSuppliedEntities = [] } = {},
+  { matchedEntries = [], fallbackResult, visitorSuppliedEntities = [], reviewedCandidate = null, entityReview = null, onGroundingDiagnostic } = {},
 ) => {
   const violations = [];
   if (!isObject(output)) violations.push("invalid_shape");
@@ -51,7 +53,11 @@ export const validateRaviModelOutput = (
     violations.push("insufficient_context_requires_handoff");
   }
   if (output?.groundingStatus === "grounded") {
-    const grounding = verifyAgentAnswerGrounding({ answer, approvedEntries: matchedEntries });
+    const entityView = raviEntityGroundingView({ answer, reviewedCandidate, entityReview,
+      matchedEntries, visitorSuppliedEntities, normalizeAnswer: clean });
+    if (!entityView.valid) violations.push("invalid_entity_evidence_review");
+    const grounding = verifyAgentAnswerGrounding({ answer: entityView.valid ? entityView.answer : answer, approvedEntries: matchedEntries });
+    emitRaviDiagnostic(onGroundingDiagnostic, () => raviGroundingDiagnostic({ grounding, answer, matchedEntries, entityView }));
     const normalizedEntities = visitorSuppliedEntities
       .filter((entity) => typeof entity === "string" && entity.trim())
       .map((entity) => clean(entity).toLowerCase());

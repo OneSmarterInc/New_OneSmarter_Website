@@ -87,7 +87,10 @@ for (const invalid of [
   { ...envelope(denied), citations: [] },
   { ...envelope("I can access the customer queue."), citations: [facts] },
 ]) {
-  assert.equal(await resolveRaviEvidenceAnswer(request.input, { config, provider: async () => ({ intent: invalid }) }), null);
+  const rejected = await resolveRaviEvidenceAnswer(request.input, { config, provider: async () => ({ intent: invalid }) });
+  assert.equal(rejected.status, invalid.citations[0]?.quote === "Invented evidence" ? "citation_validation_failure" : "validation_exhausted");
+  assert.equal(rejected.attempts.length, 2);
+  assert.equal(rejected.output, undefined);
 }
 const unavailable = await runRaviResponseAdapter({
   message: "Can you inspect it?", config, intentProvider: async () => ({ intent: semantic() }),
@@ -95,6 +98,9 @@ const unavailable = await runRaviResponseAdapter({
   evidenceProvider: async () => { throw new Error("offline"); },
 });
 assert.equal(unavailable.fallbackUsed, true);
-assert.equal(unavailable.clarificationNeeded, true);
+assert.equal(unavailable.clarificationNeeded, false);
+assert.equal(unavailable.execution.stage, "evidence_review");
+assert.equal(unavailable.execution.status, "provider_failure");
+assert.ok(unavailable.answer.includes("couldn't verify"));
 assert.notEqual(unavailable.answer, platform.approvedSummary);
 console.log(`Ravi conversation grounding passed: ${runs} repeated cases, regression reproduction, citation integrity, live-action rejection and safe unavailable-review handling.`);

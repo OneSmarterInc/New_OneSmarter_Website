@@ -237,7 +237,9 @@ const invalidRelationship = await runRaviResponseAdapter({
   providerAdapter: async () => { throw new Error("answer provider must not run"); },
 });
 assert.equal(invalidRelationship.fallbackReason, "invalid_provider_intent");
-assert.match(invalidRelationship.answer, /restate who should do what/i);
+assert.equal(invalidRelationship.execution.stage, "semantic_output");
+assert.equal(invalidRelationship.clarificationNeeded, false);
+assert.ok(invalidRelationship.answer.includes("validate the interpretation"));
 
 const secureTicketingEvidence = raviApprovedKnowledge.filter(({ id }) => id === "secure-ticketing-case-management");
 const suppliedEntityBoundary = validateRaviModelOutput({
@@ -314,7 +316,9 @@ const intentFailure = await runRaviResponseAdapter({
   intentProvider: async () => ({ error: "provider_unavailable" }),
   providerAdapter: async () => { throw new Error("answer provider must not run"); },
 });
-assert.equal(intentFailure.clarificationNeeded, true);
+assert.equal(intentFailure.clarificationNeeded, false);
+assert.equal(intentFailure.execution.stage, "semantic_provider");
+assert.equal(intentFailure.execution.status, "provider_failure");
 assert.equal(intentFailure.fallbackUsed, true);
 assert.doesNotMatch(intentFailure.answer, /provider_unavailable|stack|internal/i);
 
