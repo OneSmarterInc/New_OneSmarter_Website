@@ -82,10 +82,14 @@ export const elenaApprovedKnowledge = [
     "The Trust Center certifies customer systems",
     "Every Trust Center credential applies to every OneSmarter platform",
   ]),
-  approvedCanonicalEntry("soc2-attested", [
+  {
+    ...approvedCanonicalEntry("soc2-attested", [
     "OneSmarter or its platforms are SOC 2 certified",
     "The attestation guarantees customer compliance",
-  ]),
+    ]),
+    // Keep corporate status separate from general explanatory evidence.
+    relatedKnowledgeIds: ["assurance-terminology"],
+  },
   approvedCanonicalEntry("hipaa-security-rule-assessment", [
     "OneSmarter or its platforms are HIPAA certified",
     "The assessment guarantees HIPAA compliance for OneSmarter or its customers",
@@ -165,6 +169,29 @@ export const elenaApprovedKnowledge = [
       "PCI DSS readiness support is an approved PCI compliance claim",
     ],
   }),
+  {
+    id: "assurance-terminology",
+    route: "/trust-center/soc2",
+    title: "Assurance Terminology: Attestation and Certification",
+    category: "Trust Center",
+    approvedSummary: "General assurance terminology explains processes and outputs separately from an organization's verified status.",
+    allowedClaims: ["General definitions do not expand OneSmarter's verified corporate posture."],
+    disallowedClaims: ["SOC 2 certified", "General definitions establish customer certification"],
+    unsupportedExtensions: ["Terminology establishes organization-specific audit scope, dates or guarantees"],
+    handoffGuidance: "Route organization-specific audit evidence requests to care@onesmarter.com.",
+    sourceReference: { type: "authoritative-terminology", sourceLabel: "AICPA SOC 2 examination guide; ISO conformity assessment", route: "/trust-center/soc2" },
+    sourceFacts: [
+      "SOC 2 is an examination and reporting engagement concerning controls at a service organization against applicable trust services criteria.",
+      "A SOC 2 attestation produces an independent auditor's report, rather than a certification to a management-system standard.",
+      "Certification is third-party confirmation of conformity with specified requirements, within a defined scope; ISO management-system certification is an example.",
+      "Attestation and certification describe different assurance processes and outputs; neither is a blanket guarantee of compliance or future outcomes.",
+      "These general definitions do not establish OneSmarter's audit scope, assessment dates, selected criteria, or any customer certification.",
+    ],
+    terminologyReferences: [
+      "https://www.aicpa-cima.com/cpe-learning/publication/soc-2-reporting-on-an-examination-of-controls-at-a-service-organization-relevant-to-security-availability-processing-integrity-confidentiality-or-privacy-OPL",
+      "https://www.iso.org/conformity-assessment.html",
+    ],
+  },
 ];
 
 export const elenaApprovedKnowledgeIds = elenaApprovedKnowledge.map(

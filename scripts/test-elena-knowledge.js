@@ -21,6 +21,7 @@ const expectedIds = [
   "soc-readiness-support",
   "hipaa-audit-readiness-support",
   "pci-dss-readiness-support",
+  "assurance-terminology",
 ];
 
 assert.deepEqual(

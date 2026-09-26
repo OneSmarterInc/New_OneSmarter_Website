@@ -116,6 +116,13 @@ export const runRaviResponseAdapter = async ({
     return { ...localResult, mode: "local_deterministic", fallbackUsed: true, fallbackReason: "missing_provider_config" };
   }
 
+  const resolveIntent = intentProvider || ((request) => runOpenAiAgentIntentProvider(request, {
+    config: {
+      ...config,
+      maxTokens: Math.max(config.maxTokens, 3_000),
+      timeoutMs: Math.max(config.timeoutMs, 20_000),
+    },
+  }));
   const semanticResolution = await resolveAgentIntent({
     agentIdentity: "Ravi Sen",
     message,
@@ -125,18 +132,11 @@ export const runRaviResponseAdapter = async ({
       ok: message.length <= RAVI_MESSAGE_LIMIT && !containsRaviSensitiveData(message),
       error: containsRaviSensitiveData(message) ? "sensitive_input" : "message_too_long",
     }),
-    provider: intentProvider || ((request) => runOpenAiAgentIntentProvider({
+    provider: (request) => resolveIntent({
       ...request,
-      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. When a request is supported, set topic to the exact title of the single best matching supplied label. Use the professional-agent role-directory label for descriptions or comparisons of OneSmarter's professional agents. Classify a request under an allowed domain when its meaning concerns one of those approved labels, even when the visitor uses different vocabulary. Populate followUpReferences only for references that require prior conversation to resolve; direct references to the current agent such as you or your do not require history. Put the grammatical subject of the current proposition first in entities. Preserve that subject exactly as interpreted: Ravi Sen for Ravi himself, and the named person or customer role for any third party. Entity ordering is semantic structure, not factual evidence.`,
+      system: `${request.system} Use the supplied approved professional topic labels only to normalize the subject of the request; they are labels, not factual evidence, and you must not answer or select evidence. When a request is supported, set topic to the exact title of the single best matching supplied label. Use the professional-agent role-directory label for descriptions or comparisons of OneSmarter's professional agents. Classify a request under an allowed domain when its meaning concerns one of those approved labels, even when the visitor uses different vocabulary. Populate followUpReferences only for references that require prior conversation to resolve; direct references to the current agent such as you or your do not require history. Put the grammatical subject of the current proposition first in entities. Preserve that subject exactly as interpreted: Ravi Sen for Ravi himself, and the named person or customer role for any third party. Entity ordering is semantic structure, not factual evidence. General design and recommendation requests can have a process as their subject; they do not require a named actor, customer system, or existing permission. Missing implementation details do not make a request for general principles ambiguous. Distinguish advice about a workflow from a request to execute it. Preserve explicit third-party subjects and unresolved historical references; never infer their permissions. For simple requests use empty compound arrays and an empty clarify focus, as required by the shared contract.`,
       input: { ...request.input, agentContext: { ...request.input.agentContext, approvedProfessionalTopicLabels: raviIntentTopics } },
-    }, {
-      config: {
-        ...config,
-        apiKey: config.apiKey,
-        maxTokens: Math.max(config.maxTokens, 3_000),
-        timeoutMs: Math.max(config.timeoutMs, 20_000),
-      },
-    })),
+    }),
   });
   if (!semanticResolution.ok) {
     const localResult = unresolvedIntentFallback();
