@@ -84,7 +84,7 @@ export const validateElenaModelOutput = (output, {
     claimEvaluation.status !== ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED;
   if (
     outputClaimEvaluation?.status === ELENA_CLAIM_STATUSES.REFUSE_UNSUPPORTED &&
-    !unresolvedOutputParaphrase &&
+    (!unresolvedOutputParaphrase || matchedEntries.some(entry => entry.sourceReference?.type === "authoritative-terminology")) &&
     !safeCorrection(answer) &&
     matchedEntries.length
   ) {
