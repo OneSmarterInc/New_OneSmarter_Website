@@ -13,6 +13,7 @@ import {
   sharedAgentStateStore,
 } from "../agentState/agentDepletionRuntime.js";
 import { resolveRaviEvidenceAnswer, raviSafeProviderReason } from "./raviSemanticEvidence.js";
+import { withRaviApprovedAnswerSelection, resolveRaviApprovedAnswer } from "./raviApprovedAnswer.js";
 import { runRaviLocalEngine } from "./raviLocalEngine.js";
 import { validateRaviModelOutput } from "./raviOutputValidator.js";
 import { buildRaviPromptPayload } from "./raviPromptContract.js";
@@ -134,13 +135,18 @@ export const runRaviResponseAdapter = async ({
     timeoutMs: Math.max(config.timeoutMs, 20_000),
   }, "apiKey", { value: config.apiKey, enumerable: false });
   let intentProviderReason = "";
+  let approvedAnswerSelection = null;
   const callIntent = intentProvider || ((request) => runOpenAiAgentIntentProvider(request, {
     config: intentConfig,
   }));
   const resolveIntent = async request => {
     try {
-      const result = await callIntent(request);
+      const result = await callIntent(withRaviApprovedAnswerSelection(request));
       if (result?.error) throw new Error(result.error);
+      if (result?.intent?.semanticIntent) {
+        approvedAnswerSelection = result.intent.approvedAnswerSelection;
+        return { intent: result.intent.semanticIntent };
+      }
       return result;
     }
     catch (error) { intentProviderReason = raviSafeProviderReason(error); throw error; }
@@ -174,6 +180,8 @@ export const runRaviResponseAdapter = async ({
     semanticIntent, execution: { stage: "semantic_intent", status: "ambiguity" },
   };
   const allowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
+  const approvedAnswer = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed });
+  if (approvedAnswer) return approvedAnswer;
   // This small approved slice is supplied in full. Topic labels must not hide role boundaries.
   const matchedEntries = allowed ? raviApprovedKnowledge : [];
   const localResult = allowed ? failedReviewResponse("evidence_review") : intentAwareScopeFallback(semanticIntent);
@@ -257,7 +265,7 @@ export const raviExecutionOutcome = (result) => {
 };
 
 // These are diagnostic codes, not visitor-language matching rules.
-const executionStages = new Set(["semantic_provider", "semantic_output", "semantic_intent", "evidence_review"]);
+const executionStages = new Set(["semantic_provider", "semantic_output", "semantic_intent", "approved_answer", "evidence_review"]);
 const executionStatuses = new Set(["success", "ambiguity", "provider_failure", "invalid_provider_intent",
   "malformed_output", "invalid_source", "citation_validation_failure", "validation_rejected", "validation_exhausted", "refusal_invalid"]);
 const executionReasons = new Set(["timeout", "incomplete_output", "empty_output", "unavailable", "transport_failure",
