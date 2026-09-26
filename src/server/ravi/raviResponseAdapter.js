@@ -182,6 +182,7 @@ export const runRaviResponseAdapter = async ({
   const allowed = semanticResolution.domainAllowed && !semanticIntent.clarificationNeeded;
   const approvedAnswer = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed });
   if (approvedAnswer) return approvedAnswer;
+  const approvedPartial = resolveRaviApprovedAnswer({ selection: approvedAnswerSelection, semanticIntent, allowed, partial: true });
   // This small approved slice is supplied in full. Topic labels must not hide role boundaries.
   const matchedEntries = allowed ? raviApprovedKnowledge : [];
   const localResult = allowed ? failedReviewResponse("evidence_review") : intentAwareScopeFallback(semanticIntent);
@@ -194,7 +195,10 @@ export const runRaviResponseAdapter = async ({
     semanticIntent,
   });
   let providerResult;
-  try {
+  // The structured evidence plan supplies the review's starting point. A second
+  // uncited draft adds no authority; let the bounded evidence stage compose it.
+  const hasEvidencePlan = Array.isArray(approvedAnswerSelection?.evidenceIds);
+  if (!hasEvidencePlan) try {
     providerResult = await providerAdapter({
       message,
       conversationId,
@@ -214,19 +218,23 @@ export const runRaviResponseAdapter = async ({
   const validation = validateRaviModelOutput(providerResult.modelOutput, {
     matchedEntries, visitorSuppliedEntities: semanticIntent.entities,
   });
-  const failure = providerResult.error || (!validation.valid
+  const failure = hasEvidencePlan ? "" : providerResult.error || (!validation.valid
     ? `output_validation_failed:${validation.violations.join(",")}` : "");
   const reviewed = await resolveRaviEvidenceAnswer({
     message, conversationHistory, semanticIntent, allowed, verbosityBand,
-    candidate: !failure ? validation.correctedOutput :
+    candidate: hasEvidencePlan ? null : !failure ? validation.correctedOutput :
       validation.violations.length && validation.violations.every(code => code === "unsupported_named_entity")
         ? providerResult.modelOutput : null,
   }, { config, provider: evidenceProvider });
   if (reviewed.status !== "success") return {
-    ...localResult, mode: "local_deterministic", fallbackUsed: true,
+    ...(approvedPartial || localResult), mode: "local_deterministic", fallbackUsed: true,
     fallbackReason: `evidence_review:${reviewed.status}`, semanticIntent,
     execution: { stage: "evidence_review", status: reviewed.status, reason: reviewed.reason,
       attempts: reviewed.attempts, generationFailure: failure },
+  };
+  if (approvedPartial && reviewed.output.groundingStatus !== "grounded") return {
+    ...approvedPartial, fallbackUsed: true, fallbackReason: "evidence_review:insufficient_context",
+    execution: { stage: "evidence_review", status: "insufficient_context", attempts: reviewed.attempts },
   };
   const output = reviewed.output;
   return {
@@ -267,7 +275,7 @@ export const raviExecutionOutcome = (result) => {
 // These are diagnostic codes, not visitor-language matching rules.
 const executionStages = new Set(["semantic_provider", "semantic_output", "semantic_intent", "approved_answer", "evidence_review"]);
 const executionStatuses = new Set(["success", "ambiguity", "provider_failure", "invalid_provider_intent",
-  "malformed_output", "invalid_source", "citation_validation_failure", "validation_rejected", "validation_exhausted", "refusal_invalid"]);
+  "malformed_output", "invalid_source", "citation_validation_failure", "validation_rejected", "validation_exhausted", "refusal_invalid", "insufficient_context"]);
 const executionReasons = new Set(["timeout", "incomplete_output", "empty_output", "unavailable", "transport_failure",
   "invalid_provider_intent", "invalid_citation_envelope", "source_not_approved", "citation_not_verbatim",
   "refusal_requires_handoff", "unsupported_named_entity", "unsupported_factual_assertion",
