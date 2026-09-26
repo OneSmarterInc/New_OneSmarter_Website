@@ -253,6 +253,16 @@ export const runElenaResponseAdapter = async ({
     ? intentAwareScopeFallback(semanticIntent)
     : retrievedResult;
 
+  // Expand explicit evidence relationships, not visitor-text matches. Definitions
+  // remain a separate source and cannot establish additional corporate status.
+  if (semanticScopeAllowed && localResult.matchedEntries.length) {
+    const relatedIds = new Set(localResult.matchedEntries.flatMap(entry => entry.relatedKnowledgeIds || []));
+    for (const entry of elenaApprovedKnowledge) {
+      if (!relatedIds.has(entry.id) || localResult.matchedEntries.some(item => item.id === entry.id)) continue;
+      localResult.matchedEntries.push(entry);
+      localResult.sources.push({ id: entry.id, title: entry.title, route: entry.route, sourceLabel: entry.sourceReference.sourceLabel });
+    }
+  }
   const promptPayload = buildElenaPromptPayload({
     message,
     matchedEntries: localResult.matchedEntries,
