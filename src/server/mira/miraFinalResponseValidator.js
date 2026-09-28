@@ -413,7 +413,13 @@ export const validateMiraFinalResponse = (result = {}) => {
     });
     if (!grounding.grounded) {
       const answerStatements = splitStatements(answer);
-      const groundedSemanticTail = result.semanticIntentSupplement && answerStatements.length > 1
+      // Removing the lead of a permission, polarity or scope answer can remove
+      // its correction and leave only positive service facts. Use the existing
+      // approved fallback instead; the grounding decision is not weakened.
+      const intent = result.semanticIntentSupplement;
+      const preserveProposition = intent &&
+        ["positive_yes_no", "negative_confirmation", "scope_check"].includes(intent.questionType);
+      const groundedSemanticTail = intent && !preserveProposition && answerStatements.length > 1
         ? answerStatements.slice(1).join(" ")
         : "";
       const semanticTailGrounding = groundedSemanticTail

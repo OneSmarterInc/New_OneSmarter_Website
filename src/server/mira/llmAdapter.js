@@ -3,7 +3,7 @@ import {
   runMiraLocalHarness,
   runMiraSafetyGate,
 } from "../../data/agentKnowledge/miraLocalEngine.js";
-import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmarterPublicKb.js";
+import { miraApprovedEvidence as onesmarterPublicKnowledgeBase, enrichMiraEvidence } from "./miraApprovedEvidence.js";
 import { runOpenAiMiraAdapter } from "./openAiAdapter.js";
 import { resolveAgentIntent } from "../agentIntent/agentIntentResolver.js";
 import {
@@ -218,7 +218,7 @@ const MIRA_SEMANTIC_TOPIC_LABELS = onesmarterPublicKnowledgeBase
   .map(({ title }) => title)
   .join(" | ");
 const MIRA_SEMANTIC_TOPIC_CONTEXT = onesmarterPublicKnowledgeBase
-  .map(({ title, approvedSummary }) => `${title}: ${approvedSummary}`)
+  .map(({ title, approvedSummary, answerFacts = [] }) => `${title}: ${[approvedSummary, ...answerFacts].join(" ")}`)
   .join("\n");
 
 const semanticIntentSystemExtension =
@@ -241,6 +241,7 @@ const resolveMiraSemanticIntent = ({
     system: [
       request.system,
       semanticIntentSystemExtension,
+      "Resolve conversational self-reference by meaning: questions about the assistant's name, nature, work or authority concern Mira Vale Professional Role, including first- and second-person references. Do not substitute AI Agentic Services for the assistant. Questions about an organization's offerings remain about that organization. For a category-wide explanation, select the approved topic titles of the offerings in that category rather than only the company overview. Unknown named products are unsupported factual requests; include their names in mentionedNames and do not infer functionality from the name. General definitions describe established concepts, not guessed proper-name meanings. Recreational requests and current external facts are unrelated_factual, not customer business requests. A terminology comparison can be answered from a single relevant approved terminology topic; comparison does not require two platforms. Use unambiguous preceding conversation to retain the subject of an explanation or WHY follow-up. Do not mark a coherent terminology comparison as needing clarification just because it is not a product comparison.",
       topicCandidates.length
         ? `Resolve the same current-turn intent again without changing its proposition, polarity, negation scope, question type, speech act, or requested detail. Choose the single most relevant topic only from these candidate approved titles: ${topicCandidates.join(" | ")}.`
         : "",
@@ -259,7 +260,7 @@ const isValidatedMiraBoundaryQuestion = (resolution = {}) => {
       "professional_agents",
       "agent_roles",
     ].includes(intent.domain) || intent.topic === "Mira Vale Professional Role") &&
-    ["scope_check", "how", "why", "status", "yes_no"].includes(intent.questionType),
+    ["scope_check", "how", "why", "status", "positive_yes_no", "negative_confirmation"].includes(intent.questionType),
   );
 };
 
@@ -301,6 +302,44 @@ const semanticEvidenceFor = (intent = {}, localHarness = runMiraLocalHarness) =>
     .split(/[|;]/)
     .map((part) => part.trim())
     .filter(Boolean);
+  const canonicalEntries = topicParts.flatMap((topic) =>
+    onesmarterPublicKnowledgeBase.filter(({ title, id }) => title === topic || id === topic),
+  );
+  const categoryScope = canonicalEntries.some((entry) =>
+    onesmarterPublicKnowledgeBase.some((candidate) =>
+      candidate.id !== entry.id && candidate.route !== entry.route &&
+      candidate.route.startsWith(entry.route.endsWith("/") ? entry.route : `${entry.route}/`),
+    ),
+  );
+  const categoryEntries = categoryScope || !canonicalEntries.length
+    ? onesmarterPublicKnowledgeBase.filter(({ category }) =>
+        category.toLowerCase() === intent.domain,
+      )
+    : [];
+  if (categoryEntries.length && !intent.clarificationNeeded && intent.confidence >= 0.7) {
+    return {
+      ...localHarness(semanticQueryFor(intent)),
+      confidence: "high",
+      matchedEntries: [...categoryEntries, ...canonicalEntries.filter(({ id }) =>
+        !categoryEntries.some((entry) => entry.id === id),
+      )],
+      semanticCanonicalSelection: true,
+      semanticEvidenceCandidateTitles: categoryEntries.map(({ title }) => title),
+      semanticEvidenceAmbiguous: false,
+    };
+  }
+  // A validated canonical topic is already an evidence selection. Re-ranking its
+  // words can promote an unrelated offering above the resolved subject.
+  if (!categoryScope && intent.questionType !== "comparison" && canonicalEntries.length === topicParts.length && canonicalEntries.length) {
+    return {
+      ...localHarness(semanticQueryFor(intent)),
+      confidence: "high",
+      matchedEntries: canonicalEntries,
+      semanticCanonicalSelection: true,
+      semanticEvidenceCandidateTitles: canonicalEntries.map(({ title }) => title),
+      semanticEvidenceAmbiguous: false,
+    };
+  }
   const queryFields = [
     { values: topicParts, weight: 2 },
     { values: intent.entities || [], weight: 2 },
@@ -382,7 +421,7 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
     if (["negative_confirmation", "why"].includes(intent.questionType)) {
       const evidenceSummary = [
         entries[0]?.approvedSummary,
-        ...(entries[0]?.sourceFacts || []),
+        ...(entries[0]?.answerFacts || entries[0]?.sourceFacts || []),
       ].filter(Boolean).join(" ");
       return intent.questionType === "why"
         ? `The question asks why this proposition would be true: "${intent.proposition}". The approved information does not provide a separate reason beyond this documented position: ${evidenceSummary}`
@@ -400,7 +439,7 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
   if (["positive_yes_no", "status"].includes(intent.questionType)) {
     const evidenceSummary = [
       entries[0]?.approvedSummary,
-      ...(entries[0]?.sourceFacts || []),
+      ...(entries[0]?.answerFacts || entries[0]?.sourceFacts || []),
     ].filter(Boolean).join(" ");
     return evidenceSummary
       ? `For the proposition "${intent.proposition}", the approved information is: ${evidenceSummary}`
@@ -423,7 +462,10 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
       ...boundaries,
     ].filter(Boolean).join(" ");
   }
-  return entries[0]?.approvedSummary ||
+  return entries.map((entry) => [
+    entry.approvedSummary,
+    ...(entry.answerFacts || []),
+  ].filter(Boolean).join(" ")).join("\n\n") ||
     "I can help with approved public information about OneSmarter's platforms, services, compliance posture, Trust Center, and professional agents. What would you like to explore?";
 };
 
@@ -440,7 +482,7 @@ const safeSemanticSubject = (intent = {}) => {
 const semanticOutOfScopeFallback = (intent = {}) => {
   const subject = safeSemanticSubject(intent);
   const generalKnowledge = ["general_definition", "general_education"].includes(intent.domain) &&
-    intent.confidence >= 0.7 && !intent.clarificationNeeded;
+    intent.confidence >= 0.7 && !intent.clarificationNeeded && !intent.mentionedNames?.length;
   const answerByDomain = {
     privacy_general: "Avoid sharing personal, private, credential, or confidential information in a public chat. You can ask the question in general terms; this is general privacy guidance, not a statement of OneSmarter's privacy policy.",
     meaningless_input: "I couldn't identify a clear question in that message. Please rephrase it in a short sentence.",
@@ -454,7 +496,9 @@ const semanticOutOfScopeFallback = (intent = {}) => {
     confidence: generalKnowledge ? "medium" : "low",
     matchedEntries: [],
     answerSeed: intent.mentionedNames?.length
-      ? "I don't have approved public information about that person or organization."
+      ? intent.domain === "person_specific"
+        ? "I don't have approved public information about that person or organization."
+        : "I don't have approved public information about that topic."
       : generalKnowledge
       ? `Provide a concise general explanation of ${subject}, without presenting it as OneSmarter-specific information.`
       : answerByDomain[intent.domain] || `The request about ${subject} is outside Mira's approved OneSmarter information.`,
@@ -2113,6 +2157,10 @@ const runMiraResponseAdapterInternal = async ({
         delete approvedSemanticEvidence.semanticEvidenceCandidateTitles;
       const currentIds = new Set(localResult.matchedEntries.map(({ id }) => id));
       const evidenceChanged = approvedSemanticEvidence.matchedEntries.some(({ id }) => !currentIds.has(id));
+      const canonicalSelectionChanged = supplemented.semanticCanonicalSelection &&
+        effectiveSemanticIntent.confidence >= 0.7 &&
+        !effectiveSemanticIntent.clarificationNeeded &&
+        (evidenceChanged || currentIds.size !== approvedSemanticEvidence.matchedEntries.length);
       const evidenceOverlaps = approvedSemanticEvidence.matchedEntries.some(({ id }) => currentIds.has(id));
       const framingRequiresSemanticAnswer = Boolean(
         effectiveSemanticIntent.confidence >= 0.7 &&
@@ -2125,6 +2173,7 @@ const runMiraResponseAdapterInternal = async ({
             "status",
             "scope_check",
             "why",
+            "how",
             "comparison",
             "follow_up",
           ].includes(
@@ -2135,6 +2184,7 @@ const runMiraResponseAdapterInternal = async ({
       );
       const semanticMismatch = localResult.clarificationNeeded ||
         localResult.confidence === "low" ||
+        canonicalSelectionChanged ||
         (evidenceChanged && !evidenceOverlaps) ||
         framingRequiresSemanticAnswer;
       if (semanticMismatch && approvedSemanticEvidence.matchedEntries.length) {
@@ -2404,7 +2454,6 @@ const runMiraResponseAdapterInternal = async ({
   };
 };
 
-// Observe adapter calls without changing routing, answers or the legacy API mode.
 export const runMiraResponseAdapter = async (options = {}) => {
   const generationAdapter = options.openAiAdapter || runOpenAiMiraAdapter;
   let generationAdapterCalls = 0;
@@ -2413,6 +2462,10 @@ export const runMiraResponseAdapter = async (options = {}) => {
   let semanticProviderCompleted = 0;
   const result = await runMiraResponseAdapterInternal({
     ...options,
+    localHarness: (...args) => {
+      const local = (options.localHarness || runMiraLocalHarness)(...args);
+      return { ...local, matchedEntries: enrichMiraEvidence(local.matchedEntries) };
+    },
     openAiAdapter: async (request) => {
       generationAdapterCalls += 1;
       const response = await generationAdapter(request);

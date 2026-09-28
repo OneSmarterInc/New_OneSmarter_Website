@@ -4,7 +4,7 @@ import {
   matchedEntriesForConversationEntities,
 } from "./miraConversationReferences.js";
 import { resolveMiraListingRequest } from "./miraListingIntents.js";
-import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmarterPublicKb.js";
+import { miraApprovedEvidence as onesmarterPublicKnowledgeBase, miraSocTerminology } from "./miraApprovedEvidence.js";
 
 const ACKNOWLEDGEMENT =
   /^(?:ok(?:ay)?|got it|thanks|thank you|understood|fine|sounds good)[.! ]*$/i;
@@ -217,7 +217,7 @@ const DIRECT_FACTUAL_TOPICS = [
   {
     pattern: /\bSOC\s*2\b/i,
     ids: ["soc2-attested", "trust-center-overview", "compliance-cyber-assurance-overview"],
-    answer: "SOC 2 is an assurance framework concerning controls relevant to security and operational trust. OneSmarter is SOC 2 Type II Attested, and its Trust Center provides public context for that posture; separate Compliance & Cyber Assurance services can support readiness work. This attestation does not certify customer systems or guarantee customer compliance.",
+    answer: miraSocTerminology,
   },
   {
     pattern: /\bPCI\s*DSS\b/i,
