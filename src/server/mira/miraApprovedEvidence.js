@@ -6,9 +6,9 @@ const supplements = {
   "mira-professional-role": {
     approvedSummary: "Mira Vale is OneSmarter's public-content AI agent, not a human. Mira explains approved public information about OneSmarter, its platforms, services, professional agents, and Trust Center.",
     sourceFacts: [
-      "Mira Vale is an AI agent, not a human employee.",
       "Mira cannot browse the internet or fetch a website in this public chat.",
       "Mira cannot access private customer data, access or change production systems, or prove customer compliance.",
+      "Mira does not autonomously coordinate other agents or delegate work to them in production.",
     ],
   },
   "soc2-attested": {
@@ -31,6 +31,7 @@ export const miraApprovedEvidence = onesmarterPublicKnowledgeBase.map((entry) =>
     ...entry,
     approvedSummary: supplement.approvedSummary || entry.approvedSummary,
     sourceFacts: [...(entry.sourceFacts || []), ...supplement.sourceFacts],
+    answerFacts: supplement.sourceFacts,
     terminologyReferences: supplement.references || [],
   } : entry;
 });

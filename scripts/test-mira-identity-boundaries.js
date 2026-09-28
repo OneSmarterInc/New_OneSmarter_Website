@@ -35,6 +35,12 @@ for (const message of [
   assert.ok(!result.answerSeed.includes("AI Agentic Services"));
 }
 
+// An open identity explanation need not have a yes/no or HOW question type.
+// Narrowing a mixed lexical selection must still replace its old answer seed.
+const identity = await run("What is Mira?", { questionType: "unknown" });
+assert.deepEqual(identity.matchedEntries.map(({ id }) => id), ["mira-professional-role"]);
+assert.ok(identity.answerSeed.includes("AI agent, not a human"));
+
 for (const message of [
   "Can you view private customer data?", "Can Mira browse the internet?",
   "Can you prove customer compliance?", "Are you able to change production systems?",

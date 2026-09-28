@@ -318,6 +318,7 @@ const semanticEvidenceFor = (intent = {}, localHarness = runMiraLocalHarness) =>
       ...localHarness(semanticQueryFor(intent)),
       confidence: "high",
       matchedEntries: canonicalEntries,
+      semanticCanonicalSelection: true,
       semanticEvidenceCandidateTitles: canonicalEntries.map(({ title }) => title),
       semanticEvidenceAmbiguous: false,
     };
@@ -403,7 +404,7 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
     if (["negative_confirmation", "why"].includes(intent.questionType)) {
       const evidenceSummary = [
         entries[0]?.approvedSummary,
-        ...(entries[0]?.sourceFacts || []),
+        ...(entries[0]?.answerFacts || entries[0]?.sourceFacts || []),
       ].filter(Boolean).join(" ");
       return intent.questionType === "why"
         ? `The question asks why this proposition would be true: "${intent.proposition}". The approved information does not provide a separate reason beyond this documented position: ${evidenceSummary}`
@@ -421,7 +422,7 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
   if (["positive_yes_no", "status"].includes(intent.questionType)) {
     const evidenceSummary = [
       entries[0]?.approvedSummary,
-      ...(entries[0]?.sourceFacts || []),
+      ...(entries[0]?.answerFacts || entries[0]?.sourceFacts || []),
     ].filter(Boolean).join(" ");
     return evidenceSummary
       ? `For the proposition "${intent.proposition}", the approved information is: ${evidenceSummary}`
@@ -446,7 +447,7 @@ const semanticFallbackFor = (intent = {}, entries = []) => {
   }
   return entries.map((entry) => [
     entry.approvedSummary,
-    ...(entry.sourceFacts || []),
+    ...(entry.answerFacts || []),
   ].filter(Boolean).join(" ")).join("\n\n") ||
     "I can help with approved public information about OneSmarter's platforms, services, compliance posture, Trust Center, and professional agents. What would you like to explore?";
 };
@@ -2137,6 +2138,10 @@ const runMiraResponseAdapterInternal = async ({
         delete approvedSemanticEvidence.semanticEvidenceCandidateTitles;
       const currentIds = new Set(localResult.matchedEntries.map(({ id }) => id));
       const evidenceChanged = approvedSemanticEvidence.matchedEntries.some(({ id }) => !currentIds.has(id));
+      const canonicalSelectionChanged = supplemented.semanticCanonicalSelection &&
+        effectiveSemanticIntent.confidence >= 0.7 &&
+        !effectiveSemanticIntent.clarificationNeeded &&
+        (evidenceChanged || currentIds.size !== approvedSemanticEvidence.matchedEntries.length);
       const evidenceOverlaps = approvedSemanticEvidence.matchedEntries.some(({ id }) => currentIds.has(id));
       const framingRequiresSemanticAnswer = Boolean(
         effectiveSemanticIntent.confidence >= 0.7 &&
@@ -2160,6 +2165,7 @@ const runMiraResponseAdapterInternal = async ({
       );
       const semanticMismatch = localResult.clarificationNeeded ||
         localResult.confidence === "low" ||
+        canonicalSelectionChanged ||
         (evidenceChanged && !evidenceOverlaps) ||
         framingRequiresSemanticAnswer;
       if (semanticMismatch && approvedSemanticEvidence.matchedEntries.length) {
