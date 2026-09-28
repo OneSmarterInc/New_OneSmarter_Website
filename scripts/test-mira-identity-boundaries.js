@@ -82,6 +82,22 @@ const category = await run("Explain your platforms.", {
 assert.deepEqual(category.matchedEntries.slice(0, 2).map(({ id }) => id), ["secure-ticketing-case-management", "bill-audit-bill-pay"]);
 assert.ok(category.matchedEntries.some(({ id }) => id === "company-overview"));
 
+for (const message of [
+  "Tell me about your HIPAA assessment.",
+  "Does the HIPAA assessment apply to your customers?",
+  "Does your completed HIPAA assessment describe a service you provide to customers?",
+]) {
+  const result = await run(message, {
+    domain: "compliance", topic: "HIPAA Security Rule Compliance Assessment Completed",
+    entities: ["HIPAA Security Rule Compliance Assessment Completed"],
+    questionType: message.startsWith("Does") ? "positive_yes_no" : "how",
+  });
+  assert.deepEqual(result.matchedEntries.map(({ id }) => id), ["hipaa-security-rule-assessment"], message);
+  assert.match(result.answerSeed, /OneSmarter's own safeguards and practices/, message);
+  assert.match(result.answerSeed, /not a service that OneSmarter provides to customers/, message);
+  assert.match(result.answerSeed, /readiness support is separate/, message);
+}
+
 const complianceEntry = miraApprovedEvidence.find(({ id }) => id === "compliance-cyber-assurance-overview");
 const guarded = validateMiraFinalResponse({
   answerSeed: `An unapproved assertion about NebulaCorp. ${complianceEntry.approvedSummary}`,

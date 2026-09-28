@@ -3,6 +3,12 @@ import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmar
 // Mira's public-chat contract and terminology context. These derived records
 // never mutate the public knowledge consumed by other agents.
 const supplements = {
+  "hipaa-security-rule-assessment": {
+    sourceFacts: [
+      "The completed HIPAA Security Rule compliance assessment describes OneSmarter's own safeguards and practices. It is not a service that OneSmarter provides to customers, a customer assessment, or a certification.",
+      "Client-facing HIPAA readiness support is separate from OneSmarter's own completed assessment; the two must not be combined into a customer service claim.",
+    ],
+  },
   "compliance-cyber-assurance-overview": {
     sourceFacts: [
       "Compliance readiness support does not establish compliance with all regulations, certify customer systems, or guarantee compliance or audit outcomes.",
