@@ -3,6 +3,7 @@ import { runMiraResponseAdapter } from "../src/server/mira/llmAdapter.js";
 import { onesmarterPublicKnowledgeBase } from "../src/data/agentKnowledge/onesmarterPublicKb.js";
 import { miraApprovedEvidence } from "../src/server/mira/miraApprovedEvidence.js";
 import { resolveMiraDirectFactualTopic } from "../src/server/mira/miraResponseModes.js";
+import { validateMiraFinalResponse } from "../src/server/mira/miraFinalResponseValidator.js";
 
 const originalKnowledge = JSON.stringify(onesmarterPublicKnowledgeBase);
 const config = { mode: "staging_llm", provider: "openai", providerConfigComplete: true, model: "fixture" };
@@ -75,6 +76,22 @@ for (const message of ["Explain your platforms.", "Describe the two platform off
   assert.ok(result.answerSeed.includes("Secure Ticketing"));
   assert.ok(result.answerSeed.includes("Bill Audit"));
 }
+const category = await run("Explain your platforms.", {
+  domain: "platforms", topic: "OneSmarter Overview", entities: ["OneSmarter platforms"],
+});
+assert.deepEqual(category.matchedEntries.slice(0, 2).map(({ id }) => id), ["secure-ticketing-case-management", "bill-audit-bill-pay"]);
+assert.ok(category.matchedEntries.some(({ id }) => id === "company-overview"));
+
+const complianceEntry = miraApprovedEvidence.find(({ id }) => id === "compliance-cyber-assurance-overview");
+const guarded = validateMiraFinalResponse({
+  answerSeed: `An unapproved assertion about NebulaCorp. ${complianceEntry.approvedSummary}`,
+  validationFallbackAnswer: complianceEntry.answerFacts.join(" "),
+  groundingStatus: "grounded", matchedEntries: [complianceEntry],
+  semanticIntentSupplement: intentFor("Does the service establish universal compliance?", { questionType: "positive_yes_no" }),
+});
+cases += 1;
+assert.equal(guarded.finalResponseValidation.action, "fallback");
+assert.ok(guarded.answerSeed.includes("does not establish compliance with all regulations"));
 
 for (const message of ["What is SOC 2 Type II?", "Explain SOC 2."]) {
   const factual = resolveMiraDirectFactualTopic(message);

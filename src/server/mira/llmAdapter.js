@@ -218,7 +218,7 @@ const MIRA_SEMANTIC_TOPIC_LABELS = onesmarterPublicKnowledgeBase
   .map(({ title }) => title)
   .join(" | ");
 const MIRA_SEMANTIC_TOPIC_CONTEXT = onesmarterPublicKnowledgeBase
-  .map(({ title, approvedSummary }) => `${title}: ${approvedSummary}`)
+  .map(({ title, approvedSummary, answerFacts = [] }) => `${title}: ${[approvedSummary, ...answerFacts].join(" ")}`)
   .join("\n");
 
 const semanticIntentSystemExtension =
@@ -311,6 +311,23 @@ const semanticEvidenceFor = (intent = {}, localHarness = runMiraLocalHarness) =>
       candidate.route.startsWith(entry.route.endsWith("/") ? entry.route : `${entry.route}/`),
     ),
   );
+  const categoryEntries = categoryScope || !canonicalEntries.length
+    ? onesmarterPublicKnowledgeBase.filter(({ category }) =>
+        category.toLowerCase() === intent.domain,
+      )
+    : [];
+  if (categoryEntries.length && !intent.clarificationNeeded && intent.confidence >= 0.7) {
+    return {
+      ...localHarness(semanticQueryFor(intent)),
+      confidence: "high",
+      matchedEntries: [...categoryEntries, ...canonicalEntries.filter(({ id }) =>
+        !categoryEntries.some((entry) => entry.id === id),
+      )],
+      semanticCanonicalSelection: true,
+      semanticEvidenceCandidateTitles: categoryEntries.map(({ title }) => title),
+      semanticEvidenceAmbiguous: false,
+    };
+  }
   // A validated canonical topic is already an evidence selection. Re-ranking its
   // words can promote an unrelated offering above the resolved subject.
   if (!categoryScope && intent.questionType !== "comparison" && canonicalEntries.length === topicParts.length && canonicalEntries.length) {
@@ -479,7 +496,9 @@ const semanticOutOfScopeFallback = (intent = {}) => {
     confidence: generalKnowledge ? "medium" : "low",
     matchedEntries: [],
     answerSeed: intent.mentionedNames?.length
-      ? "I don't have approved public information about that person or organization."
+      ? intent.domain === "person_specific"
+        ? "I don't have approved public information about that person or organization."
+        : "I don't have approved public information about that topic."
       : generalKnowledge
       ? `Provide a concise general explanation of ${subject}, without presenting it as OneSmarter-specific information.`
       : answerByDomain[intent.domain] || `The request about ${subject} is outside Mira's approved OneSmarter information.`,

@@ -3,6 +3,11 @@ import { onesmarterPublicKnowledgeBase } from "../../data/agentKnowledge/onesmar
 // Mira's public-chat contract and terminology context. These derived records
 // never mutate the public knowledge consumed by other agents.
 const supplements = {
+  "compliance-cyber-assurance-overview": {
+    sourceFacts: [
+      "Compliance readiness support does not establish compliance with all regulations, certify customer systems, or guarantee compliance or audit outcomes.",
+    ],
+  },
   "mira-professional-role": {
     approvedSummary: "Mira Vale is OneSmarter's public-content AI agent, not a human. Mira explains approved public information about OneSmarter, its platforms, services, professional agents, and Trust Center.",
     sourceFacts: [
