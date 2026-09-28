@@ -11,7 +11,11 @@ export const isRaviSimpleProposition = intent => {
       ["compare", "explain_relationship", "correct"].includes(focus.operation)) return false;
   if (!propositions.length) return true;
   const proposition = propositions[0];
-  return [proposition.id, proposition.subject, proposition.predicate, proposition.object]
+  // A passive or intransitive predicate can be complete without a direct object.
+  // The shared schema permits that representation; an absent object field is
+  // still invalid. Keep subject, context and compound reasoning guards intact.
+  return typeof proposition.object === "string" &&
+    [proposition.id, proposition.subject, proposition.predicate]
     .every(value => typeof value === "string" && value.trim()) &&
     ["current_turn", "established_in_history"].includes(proposition.contextStatus) &&
     ["questioned", "asserted"].includes(proposition.epistemicStatus) &&
