@@ -106,6 +106,87 @@ export const raviApprovedKnowledge = [
       "Support consolidation grants Ravi live access to customer systems",
     ],
   }),
+  {
+    id: "escalation-workflow-design",
+    route: "/platforms/hipaa-regulated-ticketing",
+    title: "Escalation Workflow Design",
+    category: "Operational design guidance",
+    approvedSummary:
+      "As general escalation design guidance, define escalation paths and ownership transfers, use controlled communication for handoffs, and retain workflow tracking and audit history for accountable follow-up. Keep urgency visible to the responsible teams; confirm customer-specific priority rules separately.",
+    sourceFacts: [
+      "As a general design consideration, define the escalation path and the responsible owner at each handoff so routing and ownership transfer remain accountable when an issue needs another team's attention.",
+      "Use controlled communication to carry the issue context across an escalation handoff, with workflow tracking and audit history to make the transfer and follow-up traceable. This is general process guidance based on approved workflow capabilities.",
+      "For urgency handling, use controlled communication and workflow tracking to keep issues requiring coordinated attention visible to the responsible teams. Customer-specific priority levels, escalation triggers, response targets, and resolution commitments require a separate scoped review.",
+      "These design considerations do not establish automated routing or escalation features. Ravi explains the process but does not access queues, modify tickets or workflows, or perform production escalations. No SLA, resolution time, or compliance outcome is guaranteed.",
+    ],
+    allowedClaims: [
+      "Defined escalation paths and ownership transfers are general considerations for accountable handoffs.",
+      "Controlled communication, workflow tracking, and audit history can support a designed escalation process.",
+      "Urgency can be discussed as a communication and follow-up consideration, with customer-specific priority rules confirmed separately.",
+    ],
+    disallowedClaims: [
+      "OneSmarter provides an automated escalation platform or undocumented automated routing features",
+      "Ravi accesses queues, modifies tickets or workflows, or executes production escalations",
+      "Escalation design guarantees SLAs, resolution times, or compliance outcomes",
+    ],
+    unsupportedExtensions: [
+      "Specific priority scales, escalation timers, thresholds, or response commitments",
+      "Customer-specific team permissions, queue configuration, or integrations",
+    ],
+    handoffGuidance:
+      "Confirm customer-specific escalation paths, ownership, priority rules, implementation, and SLA details through a scoped review at care@onesmarter.com.",
+    sourceReference: {
+      type: "approved-operational-design-synthesis",
+      route: "/platforms/hipaa-regulated-ticketing",
+      sourceLabel: "General design considerations derived from approved secure-ticketing capabilities, Ravi claim qualifications, and Security Practices incident response readiness; not additional product features.",
+      sources: [
+        { path: "src/data/agentKnowledge/onesmarterPublicKb.js", quote: "The platform supports secure intake, role-based access, audit history, controlled communication, and workflow tracking." },
+        { path: "src/data/agentKnowledge/raviClaimRules.js", quote: "Secure intake, role-based access, controlled communication, workflow tracking, audit history, and accountable issue resolution can support a designed escalation or handoff process; confirm implementation details separately." },
+        { path: "src/components/TrustCenterPage.jsx", quote: "Incident response readiness supports practical escalation, investigation, communication, and follow-up when issues require coordinated attention." },
+      ],
+    },
+  },
+  {
+    id: "workflow-handoff-design",
+    route: "/technology-solutions/software-support-consolidation",
+    title: "Workflow and Handoff Design",
+    category: "Operational design guidance",
+    approvedSummary:
+      "As general workflow design guidance, connect secure intake with clear ownership, controlled handoffs, workflow tracking, and audit history. Use documentation and knowledge transfer to preserve context, visibility, and continuity as work moves between responsible teams.",
+    sourceFacts: [
+      "As a general design consideration, connect intake to a responsible owner and make the next handoff clear. Secure intake, role-based access, controlled communication, workflow tracking, and accountable issue resolution are the approved capability basis.",
+      "At a workflow handoff, use controlled communication, documentation, and knowledge transfer to preserve context for the next owner. These are general design considerations for continuity between teams, not a claim that Ravi transfers live work.",
+      "Use workflow tracking for visibility into progress and audit history for traceability across handoffs. Documentation and knowledge transfer support continuity as responsibility moves between teams.",
+      "Customer-specific ownership assignments, permissions, integrations, and implementation details require a scoped review. This guidance does not authorize Ravi to access queues, modify tickets or workflows, execute production actions, or guarantee SLAs, resolution times, or compliance outcomes.",
+    ],
+    allowedClaims: [
+      "Secure intake, clear ownership, controlled communication, and tracked handoffs are general workflow design considerations.",
+      "Workflow tracking and audit history support visibility and traceability.",
+      "Documentation and knowledge transfer support workflow and support continuity.",
+    ],
+    disallowedClaims: [
+      "Workflow design establishes automated escalation or undocumented routing capabilities",
+      "Ravi accesses queues, modifies tickets or workflows, or executes production actions",
+      "Workflow design guarantees SLAs, resolution times, or compliance outcomes",
+    ],
+    unsupportedExtensions: [
+      "Customer-specific permissions, ownership assignments, workflow configuration, or vendor integrations",
+      "Guaranteed implementation timelines, prices, or operating outcomes",
+    ],
+    handoffGuidance:
+      "Route customer-specific workflow design, ownership, access, integration, implementation, or SLA questions to care@onesmarter.com.",
+    sourceReference: {
+      type: "approved-operational-design-synthesis",
+      route: "/technology-solutions/software-support-consolidation",
+      sourceLabel: "General design considerations derived from approved secure-ticketing capabilities, Ravi claim qualifications, and Software Support Consolidation documentation and knowledge transfer.",
+      sources: [
+        { path: "src/data/agentKnowledge/onesmarterPublicKb.js", quote: "The platform supports secure intake, role-based access, audit history, controlled communication, and workflow tracking." },
+        { path: "src/data/agentKnowledge/raviClaimRules.js", quote: "Secure intake, role-based access, controlled communication, workflow tracking, audit history, and accountable issue resolution can support a designed escalation or handoff process; confirm implementation details separately." },
+        { path: "src/components/OfferingPage.jsx", quote: "OneSmarter helps organizations consolidate software support through Asia-based delivery centers, creating coordinated support models for maintenance, enhancements, documentation, and operational continuity." },
+        { path: "src/components/OfferingPage.jsx", quote: "Documentation and knowledge transfer support." },
+      ],
+    },
+  },
   approvedAgentRoleEntry({
     id: "ravi-professional-role",
     title: "Ravi Sen — Operations Agent",
