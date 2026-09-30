@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import React from "react";
+import { runInNewContext } from "node:vm";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
 import { siteDirectory } from "../src/data/siteDirectory.js";
@@ -56,6 +57,30 @@ try {
   assert.doesNotMatch(professionalSurface, /delegate|delegating|handing.*Theo|powered by Theo/i);
 
   const page = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
+  // Execute the actual page handlers with a deferred request: no backend or DOM needed.
+  for (const handlerName of ["handleQuestionClick", "handleCustomQuestionSubmit"]) {
+    const handlerSource = page.match(new RegExp(`const ${handlerName} = (async [\\s\\S]*?\\n  });`))?.[1];
+    assert.ok(handlerSource, `${handlerName} must exist`);
+    let input = "What does OneSmarter do?";
+    const requests = [];
+    let completeRequest;
+    const request = new Promise(resolve => { completeRequest = resolve; });
+    const handler = runInNewContext(`(${handlerSource})`, {
+      customQuestion: input, MIRA_INPUT_LIMIT: 500, isLoading: false,
+      setSelectedIndex: () => {}, setCustomQuestion: value => { input = value; },
+      guideToAnswerPanel: () => {}, setTimeout: callback => callback(),
+      requestMiraAnswer: message => { requests.push(message); return request; },
+    });
+    const submission = handlerName === "handleQuestionClick"
+      ? handler({ question: input }, 0)
+      : handler({ preventDefault() {}, currentTarget: { querySelector: () => null } });
+    assert.deepEqual(requests, ["What does OneSmarter do?"], "Submit the question once, unchanged");
+    assert.equal(input, "What does OneSmarter do?", "Keep input while the submission is pending");
+    completeRequest({ answer: "Unchanged Mira answer" });
+    await submission;
+    assert.equal(input, "", `${handlerName} must clear the input after submission`);
+  }
+
   const review = readFileSync("src/components/MiraPageReview.jsx", "utf8");
   assert.match(page, /fetch\("\/api\/agents\/mira\/chat"/);
   assert.doesNotMatch(page, /websiteContent|askTheoEndpoint/);

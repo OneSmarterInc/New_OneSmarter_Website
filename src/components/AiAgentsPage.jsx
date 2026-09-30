@@ -514,6 +514,7 @@ const MiraConversationPanel = () => {
     const answerRequest = requestMiraAnswer(example.question);
     guideToAnswerPanel();
     await answerRequest;
+    setCustomQuestion("");
   };
 
   const handleCustomQuestionChange = (event) => {
