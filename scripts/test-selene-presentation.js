@@ -88,11 +88,11 @@ const pageSource = fs.readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 const seleneSource = fs.readFileSync("src/components/SeleneConversationPanel.jsx", "utf8");
 const presentationSource = fs.readFileSync("src/data/agentPresentation/selenePresentation.js", "utf8");
 
-assert.match(pageSource, /Selene Hart[\s\S]{0,700}Live architecture strategist/);
-assert.match(pageSource, /Open Selene/);
-assert.match(pageSource, /href="#selene-professional-architecture"/);
-assert.match(pageSource, /deriveSelenePresence\(\{ cafePresence, isRequestInFlight: isSeleneRequestInFlight \}\)/);
-assert.match(pageSource, /onRequestStateChange=\{setIsSeleneRequestInFlight\}/);
+assert.doesNotMatch(pageSource, /Selene Hart[\s\S]{0,700}Live architecture strategist/);
+assert.doesNotMatch(pageSource, /Open Selene/);
+assert.doesNotMatch(pageSource, /href="#selene-professional-architecture"/);
+assert.doesNotMatch(pageSource, /deriveSelenePresence\(\{ cafePresence, isRequestInFlight: isSeleneRequestInFlight \}\)/);
+assert.doesNotMatch(pageSource, /onRequestStateChange=\{setIsSeleneRequestInFlight\}/);
 assert.match(seleneSource, /SeleneConversationTurn/);
 assert.match(seleneSource, />Visitor</);
 assert.match(seleneSource, />Selene Hart</);
@@ -109,7 +109,7 @@ assert.equal(SELENE_INPUT_LIMIT + 1 > SELENE_INPUT_LIMIT, true);
 assert.doesNotMatch(seleneSource, /websiteContent|type="file"|upload|crawler/i);
 assert.doesNotMatch(seleneSource + presentationSource, /cafePersonas|cafeConversations|fallback\.reason|provider|riskFlags|claimRule|prompt|energyUnits/i);
 assert.match(presentationSource, /"\/api\/agents\/selene\/chat"/);
-assert.match(pageSource, /Five specialized AI agents for public guidance, supplied-content analysis,[\s\S]*compliance review, operations guidance, and agent architecture\./);
+assert.doesNotMatch(pageSource, /Five specialized AI agents for public guidance, supplied-content analysis,[\s\S]*compliance review, operations guidance, and agent architecture\./);
 assert.doesNotMatch(pageSource, /with operations and strategy agents in development|with strategy agents in development/);
 assert.doesNotMatch(pageSource, /Open Maya/);
 assert.doesNotMatch(pageSource, /all five agents autonomously collaborate|autonomous multi-agent production orchestration/i);
@@ -124,4 +124,4 @@ for (const [path, endpoint] of [
 }
 
 console.log("Selene presentation tests passed.");
-console.log("Validated live card/panel wiring, bounded conversation flow, safe rendering, presence, endpoint isolation, and professional/Café separation.");
+console.log("Validated removed page cards with retained standalone panels, bounded conversation flow, safe rendering, presence, endpoint isolation, and professional/Café separation.");

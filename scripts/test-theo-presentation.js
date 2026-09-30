@@ -60,11 +60,11 @@ assert.match(clarification.clarificationQuestion, /supply/i);
 
 const pageSource = fs.readFileSync("src/components/AiAgentsPage.jsx", "utf8");
 const theoSource = fs.readFileSync("src/components/TheoAnalysisPanel.jsx", "utf8");
-assert.match(pageSource, /Open Theo/);
-assert.match(pageSource, /Live supplied-content analysis/);
-assert.match(pageSource, /Live public-content guide/);
-assert.match(pageSource, /deriveTheoPresence\(\{ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight \}\)/);
-assert.match(pageSource, /onAnalysisStateChange=\{setIsTheoAnalysisInFlight\}/);
+assert.doesNotMatch(pageSource, /Open Theo/);
+assert.doesNotMatch(pageSource, /Live supplied-content analysis/);
+assert.doesNotMatch(pageSource, /Live public-content guide/);
+assert.doesNotMatch(pageSource, /deriveTheoPresence\(\{ cafePresence, isAnalysisInFlight: isTheoAnalysisInFlight \}\)/);
+assert.doesNotMatch(pageSource, /onAnalysisStateChange=\{setIsTheoAnalysisInFlight\}/);
 assert.match(pageSource, /\/api\/agents\/mira\/chat/);
 assert.match(theoSource, /Theo Mercer/);
 assert.match(theoSource, /What to give Theo/);
@@ -77,8 +77,8 @@ assert.match(theoSource, /error\.hasSafeServerMessage[\s\S]*?error\.message/);
 assert.match(theoSource, /onAnalysisStateChange\(true\)[\s\S]*?onAnalysisStateChange\(false\)/);
 assert.doesNotMatch(theoSource, /cafePersonas|cafeConversations/i);
 assert.doesNotMatch(theoSource, /<textarea[\s\S]*?maxLength=\{THEO_CONTENT_LIMIT\}/, "The UI must not silently truncate oversized content before server validation");
-assert.match(pageSource, /Live compliance reader/);
-assert.match(pageSource, /Live operations agent/);
-assert.match(pageSource, /Live architecture strategist/);
+assert.doesNotMatch(pageSource, /Live compliance reader/);
+assert.doesNotMatch(pageSource, /Live operations agent/);
+assert.doesNotMatch(pageSource, /Live architecture strategist/);
 
 console.log("Theo presentation tests passed.");

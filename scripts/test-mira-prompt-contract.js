@@ -826,10 +826,9 @@ for (const expectedGuidance of [
 }
 
 for (const expectedUiText of [
-  "Mira is an AI agent. Responses may contain errors or omit important",
-  "Do not submit PHI, confidential documents, credentials, or private",
-  "AI-generated response - verify important information.",
-  "Mira may make mistakes. Responses are grounded in approved",
+  "AI-generated responses may contain errors.",
+  "Do not provide PHI or confidential information.",
+  'id="mira-safety-notice"',
   "formatMiraAnswerBlocks",
   "list-disc",
 ]) {
