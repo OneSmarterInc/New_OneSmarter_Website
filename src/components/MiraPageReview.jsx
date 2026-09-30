@@ -11,11 +11,6 @@ import {
 const DEFAULT_REQUEST = "Analyze this supplied page for AI readability and buyer clarity.";
 const fieldClass = "mt-2 w-full min-w-0 resize-y rounded-md border border-white/15 bg-black/30 p-4 text-sm text-white placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/30";
 
-// Relabel generated review prose only; quoted evidence and stored history stay verbatim.
-const miraReviewText = (text) => typeof text === "string"
-  ? text.replace(/\bTheo(?: Mercer)?\b/g, "Mira").replace(/\bHe needs the relevant public page content\b/g, "I need the relevant public page content")
-  : text;
-
 const AnalysisList = ({ title, items, renderItem }) => items.length ? (
   <div className="mt-5">
     <h4 className="text-sm font-semibold text-red-200">{title}</h4>
@@ -24,6 +19,19 @@ const AnalysisList = ({ title, items, renderItem }) => items.length ? (
     </ul>
   </div>
 ) : null;
+
+export const MiraReviewResult = ({ response }) => {
+  const analysis = visibleTheoAnalysis(response);
+  return (
+    <div className="mt-6 text-zinc-200">
+      <p className="text-sm leading-7">{analysis.overallAssessment || response.answer}</p>
+      {analysis.clarificationNeeded && analysis.clarificationQuestion && <p className="mt-4 text-sm leading-7 text-red-200">{analysis.clarificationQuestion}</p>}
+      <AnalysisList title="Strengths" items={analysis.strengths} renderItem={(item) => item} />
+      <AnalysisList title="Findings" items={analysis.findings} renderItem={(item) => <><p className="font-semibold text-white">{item.priority}: {item.area}</p><p className="mt-1">{item.issue}</p>{item.evidence && <p className="mt-2 text-xs text-zinc-400">Supplied evidence: {item.evidence}</p>}</>} />
+      <AnalysisList title="Prioritized recommendations" items={analysis.recommendations} renderItem={(item) => <><p className="font-semibold capitalize text-white">{item.priority}</p><p className="mt-1">{item.action}</p><p className="mt-2 text-xs text-zinc-400">{item.reason}</p></>} />
+    </div>
+  );
+};
 
 // Presentation only: supplied content uses the existing analysis module and
 // its endpoint, history builder, output presentation, and server-side safeguards.
@@ -36,7 +44,6 @@ const MiraPageReview = () => {
   const [response, setResponse] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const analysis = visibleTheoAnalysis(response);
   const isContentTooLong = websiteContent.length > THEO_CONTENT_LIMIT;
   const isRequestTooLong = message.length > THEO_INPUT_LIMIT;
 
@@ -65,7 +72,7 @@ const MiraPageReview = () => {
       setErrorMessage(error.status === 429
         ? "Page review is receiving too many requests. Please try again shortly."
         : error.hasSafeServerMessage
-          ? error.message.replace(/\bTheo(?: Mercer)?\b/g, "Mira")
+          ? error.message
           : "The page review could not be completed. Please try again.");
     } finally {
       setIsLoading(false);
@@ -115,13 +122,7 @@ const MiraPageReview = () => {
           {!response && !errorMessage && !isLoading && <p className="mt-6 text-sm leading-7 text-zinc-400">Paste a page and choose what to check. Your review will appear here.</p>}
           {isLoading && <p role="status" className="mt-6 text-sm text-zinc-300">Reviewing only the content you supplied...</p>}
           {errorMessage && <p role="alert" className="mt-6 rounded-md border border-red-400/30 bg-red-950/30 p-4 text-sm leading-7 text-red-100">{errorMessage}</p>}
-          {response && <div className="mt-6 text-zinc-200">
-            <p className="text-sm leading-7">{miraReviewText(analysis.overallAssessment || response.answer)}</p>
-            {analysis.clarificationNeeded && analysis.clarificationQuestion && <p className="mt-4 text-sm leading-7 text-red-200">{miraReviewText(analysis.clarificationQuestion)}</p>}
-            <AnalysisList title="Strengths" items={analysis.strengths} renderItem={(item) => miraReviewText(item)} />
-            <AnalysisList title="Findings" items={analysis.findings} renderItem={(item) => <><p className="font-semibold text-white">{miraReviewText(item.priority)}: {miraReviewText(item.area)}</p><p className="mt-1">{miraReviewText(item.issue)}</p>{item.evidence && <p className="mt-2 text-xs text-zinc-400">Supplied evidence: {item.evidence}</p>}</>} />
-            <AnalysisList title="Prioritized recommendations" items={analysis.recommendations} renderItem={(item) => <><p className="font-semibold capitalize text-white">{miraReviewText(item.priority)}</p><p className="mt-1">{miraReviewText(item.action)}</p><p className="mt-2 text-xs text-zinc-400">{miraReviewText(item.reason)}</p></>} />
-          </div>}
+          {response && <MiraReviewResult response={response} />}
         </div>
       </div>
     </div>
