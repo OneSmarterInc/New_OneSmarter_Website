@@ -665,7 +665,7 @@ const AiAgentsPage = () => {
       <section id="ai-agents-hero" className="px-5 pb-16 pt-36 md:px-12 md:pb-20 md:pt-44">
         <div className="qa-container mx-auto">
           <p className="text-sm font-semibold uppercase tracking-wide text-red-400">AI Agents</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">Meet Mira. Find clarity.<br className="hidden sm:block" /> Take the next step.</h1>
+          <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">Practical AI Agents for Secure, Accountable Workflows</h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">Ask Mira about OneSmarter platforms, services, and trust posture using approved content. Or paste a page to review its clarity, evidence, and AI readability.</p>
           <a href="#mira-professional-guide" className="mt-8 inline-flex min-h-11 items-center rounded-md bg-red-600 px-6 py-3 font-semibold hover:bg-red-500">Open Mira</a>
         </div>
