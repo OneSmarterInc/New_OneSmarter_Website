@@ -140,25 +140,8 @@ if (/\bautoPlay\b|\bautoplay\b/i.test(publicVoiceSource)) {
   fail("voice-safety: voice samples must not autoplay.");
 }
 
-const audioTagCount = (componentSource.match(/<audio\b/g) || []).length;
-if (audioTagCount !== 1) {
-  fail(`voice-ui: expected exactly one shared audio element, found ${audioTagCount}.`);
-}
-
-if (!componentSource.includes("disabled={!isAvailable}")) {
-  fail("voice-ui: unavailable samples should keep playback controls disabled.");
-}
-
-if (!componentSource.includes("audioRef.current.pause();")) {
-  fail("voice-ui: switching active samples should stop the previous sample.");
-}
-
-if (!componentSource.includes(".filter((sample) => sample.posture === voiceStyle)")) {
-  fail("voice-ui: rendered samples must be filtered by the selected voice style.");
-}
-
-if (!componentSource.includes("[voiceStyle]")) {
-  fail("voice-ui: switching voice style should reset/stop playback of the previous style's audio.");
+if (/<audio\b|MiraVoiceSamplesPanel|Hear Mira/.test(componentSource)) {
+  fail("voice-ui: removed audio controls must not appear on the simplified page.");
 }
 
 const assetPathsByStyle = new Map();
@@ -180,22 +163,6 @@ for (const stylePaths of assetPathsByStyle.values()) {
     }
     seenAssetPaths.add(assetPath);
   }
-}
-
-for (const stateLabel of [
-  "Playing",
-  "Paused",
-  "Stopped",
-  "Ended",
-  "Audio sample unavailable",
-]) {
-  if (!componentSource.includes(stateLabel)) {
-    fail(`voice-ui: missing visible playback state label ${stateLabel}.`);
-  }
-}
-
-if (!componentSource.includes("onError={() => activeSampleId && setPlaybackState(\"unavailable\")}")) {
-  fail("voice-ui: audio error state should be handled without crashing.");
 }
 
 if (failures.length) {

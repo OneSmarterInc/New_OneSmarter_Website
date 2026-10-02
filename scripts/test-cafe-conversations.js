@@ -161,8 +161,8 @@ if (theoActivePresence !== "in_cafe" || theoActivePresence === "at_work") {
 if (theoExpiredPresence !== "at_work" || theoExpiredPresence === "in_cafe") {
   fail("Theo must be exclusively at_work, not in_cafe, after Café presence expires.");
 }
-if (!agentSource.includes('name: "Mira Vale"') || !agentSource.includes('presence: "at_work"')) {
-  fail("Permanent product rule: Mira must remain at_work.");
+if (!agentSource.includes('id="mira-professional-guide"')) {
+  fail("Mira must remain available on the simplified page.");
 }
 
 if (agentSource.includes("conversation.seedTopic")) {
@@ -176,7 +176,7 @@ if (
   !agentSource.includes("invited {invitedParticipantName} to the Café") ||
   !agentSource.includes("viewedCafeConversationId") ||
   !agentSource.includes("conversation={viewedCafeConversation}") ||
-  !/currentCafeConversation,\s+cafeNow/.test(agentSource)
+  !agentSource.includes("[cafeNow, currentCafeConversation]")
 ) {
   fail("Selectable history must render independently from current-conversation presence.");
 }

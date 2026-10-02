@@ -129,43 +129,8 @@ for (const forbidden of [
   }
 }
 
-if (!componentSource.includes("MiraVisualPresencePanel")) {
-  fail("visual-ui: Mira visual presence panel must be rendered.");
-}
-
-if (!componentSource.includes("role=\"img\"")) {
-  fail("visual-ui: placeholder should expose an image role with accessible label.");
-}
-
-if (!componentSource.includes("onError={() =>")) {
-  fail("visual-ui: image errors should fall back to the placeholder.");
-}
-
-if (!componentSource.includes("motion-safe:transition-opacity")) {
-  fail("visual-ui: reduced-motion compatible transition class is required.");
-}
-
-if (!componentSource.includes("loading=\"lazy\"")) {
-  fail("visual-ui: portrait image should use lazy loading.");
-}
-
-if (!componentSource.includes("Static artwork only")) {
-  fail("visual-ui: helper text should state static artwork only.");
-}
-
-if (!componentSource.includes("AI-generated portrait")) {
-  fail("visual-ui: Mira's likeness must have a persistent AI-generated disclosure.");
-}
-
-if (!componentSource.includes("window.location.hostname === \"localhost\"")) {
-  fail("visual-ui: presentation debug output must be limited to localhost.");
-}
-
-if (
-  !componentSource.includes("{showPresentationDebug && (") ||
-  !componentSource.includes("<MiraMoodSignalPanel presentationState={presentationState} />")
-) {
-  fail("visual-ui: conversation posture instrumentation must use the presentation debug gate.");
+if (/MiraVisualPresencePanel|MiraMoodSignalPanel|showPresentationDebug/.test(componentSource)) {
+  fail("visual-ui: posture and expression instrumentation must not render on the simplified page.");
 }
 
 if (failures.length) {
