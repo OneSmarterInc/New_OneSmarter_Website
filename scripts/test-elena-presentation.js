@@ -93,10 +93,10 @@ const elenaSource = fs.readFileSync("src/components/ElenaConversationPanel.jsx",
 const miraEndpointPattern = /fetch\("\/api\/agents\/mira\/chat"/;
 const theoSource = fs.readFileSync("src/data/agentPresentation/theoPresentation.js", "utf8");
 
-assert.match(pageSource, /Open Elena/);
-assert.match(pageSource, /Live compliance reader/);
-assert.match(pageSource, /deriveElenaPresence\(\{ cafePresence, isRequestInFlight: isElenaRequestInFlight \}\)/);
-assert.match(pageSource, /onRequestStateChange=\{setIsElenaRequestInFlight\}/);
+assert.doesNotMatch(pageSource, /Open Elena/);
+assert.doesNotMatch(pageSource, /Live compliance reader/);
+assert.doesNotMatch(pageSource, /deriveElenaPresence\(\{ cafePresence, isRequestInFlight: isElenaRequestInFlight \}\)/);
+assert.doesNotMatch(pageSource, /onRequestStateChange=\{setIsElenaRequestInFlight\}/);
 assert.match(pageSource, miraEndpointPattern);
 assert.match(theoSource, /"\/api\/agents\/theo\/chat"/);
 assert.match(elenaSource, /answer/);
@@ -127,10 +127,10 @@ assert.match(elenaSource, /turnResponse\.sources/);
 assert.match(elenaSource, /turnResponse\.clarificationNeeded/);
 assert.match(elenaSource, /onRequestStateChange\(true\)[\s\S]*?onRequestStateChange\(false\)/);
 assert.doesNotMatch(elenaSource, /cafePersonas|cafeConversations|sourceLabel|fallback\.reason|provider|riskFlags|claimRule|prompt/i);
-assert.match(pageSource, /Live architecture strategist/);
-assert.match(pageSource, /Five specialized AI agents for public guidance, supplied-content analysis,[\s\S]*compliance review, operations guidance, and agent architecture\./);
+assert.doesNotMatch(pageSource, /Live architecture strategist/);
+assert.doesNotMatch(pageSource, /Five specialized AI agents for public guidance, supplied-content analysis,[\s\S]*compliance review, operations guidance, and agent architecture\./);
 assert.doesNotMatch(pageSource, /First guide concept, connected to future analysis, compliance/);
-assert.match(pageSource, /Open Ravi/);
-assert.match(pageSource, /Open Selene/);
+assert.doesNotMatch(pageSource, /Open Ravi/);
+assert.doesNotMatch(pageSource, /Open Selene/);
 
 console.log("Elena presentation tests passed.");

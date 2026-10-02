@@ -51,11 +51,15 @@ const selected = prepareRaviDeterministicFallback({ semanticIntent: generic, sel
 assert.ok(selected.answer.startsWith(claims.approvedSummary));
 assert.deepEqual(selected.sources.map(source => source.id), [claims.id]);
 
-// Removing the actual supporting record must still fail normal grounding.
+// Approved escalation knowledge remains valid support when the platform record is unavailable.
 const saved = { approvedSummary: platform.approvedSummary, sourceFacts: platform.sourceFacts, allowedClaims: platform.allowedClaims };
 try {
   Object.assign(platform, { approvedSummary: "", sourceFacts: [], allowedClaims: [] });
-  assert.equal(prepareRaviDeterministicFallback({ semanticIntent: roleIntent, selection: plan(role), allowed: true }), null);
+  const escalationFallback = prepareRaviDeterministicFallback({ semanticIntent: roleIntent, selection: plan(role), allowed: true });
+  assert.equal(escalationFallback.claimEvaluation.status, "ALLOW_WITH_QUALIFICATION");
+  assert.equal(escalationFallback.claimEvaluation.ruleId, "generic-operations-concept");
+  assert.deepEqual(escalationFallback.sources.map(source => source.id), ["escalation-workflow-design"]);
+  assert.equal(validateRaviModelOutput(output(escalationFallback.answer), { matchedEntries: escalationFallback.matchedEntries }).valid, true);
 } finally { Object.assign(platform, saved); }
 
 const variants = [
