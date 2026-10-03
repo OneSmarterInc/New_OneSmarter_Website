@@ -7,29 +7,6 @@ import {
 const RAVI_CLARIFICATION =
   "I can help explain secure ticketing, case management, workflow tracking, audit history, workflow modernization, routing, escalation design, and operational support. What would you like to review?";
 
-const TOPIC_TERMS = Object.freeze({
-  "secure-ticketing-case-management": [
-    "secure ticketing", "case management", "secure intake", "role based access",
-    "audit history", "controlled communication", "workflow tracking", "ticket",
-    "routing", "escalation", "handoff",
-  ],
-  "claims-processing-services": [
-    "claims workflow", "claims processing", "claims technology", "member portal",
-    "provider portal", "operational visibility",
-  ],
-  "healthcare-tpa-workflow-modernization": [
-    "healthcare", "tpa", "workflow modernization", "secure operational systems",
-  ],
-  "enterprise-workflow-tools": [
-    "enterprise software", "workflow tools", "custom application", "dashboard",
-    "portal", "data integration", "enterprise integration", "integration",
-  ],
-  "software-support-continuity": [
-    "software support", "maintenance", "enhancements", "issue resolution",
-    "documentation", "knowledge transfer", "operational continuity",
-  ],
-});
-
 const normalized = (value = "") => String(value).toLowerCase()
   .replace(/[‐‑‒–—]/g, "-")
   .replace(/[^a-z0-9\s/-]/g, " ")
@@ -67,16 +44,34 @@ const localResult = ({
   };
 };
 
+// Derive retrieval vocabulary from approved records so new entries cannot be
+// silently excluded by an independently maintained topic table. These scores
+// select evidence only; claim rules and semantic/grounding checks still apply.
+const retrievalTokens = value => new Set(normalized(value)
+  .split("-").join(" ").split("/").join(" ").split(" ").filter(Boolean));
+
 export const retrieveRaviKnowledge = (message = "", limit = 3) => {
-  const text = normalized(message);
-  return raviApprovedKnowledge
-    .map((entry) => ({
-      ...entry,
-      score: (TOPIC_TERMS[entry.id] || []).reduce(
-        (score, term) => score + (text.includes(normalized(term)) ? 1 : 0),
-        0,
-      ),
-    }))
+  const query = retrievalTokens(message);
+  if (!query.size) return [];
+  const documents = raviApprovedKnowledge.map(entry => ({
+    entry,
+    title: retrievalTokens(entry.title),
+    content: retrievalTokens([entry.approvedSummary, ...entry.sourceFacts, ...entry.allowedClaims].join(" ")),
+  }));
+  const weights = new Map([...new Set(documents.flatMap(document =>
+    [...document.title, ...document.content]))].map(token => [token,
+    Math.log(1 + documents.length / documents.filter(document =>
+      document.title.has(token) || document.content.has(token)).length),
+  ]));
+  const similarity = tokens => {
+    const magnitude = Math.sqrt([...tokens].reduce((sum, token) => sum + weights.get(token) ** 2, 0));
+    return magnitude ? [...query].filter(token => tokens.has(token))
+      .reduce((sum, token) => sum + weights.get(token) ** 2, 0) / magnitude : 0;
+  };
+  return documents.map(({ entry, title, content }) => ({
+    ...entry,
+    score: 2 * similarity(title) + similarity(content),
+  }))
     .filter(({ score }) => score > 0)
     .sort((first, second) => second.score - first.score || first.id.localeCompare(second.id))
     .slice(0, limit);
@@ -87,6 +82,10 @@ const retrieveRaviKnowledgeForIntent = (semanticIntent, limit = 3) => {
   const exactTopicMatches = raviApprovedKnowledge.filter((entry) =>
     [entry.id, entry.title].some((value) => normalized(value) === normalizedTopic));
   if (exactTopicMatches.length) return exactTopicMatches.slice(0, limit);
+  // Keep a resolved topic ahead of incidental entity names in its explanation.
+  // Entities still remain intact for subject/permission checks downstream.
+  const topicMatches = retrieveRaviKnowledge(normalizedTopic, limit);
+  if (topicMatches.length) return topicMatches;
   const semanticText = [
     semanticIntent?.topic,
     semanticIntent?.proposition,
