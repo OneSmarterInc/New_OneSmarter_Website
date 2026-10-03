@@ -63,7 +63,10 @@ const semanticFollowUp = runRaviLocalEngine({
     clarificationNeeded: false,
   },
 });
-assert.ok(semanticFollowUp.matchedEntries.some(({ id }) => id === "secure-ticketing-case-management"));
+// Dedicated design evidence now participates instead of being excluded by the
+// old topic table. The resolved topic must still override unrelated history.
+assert.equal(semanticFollowUp.matchedEntries[0].id, "escalation-workflow-design");
+assert.ok(!semanticFollowUp.matchedEntries.some(({ id }) => id === "claims-processing-services"));
 
 const ambiguousSemantic = runRaviLocalEngine({
   message: "Can it do that?",
@@ -73,7 +76,7 @@ assert.equal(ambiguousSemantic.clarificationNeeded, true);
 
 assert.deepEqual(
   retrieveRaviKnowledge("secure ticketing workflow tracking").map(({ id }) => id),
-  ["secure-ticketing-case-management"],
+  ["secure-ticketing-case-management", "escalation-workflow-design", "workflow-handoff-design"],
 );
 assert.deepEqual(runRaviLocalEngine({ message: "Close this ticket" }), runRaviLocalEngine({ message: "Close this ticket" }));
 assert.doesNotMatch(JSON.stringify(cases.map(([message]) => runRaviLocalEngine({ message }))), /cricket|street food|grandmother|brother/i);
