@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prepare:cafe": "node scripts/prepare-cafe-content.js",
+    "predev": "node scripts/prepare-cafe-content.js",
+    "prebuild": "node scripts/prepare-cafe-content.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

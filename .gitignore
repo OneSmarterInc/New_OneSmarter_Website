@@ -31,3 +31,9 @@ docs/design-reference/
 src/data/cafeConversations/drafts/
 
 .env*
+
+# Keep drafts, reviews and locks private; deploy only approved publication JSON.
+cafe-data/*
+!cafe-data/published/
+cafe-data/published/*
+!cafe-data/published/*.json

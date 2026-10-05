@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   cafeGenerationConstraints,
@@ -8,9 +9,9 @@ import {
 } from "../src/data/agentPresentation/cafePersonas.js";
 import { cafeSeedTopics } from "../src/data/cafeSeedTopics.js";
 import { publishedCafeConversations } from "../src/data/cafeConversations/index.js";
-import { readMiraRuntimeConfig } from "../src/server/mira/miraRuntimeConfig.js";
+import { generateCafeWithOllama } from "./lib/cafeOllama.js";
 
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const MAX_MESSAGE_LENGTH = 2000;
 const MIN_EXCHANGES = 6;
 const MAX_EXCHANGES = 10;
 const RECENT_PUBLICATION_LIMIT = 4;
@@ -219,16 +220,64 @@ export const buildCafeGenerationPrompt = ({
     "",
     "Participant profiles (complete data):",
     JSON.stringify(participants, null, 2),
+    "",
+    "Identity and conversational voice:",
+    "Both participants are AI agents having a professional but relaxed off-duty discussion, not humans acting out a scene. Let their agent identity be apparent naturally, without repeating 'as an AI' or turning the conversation into a disclaimer.",
+    "In the first exchange, explicitly refer to your shared identity as AI agents while opening a question or possibility about the topic. Make this a brief part of the conversation, not a greeting or disclaimer. Neither participant has personally witnessed the topic or received any evidence beyond this prompt.",
+    "Use their different agent perspectives to explore the ordinary topic: Theo notices evidence and precise wording; Elena notices claims, assumptions, and boundaries; Ravi considers practical steps and what might go wrong; Selene asks how parts and perspectives fit together. These are habits of thought, not permission to discuss work, customers, or internal systems.",
+    "Respect each selected persona's disposition, interests, and speaking habits. Give both a meaningful contribution without forcing equal airtime or making reserved participants unusually talkative.",
+    "Write natural back-and-forth: respond to the previous remark, ask a curious question, offer a different angle, or gently disagree. Prefer short, concrete sentences and varied turns over consecutive monologues or repeated agreement.",
+    "Keep the tone professional, warm, and conversational. Avoid audit-report language, compliance documents, findings, recommendations, bullet lists, summaries, marketing language, and formal closing conclusions.",
+    "Treat the profiles' human biographies as fictional persona context only. Do not claim lived memories, family experiences, eating, travel, physical actions, real-world observation, or independent access to data. If a constructed background is relevant, explicitly describe it as constructed rather than a real experience.",
+    "Do not invent statistics, research, citations, news events, customers, experiments, tests, or results. Do not turn a seed topic into a claim that an event actually happened. Use only supplied factual details; explore other ideas as clearly framed possibilities, questions, or opinions rather than unsupported facts.",
+    "The seed topic is a discussion idea, not a factual account. Open with a question or possibility about it. If you introduce an illustrative detail, imagined rule, quotation, note, person, or scenario, explicitly label it hypothetical in that same turn using wording such as 'suppose', 'imagine', or 'what if'. Never imply you found, read, noticed, tested, or observed something that was not supplied. Do not assert what people usually do or call an invented example real, classic, common, or proven.",
+    "Keep observations about people and the world as questions or possibilities too: say what someone might do in the imagined scenario, not what players, readers, or people generally do. Stay with this small idea instead of making broad claims.",
+    "Style demonstration only, on an unrelated topic; do not copy its subject or wording into your dialogue:",
+    "Agent A: 'As agents, would we read an imaginary sign saying “almost open” the same way? I'd want to know what “almost” means.'",
+    "Agent B: 'I'd be tempted to ask the sign to commit. Could it mean opening soon, or just a door left slightly ajar?'",
+    "Agent A: 'The second reading hadn't occurred to me. What extra word would settle it?'",
+    "Follow that pattern: a clearly imagined idea, different perspectives, curiosity, and direct replies. Keep each turn to one or two short sentences. Stay entirely within the imagined discussion; leave biographies, memories, named real examples, and claims of personal experience out of the dialogue.",
+    "Before returning JSON, check that each turn sounds like a reply from a distinct AI agent, stays on the supplied topic, and contains no invented evidence or human experience. Return only the dialogue JSON, not this check.",
   ].join("\n");
 };
 
-export const parseCafeModelOutput = (responseJson) => {
-  const outputText = responseJson?.output
-    ?.flatMap((item) => item?.content || [])
-    .find((content) => content?.type === "output_text")?.text;
-
-  if (!outputText) throw new Error("Provider returned no text output.");
-  return JSON.parse(outputText);
+export const parseCafeModelOutput = (outputText, { participantIds, exchangeCount }) => {
+  if (typeof outputText !== "string" || outputText.length > 100000) {
+    throw new Error("Café output must be JSON text within the size limit.");
+  }
+  let generated;
+  try {
+    generated = JSON.parse(outputText);
+  } catch {
+    throw new Error("Café output is not valid JSON.");
+  }
+  if (!generated || typeof generated !== "object" || Array.isArray(generated) ||
+    Object.keys(generated).length !== 1 || !Array.isArray(generated.exchanges)) {
+    throw new Error("Café output must contain only an exchanges array.");
+  }
+  if (!Number.isInteger(exchangeCount) || exchangeCount < MIN_EXCHANGES ||
+    exchangeCount > MAX_EXCHANGES || generated.exchanges.length !== exchangeCount) {
+    throw new Error("Café output did not contain the requested exchange count (6–10).");
+  }
+  for (const exchange of generated.exchanges) {
+    if (!exchange || typeof exchange !== "object" || Array.isArray(exchange) ||
+      Object.keys(exchange).length !== 2 || !Object.hasOwn(exchange, "speaker") ||
+      !Object.hasOwn(exchange, "text")) {
+      throw new Error("Each Café exchange must contain only speaker and text fields.");
+    }
+    // The existing transcript contract uses exact persona IDs, not free-form names.
+    if (!participantIds.includes(exchange.speaker) || !findPersona(exchange.speaker)) {
+      throw new Error("Café output contains an invalid speaker or participant name.");
+    }
+    if (typeof exchange.text !== "string" || !exchange.text.trim() ||
+      exchange.text.length > MAX_MESSAGE_LENGTH) {
+      throw new Error(`Café messages must contain 1–${MAX_MESSAGE_LENGTH} characters of non-empty text.`);
+    }
+  }
+  if (participantIds.some((id) => !generated.exchanges.some(({ speaker }) => speaker === id))) {
+    throw new Error("Both Café participants must speak.");
+  }
+  return generated;
 };
 
 export const buildCafeDraft = ({
@@ -237,81 +286,57 @@ export const buildCafeDraft = ({
   exchanges,
   invitedBy,
   selection,
-}) => ({
-  id: `cafe-draft-${new Date().toISOString().replaceAll(/[:.]/g, "-")}`,
-  createdAt: new Date().toISOString(),
-  participants: participantIds,
-  seedTopic,
-  invitedBy,
-  exchanges,
-  selection,
-  status: "unpublished",
-});
+  model = "qwen3:4b",
+}) => {
+  const draftId = `cafe-draft-${randomUUID()}`;
+  const generatedAt = new Date().toISOString();
+  const content = { participants: participantIds, seedTopic, invitedBy, exchanges, selection };
+  return {
+    id: draftId,
+    draftId,
+    model,
+    generatedAt,
+    createdAt: generatedAt,
+    contentHash: createHash("sha256").update(JSON.stringify(content)).digest("hex"),
+    ...content,
+    status: "unpublished",
+  };
+};
 
-const generateConversation = async ({
+export const generateConversation = async ({
   participantIds,
   seedTopic,
   exchangeCount,
   invitedBy,
   selection,
-}) => {
-  const config = readMiraRuntimeConfig(process.env);
-  if (config.provider !== "openai" || !config.model || !config.apiKeyConfigured) {
-    throw new Error(
-      "Set MIRA_LLM_PROVIDER=openai, MIRA_LLM_MODEL, and MIRA_LLM_API_KEY before running this manual tool.",
-    );
-  }
-
+}, { env = process.env, outputDirectory = draftDirectory } = {}) => {
   const prompt = buildCafeGenerationPrompt({ participantIds, seedTopic, exchangeCount });
-  const response = await fetch(OPENAI_RESPONSES_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: config.model,
-      input: prompt,
-      max_output_tokens: Math.max(config.maxTokens, 900),
-      text: {
-        format: {
-          type: "json_schema",
-          name: "cafe_conversation",
-          strict: true,
-          schema: {
+  const response = await generateCafeWithOllama({
+    prompt,
+    env,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        exchanges: {
+          type: "array",
+          minItems: exchangeCount,
+          maxItems: exchangeCount,
+          items: {
             type: "object",
             additionalProperties: false,
             properties: {
-              exchanges: {
-                type: "array",
-                minItems: exchangeCount,
-                maxItems: exchangeCount,
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    speaker: { type: "string", enum: participantIds },
-                    text: { type: "string", minLength: 1 },
-                  },
-                  required: ["speaker", "text"],
-                },
-              },
+              speaker: { type: "string", enum: participantIds },
+              text: { type: "string", minLength: 1, maxLength: MAX_MESSAGE_LENGTH },
             },
-            required: ["exchanges"],
+            required: ["speaker", "text"],
           },
         },
       },
-    }),
+      required: ["exchanges"],
+    },
   });
-
-  if (!response.ok) {
-    throw new Error(`Provider request failed with HTTP ${response.status}.`);
-  }
-
-  const generated = parseCafeModelOutput(await response.json());
-  if (generated.exchanges?.length !== exchangeCount) {
-    throw new Error("Provider output did not contain the requested exchange count.");
-  }
+  const generated = parseCafeModelOutput(response.content, { participantIds, exchangeCount });
 
   const draft = buildCafeDraft({
     participantIds,
@@ -319,10 +344,17 @@ const generateConversation = async ({
     exchanges: generated.exchanges,
     invitedBy,
     selection,
+    model: response.model,
   });
-  await fs.mkdir(draftDirectory, { recursive: true });
-  const draftPath = path.join(draftDirectory, `${draft.id}.json`);
-  await fs.writeFile(draftPath, `${JSON.stringify(draft, null, 2)}\n`, "utf8");
+  await fs.mkdir(outputDirectory, { recursive: true });
+  const draftPath = path.join(outputDirectory, `${draft.id}.json`);
+  const temporaryPath = `${draftPath}.tmp`;
+  try {
+    await fs.writeFile(temporaryPath, `${JSON.stringify(draft, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    await fs.rename(temporaryPath, draftPath);
+  } finally {
+    await fs.rm(temporaryPath, { force: true });
+  }
   return draftPath;
 };
 
