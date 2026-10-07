@@ -4,6 +4,7 @@ import process from "node:process";
 import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildCafeGenerationPrompt, parseCafeModelOutput } from "./generate-cafe-conversation.js";
+import { validDay } from "./prepare-cafe-content.js";
 
 export const cafeReviewDirectory = fileURLToPath(new URL("../cafe-data/", import.meta.url));
 const hash = (content) => createHash("sha256").update(JSON.stringify(content)).digest("hex");
@@ -28,7 +29,8 @@ const readJson = async (filename) => {
 export const validateCafeReviewContent = (source) => {
   if (!source || !Array.isArray(source.participants) || source.participants.length !== 2 ||
     !Array.isArray(source.exchanges)) throw new Error("Invalid Cafe draft fields.");
-  const { participants, seedTopic, invitedBy, exchanges, selection } = source;
+  const { participants, seedTopic, conversationDay, invitedBy, exchanges, selection } = source;
+  if (conversationDay !== undefined && !validDay(conversationDay)) throw new Error("Invalid Cafe conversation day.");
   buildCafeGenerationPrompt({ participantIds: participants, seedTopic, exchangeCount: exchanges.length });
   parseCafeModelOutput(JSON.stringify({ exchanges }), { participantIds: participants, exchangeCount: exchanges.length });
   if (invitedBy !== null && !participants.includes(invitedBy)) throw new Error("Invalid Cafe inviter.");
@@ -37,7 +39,7 @@ export const validateCafeReviewContent = (source) => {
     throw new Error("Invalid Cafe selection provenance.");
   }
   return {
-    participants: [...participants], seedTopic, invitedBy,
+    participants: [...participants], seedTopic, conversationDay, invitedBy,
     exchanges: exchanges.map(({ speaker, text }) => ({ speaker, text })),
     selection: Object.fromEntries(fields.map((key) => [key, selection[key]])),
   };

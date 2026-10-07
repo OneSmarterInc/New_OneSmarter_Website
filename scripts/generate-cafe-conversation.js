@@ -10,6 +10,7 @@ import {
 import { cafeSeedTopics } from "../src/data/cafeSeedTopics.js";
 import { publishedCafeConversations } from "../src/data/cafeConversations/index.js";
 import { generateCafeWithOllama } from "./lib/cafeOllama.js";
+import { validDay } from "./prepare-cafe-content.js";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MIN_EXCHANGES = 6;
@@ -283,14 +284,16 @@ export const parseCafeModelOutput = (outputText, { participantIds, exchangeCount
 export const buildCafeDraft = ({
   participantIds,
   seedTopic,
+  conversationDay,
   exchanges,
   invitedBy,
   selection,
   model = "qwen3:4b",
 }) => {
+  if (conversationDay !== undefined && !validDay(conversationDay)) throw new Error("Invalid Cafe conversation day.");
   const draftId = `cafe-draft-${randomUUID()}`;
   const generatedAt = new Date().toISOString();
-  const content = { participants: participantIds, seedTopic, invitedBy, exchanges, selection };
+  const content = { participants: participantIds, seedTopic, conversationDay, invitedBy, exchanges, selection };
   return {
     id: draftId,
     draftId,
@@ -306,10 +309,12 @@ export const buildCafeDraft = ({
 export const generateConversation = async ({
   participantIds,
   seedTopic,
+  conversationDay,
   exchangeCount,
   invitedBy,
   selection,
 }, { env = process.env, outputDirectory = draftDirectory } = {}) => {
+  if (conversationDay !== undefined && !validDay(conversationDay)) throw new Error("Invalid Cafe conversation day.");
   const prompt = buildCafeGenerationPrompt({ participantIds, seedTopic, exchangeCount });
   const response = await generateCafeWithOllama({
     prompt,
@@ -341,6 +346,7 @@ export const generateConversation = async ({
   const draft = buildCafeDraft({
     participantIds,
     seedTopic,
+    conversationDay,
     exchanges: generated.exchanges,
     invitedBy,
     selection,
@@ -358,22 +364,69 @@ export const generateConversation = async ({
   return draftPath;
 };
 
+// Named options do not consume or reinterpret the four existing positional args.
+export const parseCafeGenerationArgs = (args) => {
+  const positional = [];
+  const options = new Map();
+  for (const arg of args) {
+    if (!arg.startsWith("--")) { positional.push(arg); continue; }
+    const separator = arg.indexOf("=");
+    const key = arg.slice(0, separator);
+    if (separator < 0 || !["--count", "--conversation-days"].includes(key) || options.has(key)) {
+      throw new Error("Use --count=N and optionally --conversation-days=YYYY-MM-DD,... once each.");
+    }
+    options.set(key, arg.slice(separator + 1));
+  }
+  const countText = options.get("--count");
+  const count = countText === undefined ? 1 : Number(countText);
+  if (!Number.isSafeInteger(count) || count < 1) throw new Error("Count must be a positive integer.");
+  const conversationDays = options.has("--conversation-days") ? options.get("--conversation-days").split(",") : [];
+  if (conversationDays.length && (conversationDays.length !== count || !conversationDays.every(validDay))) {
+    throw new Error("Supply one valid conversation day per draft.");
+  }
+  const [firstPersonaId, secondPersonaId, seedTopic, exchangeCount] = positional;
+  return { count, conversationDays, inputs: {
+    participantIds: firstPersonaId || secondPersonaId ? [firstPersonaId, secondPersonaId] : undefined,
+    seedTopic, exchangeCount,
+  } };
+};
+
+export const generateCafeBatch = async ({ count = 1, conversationDays = [], inputs = {} } = {}, {
+  random = Math.random,
+  publishedConversations = publishedCafeConversations,
+  generate = generateConversation,
+  onSelection = () => {},
+  onGenerated = () => {},
+} = {}) => {
+  if (!Number.isSafeInteger(count) || count < 1) throw new Error("Count must be a positive integer.");
+  if (conversationDays.length && (conversationDays.length !== count || !conversationDays.every(validDay))) {
+    throw new Error("Supply one valid conversation day per draft.");
+  }
+  const batch = [];
+  const draftPaths = [];
+  for (let index = 0; index < count; index += 1) {
+    const selection = {
+      ...resolveCafeGenerationInputs({ ...inputs, random, publishedConversations: [...batch, ...publishedConversations] }),
+      conversationDay: conversationDays[index],
+    };
+    onSelection(selection, index);
+    const start = Date.now();
+    const draftPath = await generate(selection);
+    batch.unshift({ participants: selection.participantIds, seedTopic: selection.seedTopic });
+    draftPaths.push(draftPath);
+    onGenerated({ draftPath, selection, index, durationMs: Date.now() - start });
+  }
+  return draftPaths;
+};
+
 const isDirectRun = process.argv[1] &&
   pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
 
 if (isDirectRun) {
-  const [firstPersonaId, secondPersonaId, seedTopic, exchangeCountValue] = process.argv.slice(2);
-  const resolvedInputs = resolveCafeGenerationInputs({
-    participantIds: firstPersonaId || secondPersonaId
-      ? [firstPersonaId, secondPersonaId]
-      : undefined,
-    seedTopic,
-    exchangeCount: exchangeCountValue,
-  });
-
-  console.log(`Café selection: ${JSON.stringify(resolvedInputs)}`);
-  generateConversation(resolvedInputs)
-    .then((draftPath) => console.log(`Unpublished Café draft written to ${draftPath}`))
+  Promise.resolve().then(() => generateCafeBatch(parseCafeGenerationArgs(process.argv.slice(2)), {
+    onSelection: (selection) => console.log(`Café selection: ${JSON.stringify(selection)}`),
+    onGenerated: ({ draftPath, durationMs }) => console.log(`Unpublished Café draft written to ${draftPath} (${durationMs} ms)`),
+  }))
     .catch((error) => {
       console.error(error.message);
       process.exitCode = 1;

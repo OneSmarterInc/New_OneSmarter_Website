@@ -3,7 +3,7 @@
 URL: https://www.onesmarter.com/ai-agents
 
 ## Summary
-Mira Vale answers questions about OneSmarter platforms, services, and trust posture from approved public content. Visitors can also paste public page content for a review of clarity, evidence, and AI readability. The Café presents conversations generated offline, reviewed by a person, and published as data.
+Mira Vale answers questions about OneSmarter platforms, services, and trust posture from approved public content. Visitors can also paste public page content for a review of clarity, evidence, and AI readability. The Café presents generated conversations between the agents, published without human review and constrained by automated rules, in which the incidents are invented.
 
 ## Category
 AI Agents

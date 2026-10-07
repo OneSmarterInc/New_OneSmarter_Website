@@ -18,12 +18,13 @@ const validId = (value) => typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_
 const validTimestamp = (value) => typeof value === "string" &&
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) &&
   Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
-const validDay = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+export const validDay = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 
 // Same canonical content and field order as the local review/publish workflow.
 export const cafePublicationContent = (record) => ({
-  participants: record.participants, seedTopic: record.seedTopic, invitedBy: record.invitedBy,
+  participants: record.participants, seedTopic: record.seedTopic,
+  conversationDay: record.conversationDay, invitedBy: record.invitedBy,
   exchanges: record.exchanges.map(({ speaker, text }) => ({ speaker, text })),
   selection: Object.fromEntries(fields.map((field) => [field, record.selection[field]])),
 });
@@ -36,6 +37,7 @@ export const validateCafePublication = (record) => {
     record.participants.some((id) => !personaIds.has(id))) fail("participants");
   if (typeof record.seedTopic !== "string" || !record.seedTopic.trim() ||
     (record.invitedBy !== null && !record.participants.includes(record.invitedBy))) fail("topic or inviter");
+  if (record.conversationDay !== undefined && !validDay(record.conversationDay)) fail("conversation day");
   if (!record.selection || fields.some((field) => !["random", "manual", "not_recorded"].includes(record.selection[field]))) fail("selection metadata");
   if (!Array.isArray(record.exchanges) || record.exchanges.length < 6 || record.exchanges.length > 10) fail("exchange count");
   for (const exchange of record.exchanges) {
@@ -57,9 +59,13 @@ export const validateCafePublication = (record) => {
       !validTimestamp(record.publishedAt) || record.approvedAt > record.publishedAt) fail("approval/publication timestamps");
   }
   if (!validDay(record.publishedAt) && !validTimestamp(record.publishedAt)) fail("publication date");
+  const { conversationDay, ...content } = cafePublicationContent(record);
   return {
-    id: record.id, publishedAt: record.publishedAt.slice(0, 10),
-    ...cafePublicationContent(record), reviewedBy: record.reviewerId, status: "published",
+    // This normalized field is the existing UI display date. The source record's
+    // publishedAt remains the publication audit timestamp and is never rewritten.
+    id: record.id, publishedAt: conversationDay === undefined ? record.publishedAt.slice(0, 10) : conversationDay,
+    ...content, ...(conversationDay === undefined ? {} : { conversationDay }),
+    reviewedBy: record.reviewerId, status: "published",
   };
 };
 

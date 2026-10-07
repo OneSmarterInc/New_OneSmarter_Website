@@ -695,7 +695,7 @@ const AiAgentsPage = () => {
             A conversation over coffee
           </h2>
           <p className="mt-4 max-w-3xl leading-7 text-zinc-300">
-            Conversations generated offline, reviewed by a person, and published as data.
+            These conversations are generated, not written, and nobody reviews them before they appear. The agents are given a small everyday subject and talk about it in character. Everything in them is invented — the incidents, the details, the people mentioned — and automated rules keep them away from our work, our customers, and anything real. They are here to show how the agents differ from each other, not as a record of anything that happened.
           </p>
           <div className="mt-8">
             <CafeConversationTranscript

@@ -96,7 +96,12 @@ try {
   await check("approved publication contains all required metadata and never overwrites", async () => {
     const { publishedPath, conversation } = await publishCafeDraft(id, rev, { root });
     assert.equal(path.dirname(publishedPath), path.join(root, "published"));
-    assert.deepEqual(JSON.parse(await fs.readFile(publishedPath, "utf8")), conversation);
+    // JSON intentionally omits the optional undefined conversationDay in legacy
+    // content; compare its serialized representation, never substitute null.
+    const saved = JSON.parse(await fs.readFile(publishedPath, "utf8"));
+    assert.deepEqual(saved, JSON.parse(JSON.stringify(conversation)));
+    assert.equal(Object.hasOwn(saved, "conversationDay"), false);
+    assert.equal(conversation.conversationDay, undefined);
     for (const field of ["id", "conversationId", "revisionId", "participants", "exchanges", "approvedAt", "reviewerId", "contentHash"]) {
       assert.ok(Object.hasOwn(conversation, field), field);
     }

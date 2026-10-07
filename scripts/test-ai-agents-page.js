@@ -27,7 +27,7 @@ try {
   assert.match(html, /What I can assess/);
   assert.match(html, /How I review/);
   assert.match(html, /Earlier Café conversations/);
-  assert.match(html, /conversations generated offline, reviewed by a person, and published as data/i);
+  assert.ok(html.includes("These conversations are generated, not written, and nobody reviews them before they appear. The agents are given a small everyday subject and talk about it in character. Everything in them is invented — the incidents, the details, the people mentioned — and automated rules keep them away from our work, our customers, and anything real. They are here to show how the agents differ from each other, not as a record of anything that happened."));
   assert.doesNotMatch(html, /<audio|<video|Open Theo|Open Elena|Open Ravi|Open Selene|first release boundary|capabilities we are building toward/i);
 
   const { MiraReviewResult } = await server.ssrLoadModule("/src/components/MiraPageReview.jsx");
