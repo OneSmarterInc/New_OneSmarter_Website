@@ -57,6 +57,51 @@ try {
   assert.doesNotMatch(professionalSurface, /delegate|delegating|handing.*Theo|powered by Theo/i);
 
   const page = readFileSync("src/components/AiAgentsPage.jsx", "utf8");
+  const cafeHandlerSource = page.match(/const handleCafeSelection = (\(id\) => \{[\s\S]*?\n {2}});/)?.[1];
+  assert.ok(cafeHandlerSource);
+  for (const reducedMotion of [false, true]) {
+    const calls = [];
+    let frame;
+    let selected;
+    const select = runInNewContext(`(${cafeHandlerSource})`, {
+      setViewedCafeConversationId: id => { selected = id; calls.push("select"); },
+      requestAnimationFrame: callback => { frame = callback; },
+      window: { matchMedia: query => {
+        assert.equal(query, "(prefers-reduced-motion: reduce)");
+        return { matches: reducedMotion };
+      } },
+      cafeTranscriptRef: { current: {
+        focus: options => { assert.equal(options.preventScroll, true); calls.push("focus"); },
+        scrollIntoView: options => {
+          assert.equal(options.block, "start");
+          assert.equal(options.behavior, reducedMotion ? "instant" : "smooth");
+          calls.push("scroll");
+        },
+      } },
+    });
+    // Another selection replaces the old one; repeated clicks and return also scroll.
+    for (const id of ["archive-first", "archive-second", "archive-second", ""]) {
+      calls.length = 0;
+      select(id);
+      assert.equal(selected, id);
+      assert.deepEqual(calls, ["select"], "Render selection before scrolling");
+      frame();
+      assert.deepEqual(calls, ["select", "focus", "scroll"]);
+    }
+  }
+  const cafeHtml = html.slice(html.indexOf('<section id="agent-cafe"'), html.indexOf('<section id="ai-agents-contact"'));
+  assert.equal((cafeHtml.match(/aria-pressed="false" aria-controls="cafe-selected-conversation"/g) || []).length, 32);
+  assert.match(cafeHtml, /id="cafe-selected-conversation"[^>]*tabindex="-1"[^>]*scroll-mt-24/);
+  assert.match(page, /onClick=\{\(\) => handleCafeSelection\(conversation.id\)\}/);
+  assert.match(page, /onClick=\{\(\) => handleCafeSelection\(""\)\}/);
+  assert.match(page, /aria-pressed=\{viewedCafeConversationId === conversation.id\}/);
+  assert.match(page, /viewedCafeConversationId === conversation.id \? "border-red-400 bg-white\/\[0.06\]"/);
+  const { getEarlierCafeConversations, selectCafeConversation } = await import("../src/data/cafeConversations/index.js");
+  for (const conversation of getEarlierCafeConversations(selectCafeConversation())) {
+    const topic = renderToStaticMarkup(React.createElement("span", null, conversation.seedTopic)).slice(6, -7);
+    assert.ok(cafeHtml.includes(topic), "Archive displays the exact existing topic");
+    assert.ok(cafeHtml.includes(`dateTime="${conversation.conversationDay || conversation.publishedAt}"`));
+  }
   // Execute the actual page handlers with a deferred request: no backend or DOM needed.
   for (const handlerName of ["handleQuestionClick", "handleCustomQuestionSubmit"]) {
     const handlerSource = page.match(new RegExp(`const ${handlerName} = (async [\\s\\S]*?\\n  });`))?.[1];

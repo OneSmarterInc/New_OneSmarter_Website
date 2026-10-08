@@ -638,6 +638,18 @@ const AiAgentsPage = () => {
   const [mode, setMode] = useState("question");
   const [cafeNow] = useState(() => new Date());
   const [viewedCafeConversationId, setViewedCafeConversationId] = useState("");
+  const cafeTranscriptRef = useRef(null);
+  const handleCafeSelection = (id) => {
+    setViewedCafeConversationId(id);
+    // Wait for React to render the selected transcript before positioning it.
+    requestAnimationFrame(() => {
+      cafeTranscriptRef.current?.focus({ preventScroll: true });
+      cafeTranscriptRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        block: "start",
+      });
+    });
+  };
   const currentCafeConversation = selectCafeConversation(undefined, cafeNow);
   useEffect(() => {
     if (!currentCafeConversation || !isCafeConversationActive(cafeNow)) return undefined;
@@ -698,10 +710,12 @@ const AiAgentsPage = () => {
             These conversations are generated, not written, and nobody reviews them before they appear. The agents are given a small everyday subject and talk about it in character. Everything in them is invented — the incidents, the details, the people mentioned — and automated rules keep them away from our work, our customers, and anything real. They are here to show how the agents differ from each other, not as a record of anything that happened.
           </p>
           <div className="mt-8">
-            <CafeConversationTranscript
-              conversation={viewedCafeConversation}
-              personaNames={cafePersonaNames}
-            />
+            <div id="cafe-selected-conversation" ref={cafeTranscriptRef} tabIndex={-1} className="scroll-mt-24 focus:outline-none">
+              <CafeConversationTranscript
+                conversation={viewedCafeConversation}
+                personaNames={cafePersonaNames}
+              />
+            </div>
             {earlierPublishedCafeConversations.length > 0 && (
               <details className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4 sm:p-5 md:p-6">
                 <summary className="cursor-pointer font-semibold text-zinc-200">
@@ -712,18 +726,24 @@ const AiAgentsPage = () => {
                     <button
                       key={conversation.id}
                       type="button"
-                      onClick={() => setViewedCafeConversationId(conversation.id)}
-                      className="block w-full rounded-lg border border-white/10 bg-black/30 p-4 text-left text-sm font-semibold text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.06]"
+                      onClick={() => handleCafeSelection(conversation.id)}
+                      aria-pressed={viewedCafeConversationId === conversation.id}
+                      aria-controls="cafe-selected-conversation"
+                      className={`block w-full rounded-lg border p-4 text-left text-sm font-semibold text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.06] ${viewedCafeConversationId === conversation.id ? "border-red-400 bg-white/[0.06]" : "border-white/10 bg-black/30"}`}
                     >
                       View {conversation.participants
                         .map((participantId) => cafePersonaNames[participantId])
                         .join(" and ")}
+                      <span className="mt-2 block break-words font-normal leading-6 text-zinc-300">{conversation.seedTopic}</span>
+                      <time className="mt-1 block font-normal text-zinc-400" dateTime={conversation.conversationDay || conversation.publishedAt}>
+                        {new Date(`${conversation.conversationDay || conversation.publishedAt}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}
+                      </time>
                     </button>
                   ))}
                   {viewedCafeConversationId && (
                     <button
                       type="button"
-                      onClick={() => setViewedCafeConversationId("")}
+                      onClick={() => handleCafeSelection("")}
                       className="text-sm font-semibold text-red-300 underline-offset-4 hover:underline"
                     >
                       Return to this week&apos;s conversation

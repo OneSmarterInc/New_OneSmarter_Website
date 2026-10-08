@@ -165,8 +165,8 @@ if (!agentSource.includes('id="mira-professional-guide"')) {
   fail("Mira must remain available on the simplified page.");
 }
 
-if (agentSource.includes("conversation.seedTopic")) {
-  fail("The seed topic must remain publication metadata and must not render publicly.");
+if (!agentSource.includes("{conversation.seedTopic}")) {
+  fail("The Café archive must display the existing seed topic unchanged to distinguish repeated participant pairs.");
 }
 if (agentSource.includes("conversation.selection")) {
   fail("Selection provenance must remain internal and must not render publicly.");
