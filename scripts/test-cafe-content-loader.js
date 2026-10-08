@@ -25,8 +25,21 @@ const modern = {
 try {
   await check("JSON migration and snapshot preserve every runtime field", async () => {
     const loaded = await loadCafePublications();
-    assert.deepEqual(loaded, legacyCafeConversations);
-    assert.deepEqual(publishedCafeConversations, legacyCafeConversations);
+    assert.equal(loaded.length, 33);
+    assert.equal(new Set(loaded.map(({ id }) => id)).size, 33);
+    for (const legacy of legacyCafeConversations) {
+      assert.deepEqual(loaded.find(({ id }) => id === legacy.id), legacy);
+    }
+    const directory = path.join(repo, "cafe-data/published");
+    const files = (await fs.readdir(directory)).filter((name) => name.endsWith(".json"));
+    assert.equal(files.length, 33);
+    const records = await Promise.all(files.map(async (name) => JSON.parse(await fs.readFile(path.join(directory, name), "utf8"))));
+    assert.equal(new Set(records.map(({ id }) => id)).size, 33, "duplicate source IDs must not be hidden by revision selection");
+    for (const record of records) {
+      assert.equal(cafePublicationHash(record), record.contentHash);
+      assert.deepEqual(loaded.find(({ id }) => id === record.id), validateCafePublication(record));
+    }
+    assert.deepEqual(publishedCafeConversations, loaded);
     const generated = await prepareCafeContent({ outputFile });
     assert.deepEqual(generated, loaded);
     assert.deepEqual((await import(pathToFileURL(outputFile).href)).publishedCafeSnapshot, loaded);
@@ -35,14 +48,15 @@ try {
     assert.equal(await fs.readFile(outputFile, "utf8"), first);
   });
   await check("selection, history, presence windows and restoration identities retain parity", async () => {
+    const publications = await loadCafePublications();
     for (let week = 0; week < 104; week += 1) {
       for (const day of [0, 1, 2, 6]) {
         const now = new Date(Date.UTC(2026, 7, 24 + week * 7 + day, 12));
         const selected = selectCafeConversation(undefined, now);
-        const previous = selectCafeConversation(legacyCafeConversations, now);
+        const previous = selectCafeConversation(publications, now);
         assert.deepEqual(selected, previous);
-        assert.deepEqual(getEarlierCafeConversations(selected), getEarlierCafeConversations(previous, legacyCafeConversations));
-        assert.deepEqual(getCurrentCafeRestorationEvent({ now }), getCurrentCafeRestorationEvent({ now, conversations: legacyCafeConversations }));
+        assert.deepEqual(getEarlierCafeConversations(selected), getEarlierCafeConversations(previous, publications));
+        assert.deepEqual(getCurrentCafeRestorationEvent({ now }), getCurrentCafeRestorationEvent({ now, conversations: publications }));
         for (const agentId of selected.participants) {
           assert.equal(buildCafeRestorationId({ bucketKey: getCafeWeekBucket(now).key, conversationId: selected.id, agentId }),
             `cafe:${getCafeWeekBucket(now).key}:${previous.id}:${agentId}`);
