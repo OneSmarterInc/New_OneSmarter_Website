@@ -258,6 +258,12 @@ export const runElenaResponseAdapter = async ({
   // remain a separate source and cannot establish additional corporate status.
   if (semanticScopeAllowed && localResult.matchedEntries.length) {
     const relatedIds = new Set(localResult.matchedEntries.flatMap(entry => entry.relatedKnowledgeIds || []));
+    // A readiness/claim branch may return before consuming preferred evidence.
+    // Preserve explicitly selected definitions without widening corporate claims.
+    for (const id of semanticPolicy.canonicalKnowledgeIds) {
+      if (elenaApprovedKnowledge.some(entry => entry.id === id &&
+        entry.sourceReference?.type === "authoritative-terminology")) relatedIds.add(id);
+    }
     for (const entry of elenaApprovedKnowledge) {
       if (!relatedIds.has(entry.id) || localResult.matchedEntries.some(item => item.id === entry.id)) continue;
       localResult.matchedEntries.push(entry);
