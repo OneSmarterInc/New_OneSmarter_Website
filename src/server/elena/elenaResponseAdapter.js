@@ -11,7 +11,7 @@ import {
   elenaQualificationMatrix,
   evaluateElenaClaim,
 } from "../../data/agentKnowledge/elenaClaimRules.js";
-import { runElenaLocalEngine } from "./elenaLocalEngine.js";
+import { retrieveElenaKnowledge, runElenaLocalEngine } from "./elenaLocalEngine.js";
 import { validateElenaModelOutput } from "./elenaOutputValidator.js";
 import { buildElenaPromptPayload } from "./elenaPromptContract.js";
 import { readElenaRuntimeConfig } from "./elenaRuntimeConfig.js";
@@ -139,7 +139,24 @@ const intentAwareScopeFallback = (semanticIntent = {}) => {
 
 const providerFailureFallback = ({ message, conversationHistory, verbosityBand }) => {
   const claimEvaluation = evaluateElenaClaim(message);
-  return runElenaLocalEngine({ message, conversationHistory, verbosityBand, claimEvaluation });
+  const primary = retrieveElenaKnowledge(message)[0];
+  const terminology = primary?.sourceReference?.type === "authoritative-terminology" ? primary : null;
+  const result = runElenaLocalEngine({ message, conversationHistory, verbosityBand, claimEvaluation,
+    preferredKnowledgeIds: terminology ? [terminology.id] : [],
+  });
+  // Semantic outages return before the normal evidence expansion. Preserve only
+  // the existing retriever's leading definitions, alongside unchanged claim policy.
+  if (!terminology || result.clarificationNeeded) return result;
+  if (!result.matchedEntries.some(entry => entry.id === terminology.id)) {
+    result.matchedEntries.push(terminology);
+    result.sources.push({ id: terminology.id, title: terminology.title, route: terminology.route,
+      sourceLabel: terminology.sourceReference.sourceLabel });
+  }
+  const supportingSummaries = result.matchedEntries.filter(entry => entry.id !== terminology.id)
+    .map(entry => entry.approvedSummary);
+  return completeElenaEvidenceFallback({ ...result,
+    answer: [result.answer, ...supportingSummaries].join(" "),
+  });
 };
 
 export const normalizeElenaConversationHistory = (history) => {

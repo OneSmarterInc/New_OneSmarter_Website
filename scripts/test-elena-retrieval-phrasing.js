@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import process from "node:process";
 import { elenaApprovedKnowledge } from "../src/data/agentKnowledge/elenaApprovedKnowledge.js";
 import { runElenaResponseAdapter } from "../src/server/elena/elenaResponseAdapter.js";
+import { runElenaLocalEngine } from "../src/server/elena/elenaLocalEngine.js";
+import { evaluateElenaClaim } from "../src/data/agentKnowledge/elenaClaimRules.js";
 
 // Retrieval/claim-policy integration only. Semantic interpretation is injected;
 // answer generation is deliberately unavailable to inspect the real evidence
@@ -103,3 +105,40 @@ for (const [message, topic, id, boundaryRule, boundaryStatus = "REFUSE_UNSUPPORT
 }
 console.log(`Elena phrasing: ${cases.length - failures.length}/${cases.length} (10 topic questions, 3 boundaries). Controlled providers, not live LLM validation.`);
 if (failures.length) process.exitCode = 1;
+
+// The deployed failure occurs BEFORE successful semantic resolution. Exercise
+// the real early-return path, not a successful injected interpretation followed
+// by an answer-generation outage.
+for (const failure of ["unavailable", "invalid-intent"]) {
+  for (const [message, expectedId, terminology] of [
+    ["What is the difference between readiness work and verified assurance status?", "assurance-terminology", true],
+    ["What is the difference between an attestation and a certification?", "assurance-terminology", true],
+    ["What help is available for SOC readiness?", "soc-readiness-support", false],
+    ["Does PCI DSS readiness mean we are certified?", "pci-dss-readiness-support", false],
+    ["What compliance and cyber assurance services do you offer?", "compliance-cyber-assurance-overview", false],
+  ]) {
+    const response = await runElenaResponseAdapter({ message, config,
+      intentProvider: async () => {
+        if (failure === "unavailable") throw new Error("simulated semantic outage");
+        return { intent: {} };
+      },
+      providerAdapter: async () => assert.fail("Failed semantic interpretation must not reach generation"),
+    });
+    assert.equal(response.mode, "local_deterministic");
+    assert.equal(response.fallbackUsed, true);
+    assert.equal(response.fallbackReason, failure === "unavailable" ? "provider_failure" : "invalid_provider_intent");
+    assert.ok(response.sources.some(entry => entry.id === expectedId), `${failure}: ${message}`);
+    const baseline = runElenaLocalEngine({ message, claimEvaluation: evaluateElenaClaim(message) });
+    assert.deepEqual(response.claimEvaluation, terminology
+      ? baseline.claimEvaluation || evaluateElenaClaim(message) : baseline.claimEvaluation,
+    "fallback must preserve claim decisions");
+    if (terminology) {
+      const definitions = elenaApprovedKnowledge.find(entry => entry.id === expectedId).sourceFacts;
+      for (const fact of definitions) assert.ok(response.answer.includes(fact), message);
+    } else {
+      assert.deepEqual(response.sources, baseline.sources, "ordinary readiness evidence unchanged");
+      assert.equal(response.answer, baseline.answer, "ordinary readiness response unchanged");
+    }
+    console.log(`PASS semantic ${failure}: ${message}`);
+  }
+}
